@@ -104,7 +104,7 @@ export default function FarmingTrackerPage() {
     { id: 46741, name: 'Bolt of Damask', beforeCount: 178, afterCount: 250, difference: 72, valueEach: 12500, valueTotal: 900000, category: 'materials' },
     { id: 73034, name: 'Vial of Linseed Oil', beforeCount: 176, afterCount: 228, difference: 52, valueEach: 4616, valueTotal: 240032, category: 'materials' },
     
-    // Materiales T5
+   /* // Materiales T5
     { id: 24294, name: 'Vial of Powerful Blood', beforeCount: 0, afterCount: 339475, difference: 339475, category: 't5-materials' },
     { id: 24341, name: 'Large Bone', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
     { id: 24350, name: 'Large Claw', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
@@ -113,7 +113,7 @@ export default function FarmingTrackerPage() {
     { id: 24299, name: 'Large Totem', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
     { id: 24282, name: 'Large Venom Sac', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
     { id: 24276, name: 'Pile of Crystalline Dust', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    
+    */
     // Items de fractales
     { id: 71315, name: 'Prototype Alchemical Precipitate', beforeCount: 0, afterCount: 374, difference: 374, category: 'fractal-items' },
     { id: 72796, name: 'Beta Alchemical Precipitate', beforeCount: 0, afterCount: 112, difference: 112, category: 'fractal-items' },
