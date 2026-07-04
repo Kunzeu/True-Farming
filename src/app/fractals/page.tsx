@@ -106,13 +106,13 @@ export default function FarmingTrackerPage() {
     
     // Materiales T5
     { id: 24294, name: 'Vial of Powerful Blood', beforeCount: 0, afterCount: 339475, difference: 339475, category: 't5-materials' },
-    { id: 24341, name: 'Large Bone', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24350, name: 'Large Claw', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24288, name: 'Large Scale', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24356, name: 'Large Fang', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24299, name: 'Large Totem', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24282, name: 'Large Venom Sac', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
-    { id: 24276, name: 'Pile of Crystalline Dust', beforeCount: 0, afterCount: 0, difference: 0, category: 't5-materials' },
+    { id: 24341, name: 'Large Bone', beforeCount: 0, afterCount: 0, difference: 254514, category: 't5-materials' },
+    { id: 24350, name: 'Large Claw', beforeCount: 0, afterCount: 0, difference: 243061, category: 't5-materials' },
+    { id: 24288, name: 'Large Scale', beforeCount: 0, afterCount: 0, difference: 231855, category: 't5-materials' },
+    { id: 24356, name: 'Large Fang', beforeCount: 0, afterCount: 0, difference: 241855, category: 't5-materials' },
+    { id: 24299, name: 'Large Totem', beforeCount: 0, afterCount: 0, difference: 154877, category: 't5-materials' },
+    { id: 24282, name: 'Large Venom Sac', beforeCount: 0, afterCount: 0, difference: 143061, category: 't5-materials' },
+    { id: 24276, name: 'Pile of Crystalline Dust', beforeCount: 0, afterCount: 0, difference: 131855, category: 't5-materials' },
     
     // Items de fractales
     { id: 71315, name: 'Prototype Alchemical Precipitate', beforeCount: 0, afterCount: 374, difference: 374, category: 'fractal-items' },
