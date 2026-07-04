@@ -433,7 +433,7 @@
   "farmingTracker.stats.avgValuePerChest": "Average value per chest",
   "farmingTracker.search.placeholder": "Search items...",
   "farmingTracker.search.loading": "Loading icons and current prices...",
-  "farmingTracker.table.title": "Items Gained Container - Box Opening Analysis",
+  "farmingTracker.table.title": "Gained Items Container - Box Opening Analysis",
   "farmingTracker.table.headers.item": "Item",
   "farmingTracker.table.headers.quantityObtained": "Quantity Obtained",
   "farmingTracker.table.headers.currentPrice": "Current Price",

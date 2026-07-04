@@ -420,7 +420,7 @@
   "farmingTracker.stats.avgValuePerChest": "Durchschnittlicher Wert pro Truhe",
   "farmingTracker.search.placeholder": "Gegenstände suchen...",
   "farmingTracker.search.loading": "Lade Icons und aktuelle Preise...",
-  "farmingTracker.table.title": "Gewonnene Gegenstände Container - Box Opening Analyse",
+  "farmingTracker.table.title": "Gewonnene Gegenstände Container - Aperture de Caches Analyse",
   "farmingTracker.table.headers.item": "Gegenstand",
   "farmingTracker.table.headers.quantityObtained": "Erhaltene Menge",
   "farmingTracker.table.headers.currentPrice": "Aktueller Preis",

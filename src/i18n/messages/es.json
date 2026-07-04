@@ -489,7 +489,7 @@
   "farmingTracker.search.updating": "Actualizando...",
   "farmingTracker.search.updatePrices": "Actualizar Precios",
   "farmingTracker.search.lastUpdate": "Última actualización",
-  "farmingTracker.table.title": "Contenedor de Items Ganados - Análisis de Box Opening",
+  "farmingTracker.table.title": "Contenedor de Items Ganados - Análisis de Apertura de Cajas",
   "farmingTracker.table.headers.item": "Item",
   "farmingTracker.table.headers.quantityObtained": "Cantidad Obtenida",
   "farmingTracker.table.headers.currentPrice": "Precio Actual",

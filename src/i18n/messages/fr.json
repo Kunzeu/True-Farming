@@ -413,7 +413,7 @@
   "farmingTracker.stats.avgValuePerChest": "Valeur moyenne par coffre",
   "farmingTracker.search.placeholder": "Rechercher des objets...",
   "farmingTracker.search.loading": "Chargement des icônes et prix actuels...",
-  "farmingTracker.table.title": "Conteneur d'Objets Gagnés - Analyse d'Ouverture de Boîtes",
+  "farmingTracker.table.title": "Conteneur d'Objets Gagnés - Analyse d'Aperture de Caches",
   "farmingTracker.table.headers.item": "Objet",
   "farmingTracker.table.headers.quantityObtained": "Quantité Obtenue",
   "farmingTracker.table.headers.currentPrice": "Prix Actuel",
