@@ -236,15 +236,16 @@ const GiveawaysPage = () => {
 
       // Load config and counts in parallel
       const [configResponse, countsResponse] = await Promise.all([
-        fetch("/api/giveaways"),
+        fetch("/api/giveaways", { signal: AbortSignal.timeout(15000) }),
         fetch(`/api/giveaways/counts?t=${Date.now()}`, {
           cache: "no-store",
+          signal: AbortSignal.timeout(15000),
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
             Pragma: "no-cache",
             Expires: "0",
           },
-        })
+        }).catch(() => null),
       ]);
 
       if (configResponse.ok) {
@@ -252,7 +253,7 @@ const GiveawaysPage = () => {
         let giveawaysData = configData.giveaways;
 
         // If counts loaded successfully, merge them
-        if (countsResponse.ok) {
+        if (countsResponse?.ok) {
           const countsData = await countsResponse.json();
           const dynamicData = countsData.data || {};
 
@@ -297,7 +298,9 @@ const GiveawaysPage = () => {
   // Load winners from API
   const loadWinners = useCallback(async () => {
     try {
-      const response = await fetch("/api/giveaways/winners?latest=true");
+      const response = await fetch("/api/giveaways/winners?latest=true", {
+        signal: AbortSignal.timeout(12000),
+      });
       if (response.ok) {
         const data = await response.json();
         setWinners(data.winners);

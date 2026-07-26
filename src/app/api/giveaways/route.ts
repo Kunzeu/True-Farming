@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import pool from '@/lib/postgres-db';
 import { getAllGiveawaysWithAdvent } from '../../../config/giveaways';
 
 export const runtime = 'nodejs';
@@ -28,9 +27,8 @@ export async function GET() {
       { giveaways },
       {
         headers: {
-          // Cache muy agresivo (24h). 
-          // Se invalida automáticamente con cada RE-DEPLOY de Vercel.
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=86400',
+    // Cache-bust: monthly list depends on current UTC month
+    'Cache-Control': 'private, no-store, max-age=0',
         },
       }
     );

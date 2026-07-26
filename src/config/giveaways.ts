@@ -123,21 +123,22 @@ export function getMonthlyGiveawaysRange(
   return giveaways;
 }
 
-// Configuración de todos los sorteos (Generada dinámicamente)
+// Configuración de todos los sorteos (Generada en cada request — no en module init).
 // Empezamos desde Octubre 2025 hasta el mes actual + 1 (para ver el siguiente)
-const currentNow = new Date();
-const currentMonth = currentNow.getUTCMonth() + 1;
-const currentYear = currentNow.getUTCFullYear();
-
-// Siguiente mes para mostrar el "Upcoming"
-let nMonth = currentMonth + 1;
-let nYear = currentYear;
-if (nMonth > 12) {
-  nMonth = 1;
-  nYear++;
+export function getMonthlyGiveawaysNow(now: Date = new Date()): Giveaway[] {
+  const currentMonth = now.getUTCMonth() + 1;
+  const currentYear = now.getUTCFullYear();
+  let nMonth = currentMonth + 1;
+  let nYear = currentYear;
+  if (nMonth > 12) {
+    nMonth = 1;
+    nYear++;
+  }
+  return getMonthlyGiveawaysRange(10, 2025, nMonth, nYear);
 }
 
-export const GIVEAWAYS: Giveaway[] = getMonthlyGiveawaysRange(10, 2025, nMonth, nYear);
+/** @deprecated Prefer getMonthlyGiveawaysNow() — kept for call sites that read GIVEAWAYS. */
+export const GIVEAWAYS: Giveaway[] = getMonthlyGiveawaysNow();
 
 // Generar sorteos de adviento para diciembre 2025
 export function generateAdventGiveaways(year: number = 2025): Giveaway[] {
@@ -397,14 +398,14 @@ export function generateAdventGiveaways(year: number = 2025): Giveaway[] {
 // Agregar sorteos de adviento a la lista de sorteos
 export function getAllGiveawaysWithAdvent(year: number = 2025): Giveaway[] {
   const adventGiveaways = generateAdventGiveaways(year);
-  return [...GIVEAWAYS, ...adventGiveaways];
+  return [...getMonthlyGiveawaysNow(), ...adventGiveaways];
 }
 
 export function getGiveawayById(id: string): Giveaway | undefined {
   if (!id) return undefined;
 
   // First try to find in regular pre-generated giveaways
-  const regularGiveaway = GIVEAWAYS.find(g => g.id === id);
+  const regularGiveaway = getMonthlyGiveawaysNow().find(g => g.id === id);
   if (regularGiveaway) return regularGiveaway;
 
   // Check if it's a monthly giveaway (format: monthly-YYYY-MM or monthly-YYYY-M)
@@ -470,7 +471,7 @@ export function getActiveGiveaway(): Giveaway | undefined {
 
 // Función para obtener todos los sorteos
 export function getAllGiveaways(): Giveaway[] {
-  return GIVEAWAYS;
+  return getMonthlyGiveawaysNow();
 }
 
 // Función para actualizar estado de sorteos basado en fechas

@@ -68,7 +68,11 @@ export async function GET(request: NextRequest) {
 
           if (prizeConfig.itemId) {
             try {
-              const itemInfo = await getItemInfo(prizeConfig.itemId);
+              // Bound time — Workers cancel hung outbound fetches
+              const itemInfo = await Promise.race([
+                getItemInfo(prizeConfig.itemId),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+              ]);
               if (itemInfo) {
                 itemIcon = itemInfo.icon;
               }

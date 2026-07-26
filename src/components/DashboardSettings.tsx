@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useDashboardPreferences } from '@/hooks/useDashboardPreferences';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
+import { canAccessAdventCalendar } from '@/lib/advent-access';
 import { Settings, Grid, List, Eye, EyeOff, RotateCcw, X } from 'lucide-react';
 
 interface DashboardSettingsProps {
@@ -53,6 +54,10 @@ export default function DashboardSettings({ isOpen, onClose }: DashboardSettings
   const [dragOverCard, setDragOverCard] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+
+  const visibleAvailableCards = availableCards.filter(
+    (c) => c.id !== 'holidayCalendar' || canAccessAdventCalendar(user)
+  );
 
   // Cerrar modal con tecla ESC
   useEffect(() => {
@@ -281,7 +286,7 @@ export default function DashboardSettings({ isOpen, onClose }: DashboardSettings
           
           <div className="space-y-2">
             {preferences.cardOrder.map((cardId) => {
-              const card = availableCards.find(c => c.id === cardId);
+              const card = visibleAvailableCards.find(c => c.id === cardId);
               if (!card) return null;
               
               const isHidden = preferences.hiddenCards.includes(cardId);
@@ -344,7 +349,7 @@ export default function DashboardSettings({ isOpen, onClose }: DashboardSettings
             })}
             
             {/* Mostrar tarjetas que no están en el orden */}
-            {availableCards
+            {visibleAvailableCards
               .filter(card => !preferences.cardOrder.includes(card.id))
               .map((card) => {
                 const cardName = t(`dashboard.${card.id}.title`, card.id);

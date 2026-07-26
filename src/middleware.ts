@@ -1,7 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { config as loadDotenv } from 'dotenv';
 import { getConnectionString } from '@/lib/postgres-db';
-import { getWorkerEnv } from '@/lib/cf-env';
+import { getWorkerEnvSync } from '@/lib/cf-env';
 
 loadDotenv();
 
@@ -14,10 +14,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect('/', 301);
   }
 
-  const workerEnv = await getWorkerEnv();
-  const cs = getConnectionString(workerEnv);
-  if (cs) {
-    process.env.DATABASE_URL = process.env.DATABASE_URL || cs;
+  const workerEnv = getWorkerEnvSync();
+  // Prefer Hyperdrive over any raw DATABASE_URL secret — raw TCP hangs on Workers.
+  if (workerEnv?.HYPERDRIVE?.connectionString) {
+    process.env.DATABASE_URL = workerEnv.HYPERDRIVE.connectionString;
+  } else {
+    const cs = getConnectionString(workerEnv);
+    if (cs) process.env.DATABASE_URL = process.env.DATABASE_URL || cs;
   }
   return next();
 });

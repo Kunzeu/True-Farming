@@ -25,6 +25,7 @@ import {
   Search
 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
+import { canAccessAdventCalendar } from '@/lib/advent-access';
 
 // Tipos para los elementos de navegación
 interface NavItem {
@@ -544,19 +545,21 @@ const Navigation = () => {
       icon: Gift,
       keywords: ['orrian jewelry', 'caja joyas orrianas', 'orrian', 'karma box', 'caja karma', 'lost orrian', 'joyas perdidas', 'jewelry box']
     },
-    {
-      href: '/holiday-calendar',
-      label: t('nav.holidayCalendar', 'Advent Calendar'),
-      icon: Calendar,
-      keywords: ['holiday calendar', 'calendario adviento', 'advent', 'adviento', 'calendar', 'event calendar', 'calendario eventos']
-    },
+    ...(canAccessAdventCalendar(user)
+      ? [{
+          href: '/holiday-calendar',
+          label: t('nav.holidayCalendar', 'Advent Calendar'),
+          icon: Calendar,
+          keywords: ['holiday calendar', 'calendario adviento', 'advent', 'adviento', 'calendar', 'event calendar', 'calendario eventos']
+        } satisfies NavItem]
+      : []),
     {
       href: '/buyout',
       label: t('pageTitles.buyout', 'Buyout Calculator'),
       icon: ShoppingCart,
       keywords: ['buyout', 'calculator', 'calculadora', 'tp', 'trading post', 'buy', 'comprar', 'listings', 'ordenes']
     },
-  ], [t]);
+  ], [t, user]);
 
   const handleLogout = () => {
     logout();

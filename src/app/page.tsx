@@ -34,6 +34,7 @@ import {
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useI18n } from '@/contexts/I18nContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { canAccessAdventCalendar } from '@/lib/advent-access'
 import { useDashboardPreferences } from '@/hooks/useDashboardPreferences'
 import { getActiveFestivalEvents } from '@/lib/festival-dates'
 import OpportunityRadar from '@/components/home/OpportunityRadar'
@@ -469,7 +470,8 @@ export default function HomePage() {
 
     // Filtrar tarjetas basado en preferencias del usuario
     const filteredCards = initialCards.filter(card =>
-      !preferences.hiddenCards.includes(card.id)
+      !preferences.hiddenCards.includes(card.id) &&
+      (card.id !== 'holidayCalendar' || canAccessAdventCalendar(user))
     );
 
     // Reconstruir todas las tarjetas filtradas para asegurar colores correctos
@@ -508,14 +510,15 @@ export default function HomePage() {
     const finalCards = [...orderedCards, ...remainingCards];
     setDashboardCards(finalCards);
     setOriginalCards(finalCards);
-  }, [preferences.hiddenCards, isLoading]);
+  }, [preferences.hiddenCards, isLoading, user]);
 
   // Función helper para actualizar el orden basado en utilidad
   const updateOrderByUtility = useRef(() => {
     if (isLoading) return;
 
     const filteredCards = initialCards.filter(card =>
-      !preferences.hiddenCards.includes(card.id)
+      !preferences.hiddenCards.includes(card.id) &&
+      (card.id !== 'holidayCalendar' || canAccessAdventCalendar(user))
     );
     const reconstructedFilteredCards = filteredCards.map(card => reconstructCardWithIcon(card));
 
@@ -551,7 +554,8 @@ export default function HomePage() {
       if (isLoading) return;
 
       const filteredCards = initialCards.filter(card =>
-        !preferences.hiddenCards.includes(card.id)
+        !preferences.hiddenCards.includes(card.id) &&
+        (card.id !== 'holidayCalendar' || canAccessAdventCalendar(user))
       );
       const reconstructedFilteredCards = filteredCards.map(card => reconstructCardWithIcon(card));
 

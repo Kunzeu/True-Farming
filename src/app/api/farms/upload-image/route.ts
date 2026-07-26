@@ -58,8 +58,8 @@ export async function POST(request: Request, context?: { locals?: App.Locals }) 
 
     // Prefer R2 on Cloudflare; fallback to local public/ for `astro dev`
     // Astro v6+: never use locals.runtime.env (removed); use cloudflare:workers.
-    const { getWorkerEnv } = await import('@/lib/cf-env');
-    const r2 = (await getWorkerEnv())?.ROUTES_IMAGES;
+    const { getWorkerEnvSync } = await import('@/lib/cf-env');
+    const r2 = getWorkerEnvSync()?.ROUTES_IMAGES;
     if (r2) {
       await r2.put(`images/routes/${filename}`, buffer, {
         httpMetadata: { contentType: file.type },
