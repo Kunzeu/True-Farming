@@ -44,10 +44,14 @@ export function getPool(env?: {
     throw new Error('DATABASE_URL / Hyperdrive not configured');
   }
   if (!_pool) {
+    // Workers/Hyperdrive: max 1. Remote DBs (Supabase) need SSL; local does not.
+    const isLocal =
+      /localhost|127\.0\.0\.1/i.test(connectionString) ||
+      connectionString.includes('sslmode=disable');
     _pool = new Pool({
       connectionString,
       max: 1,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
     });
     _pool.on('error', (err) => {
       console.error('PostgreSQL connection error:', err);

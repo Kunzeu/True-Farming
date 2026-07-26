@@ -28,11 +28,6 @@ export default defineConfig({
         platformProxy: { enabled: false },
       }),
   integrations: [react()],
-  redirects: {
-    '/es': '/',
-    '/fr': '/',
-    '/de': '/',
-  },
   vite: {
     server: {
       // tunnelmole / ngrok / etc.

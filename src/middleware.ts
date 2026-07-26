@@ -5,8 +5,15 @@ import { getWorkerEnv } from '@/lib/cf-env';
 
 loadDotenv();
 
+const LANG_HOME = new Set(['/es', '/fr', '/de', '/es/', '/fr/', '/de/']);
+
 /** Ensure DB URL is on process.env for legacy `pg` callers (Node + CF Hyperdrive). */
-export const onRequest = defineMiddleware(async (_context, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
+  const path = context.url.pathname;
+  if (LANG_HOME.has(path)) {
+    return context.redirect('/', 301);
+  }
+
   const workerEnv = await getWorkerEnv();
   const cs = getConnectionString(workerEnv);
   if (cs) {

@@ -2,10 +2,10 @@ name = "true-farming"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ponytail: fill HYPERDRIVE id after creating the binding in CF dashboard
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "YOUR_HYPERDRIVE_ID"
+# Hyperdrive → Supabase (Workers can't open raw Postgres TCP without this)
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "3cf64a7fbb0e4c63b7f9adae2103dcf1"
 
 [[r2_buckets]]
 binding = "ROUTES_IMAGES"
