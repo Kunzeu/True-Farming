@@ -21,6 +21,7 @@ import {
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import PatreonSection from '@/components/auth/PatreonSection';
+import { validateGw2ApiKeyInBrowser } from '@/lib/gw2-client-validate';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -85,7 +86,7 @@ export default function ProfilePage() {
     }
   }, [user?.preferences]);
 
-  // Cargar datos del usuario (resumen + API key) en una sola llamada optimizada
+  // Cargar datos del usuario (resumen + API key). Nombre de cuenta vía browser→GW2.
   useEffect(() => {
     const loadUserData = async () => {
       if (!user?.id) return;
@@ -93,25 +94,40 @@ export default function ProfilePage() {
       setIsApiKeyLoading(true);
 
       try {
-        // Cargar resumen primero
         const summaryResponse = await fetch(`/api/users/${user.id}/summary`);
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
           const hasKey = !!summaryData.hasApiKey;
           setHasApiKey(hasKey);
 
-          if (summaryData.accountInfo?.name) {
-            setAccountName(summaryData.accountInfo.name);
-          }
-
-          // Si tiene API key, cargarla inmediatamente
           if (hasKey) {
             try {
-              const apiKeyResponse = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, { cache: 'no-store' });
+              const apiKeyResponse = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, {
+                cache: 'no-store',
+              });
               if (apiKeyResponse.ok) {
                 const apiKeyData = await apiKeyResponse.json();
                 if (apiKeyData.apiKey) {
                   setApiKey(apiKeyData.apiKey);
+                  try {
+                    localStorage.setItem('gw2_api_key', apiKeyData.apiKey);
+                  } catch { /* ignore */ }
+
+                  const accountRes = await fetch(
+                    `https://api.guildwars2.com/v2/account?access_token=${encodeURIComponent(apiKeyData.apiKey)}`
+                  );
+                  if (accountRes.ok) {
+                    const acct = await accountRes.json();
+                    if (acct?.name) {
+                      setAccountName(String(acct.name));
+                      try {
+                        sessionStorage.setItem(
+                          'gw2_account_info',
+                          JSON.stringify({ id: acct.id, name: acct.name })
+                        );
+                      } catch { /* ignore */ }
+                    }
+                  }
                 }
               }
             } catch (error) {
@@ -238,36 +254,24 @@ export default function ProfilePage() {
     }
   };
 
-  // API Key functions
+  // API Key functions — validar en el browser (CF Workers reciben 429 de ArenaNet).
   const validateApiKey = async (key: string) => {
-    if (!key.trim()) return { ok: false as const, error: 'empty' };
-
-    try {
-      // POST: la key no va en la URL (evita truncados / logs / encoding raros).
-      const response = await fetch('/api/gw2/validate', {
-        method: 'POST',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: key.replace(/\s+/g, '').trim() }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.valid) {
-        return {
-          ok: true as const,
-          accountName: data.accountInfo?.name as string | undefined,
-          permissions: data.permissions as string[] | undefined,
-        };
-      }
+    const result = await validateGw2ApiKeyInBrowser(key);
+    if (result.ok) {
       return {
-        ok: false as const,
-        error: (data.error as string) || 'invalid',
-        missingPermissions: data.missingPermissions as string[] | undefined,
-        gw2Status: data.gw2Status as number | undefined,
-        gw2Error: data.gw2Error,
+        ok: true as const,
+        apiKey: result.apiKey,
+        accountName: result.accountInfo?.name,
+        permissions: result.permissions,
       };
-    } catch {
-      return { ok: false as const, error: 'network' };
     }
+    return {
+      ok: false as const,
+      error: result.error,
+      missingPermissions: result.missingPermissions,
+      gw2Status: result.gw2Status,
+      gw2Error: result.gw2Error,
+    };
   };
 
   const handleSaveApiKey = async () => {
@@ -284,18 +288,26 @@ export default function ProfilePage() {
       setIsApiKeyValid(result.ok);
 
       if (result.ok) {
+        const cleanKey = result.apiKey;
         const response = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ apiKey: apiKey.trim() }),
+          body: JSON.stringify({ apiKey: cleanKey }),
         });
 
         if (response.ok) {
           try {
-            localStorage.setItem('gw2_api_key', apiKey.trim());
+            localStorage.setItem('gw2_api_key', cleanKey);
+            if (result.accountName) {
+              sessionStorage.setItem(
+                'gw2_account_info',
+                JSON.stringify({ name: result.accountName })
+              );
+            }
           } catch { /* ignore */ }
+          setApiKey(cleanKey);
           if (result.accountName) setAccountName(result.accountName);
           setHasApiKey(true);
           setApiKeyMessage(t('profile.apiKey.saved', 'API key saved successfully'));
@@ -312,18 +324,11 @@ export default function ProfilePage() {
             if (summaryResp.ok) {
               const summaryData = await summaryResp.json();
               setHasApiKey(!!summaryData.hasApiKey);
-              if (summaryData.accountInfo?.name) setAccountName(summaryData.accountInfo.name);
             }
           } catch { /* ignore */ }
         } else {
           const errorData = await response.json().catch(() => ({}));
-          if (Array.isArray(errorData.missingPermissions) && errorData.missingPermissions.length > 0) {
-            setApiKeyMessage(
-              `${t('profile.apiKey.missingPermissions', 'Faltan permisos')}: ${errorData.missingPermissions.join(', ')}`
-            );
-          } else {
-            setApiKeyMessage(errorData.error || t('profile.apiKey.errorSave', 'Error saving API key'));
-          }
+          setApiKeyMessage(errorData.error || t('profile.apiKey.errorSave', 'Error saving API key'));
         }
       } else if (result.missingPermissions?.length) {
         setApiKeyMessage(

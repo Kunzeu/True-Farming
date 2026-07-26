@@ -380,7 +380,7 @@ const GiveawaysPage = () => {
     }
   }, [user?.id]);
 
-  // Check if user has API key and get account info from database
+  // Check if user has API key; account name se resuelve en el browser (GW2 bloquea IPs de CF).
   useEffect(() => {
     const controller = new AbortController();
     const checkApiKey = async () => {
@@ -403,17 +403,57 @@ const GiveawaysPage = () => {
             "Expires": "0",
           },
         });
-        if (response.ok) {
-          const data = await response.json();
-          setHasApiKey(Boolean(data.hasApiKey));
-          setApiKeyValid(Boolean(data.apiKeyValid));
-          setAccountInfo(data.accountInfo || null);
-        } else {
+        if (!response.ok) {
           setHasApiKey(false);
           setApiKeyValid(false);
+          return;
+        }
+
+        const data = await response.json();
+        const hasKey = Boolean(data.hasApiKey);
+        setHasApiKey(hasKey);
+        setApiKeyValid(hasKey ? true : false);
+
+        if (!hasKey) {
+          setAccountInfo(null);
+          return;
+        }
+
+        // Cache de sesión
+        try {
+          const cached = sessionStorage.getItem("gw2_account_info");
+          if (cached) {
+            const parsed = JSON.parse(cached) as { id?: string; name?: string };
+            if (parsed?.name) {
+              setAccountInfo({ id: parsed.id || "", name: parsed.name });
+              return;
+            }
+          }
+        } catch { /* ignore */ }
+
+        // Nombre de cuenta vía browser → GW2 (no vía Worker)
+        const tokenRes = await fetch(`/api/gw2/token?user_id=${user.id}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!tokenRes.ok) return;
+        const { apiKey } = await tokenRes.json();
+        if (!apiKey) return;
+
+        const accountRes = await fetch(
+          `https://api.guildwars2.com/v2/account?access_token=${encodeURIComponent(apiKey)}`,
+          { signal: controller.signal }
+        );
+        if (!accountRes.ok) return;
+        const acct = await accountRes.json();
+        if (acct?.name) {
+          const info = { id: String(acct.id || ""), name: String(acct.name) };
+          setAccountInfo(info);
+          try {
+            sessionStorage.setItem("gw2_account_info", JSON.stringify(info));
+          } catch { /* ignore */ }
         }
       } catch (error: unknown) {
-        // Ignorar AbortError para evitar ruido en consola al desmontar o cambiar dependencias
         if (isAbortError(error)) return;
         console.error("Error checking API key:", error);
         setHasApiKey(false);
