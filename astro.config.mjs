@@ -58,6 +58,10 @@ export default defineConfig({
     resolve: {
       alias: {
         '@': path.join(root, 'src'),
+        // Node/`astro dev` has no CF vite plugin — shim the module.
+        ...(isDev
+          ? { 'cloudflare:workers': path.join(root, 'src/shims/cloudflare-workers.ts') }
+          : {}),
         'next/link': path.join(root, 'src/shims/next-link.tsx'),
         'next/image': path.join(root, 'src/shims/next-image.tsx'),
         'next/navigation': path.join(root, 'src/shims/next-navigation.ts'),
