@@ -1769,6 +1769,7 @@
   "profile.apiKey.errorSave": "Error saving API key",
   "profile.apiKey.invalid": "Invalid API key. Check permissions.",
   "profile.apiKey.missingPermissions": "Missing permissions",
+  "profile.apiKey.rateLimited": "GW2 API is rate-limited. Wait a few seconds and try again.",
   "profile.apiKey.errorValidate": "Error validating API key",
   "profile.apiKey.deleted": "API key deleted successfully",
   "profile.apiKey.errorDelete": "Error deleting API key",

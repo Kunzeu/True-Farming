@@ -243,8 +243,12 @@ export default function ProfilePage() {
     if (!key.trim()) return { ok: false as const, error: 'empty' };
 
     try {
-      const response = await fetch(`/api/gw2/validate?api_key=${encodeURIComponent(key.trim())}`, {
+      // POST: la key no va en la URL (evita truncados / logs / encoding raros).
+      const response = await fetch('/api/gw2/validate', {
+        method: 'POST',
         cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: key.replace(/\s+/g, '').trim() }),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.valid) {
@@ -258,6 +262,8 @@ export default function ProfilePage() {
         ok: false as const,
         error: (data.error as string) || 'invalid',
         missingPermissions: data.missingPermissions as string[] | undefined,
+        gw2Status: data.gw2Status as number | undefined,
+        gw2Error: data.gw2Error,
       };
     } catch {
       return { ok: false as const, error: 'network' };
@@ -322,6 +328,20 @@ export default function ProfilePage() {
       } else if (result.missingPermissions?.length) {
         setApiKeyMessage(
           `${t('profile.apiKey.missingPermissions', 'Faltan permisos')}: ${result.missingPermissions.join(', ')}`
+        );
+      } else if (result.gw2Status === 429 || result.error?.includes?.('rate limit')) {
+        setApiKeyMessage(
+          t('profile.apiKey.rateLimited', 'La API de GW2 está saturada. Espera unos segundos e inténtalo de nuevo.')
+        );
+      } else if (result.gw2Status) {
+        const detail =
+          typeof result.gw2Error === 'object' && result.gw2Error && 'text' in (result.gw2Error as object)
+            ? String((result.gw2Error as { text?: string }).text)
+            : typeof result.gw2Error === 'string'
+              ? result.gw2Error
+              : '';
+        setApiKeyMessage(
+          `${t('profile.apiKey.invalid', 'Invalid API key. Check permissions.')} (GW2 ${result.gw2Status}${detail ? `: ${detail}` : ''})`
         );
       } else {
         setApiKeyMessage(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));

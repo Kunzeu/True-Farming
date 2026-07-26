@@ -91,7 +91,7 @@ export async function PUT(
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    const trimmedKey = String(apiKey).trim();
+    const trimmedKey = String(apiKey).replace(/\s+/g, '').trim();
 
     // Formato flexible: grupos hex separados por guiones (API keys de GW2).
     const apiKeyRegex = /^[A-F0-9]{4,20}(-[A-F0-9]{4,20}){3,10}$/i;
@@ -102,20 +102,52 @@ export async function PUT(
     const REQUIRED = ['account', 'inventories', 'characters', 'wallet'] as const;
 
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10_000);
-      let validationResponse: Response;
-      try {
-        validationResponse = await fetch(
-          `https://api.guildwars2.com/v2/tokeninfo?access_token=${encodeURIComponent(trimmedKey)}`,
-          { signal: controller.signal }
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      let validationResponse: Response | null = null;
+      let lastBody: unknown = null;
+
+      for (let attempt = 0; attempt < 4; attempt++) {
+        let res = await fetch('https://api.guildwars2.com/v2/tokeninfo', {
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${trimmedKey}`,
+          },
+        });
+        if (res.status === 400 || res.status === 401 || res.status === 403) {
+          res = await fetch(
+            `https://api.guildwars2.com/v2/tokeninfo?access_token=${trimmedKey}`,
+            { headers: { Accept: 'application/json' } }
+          );
+        }
+
+        if (res.status === 429) {
+          const retryAfter = Number(res.headers.get('Retry-After') || '0');
+          await sleep(retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** attempt);
+          continue;
+        }
+
+        validationResponse = res;
+        break;
+      }
+
+      if (!validationResponse) {
+        return NextResponse.json(
+          { error: 'GW2 rate limit — try again in a few seconds', gw2Status: 429 },
+          { status: 429 }
         );
-      } finally {
-        clearTimeout(timer);
       }
 
       if (!validationResponse.ok) {
-        return NextResponse.json({ error: 'Invalid API key' }, { status: 400 });
+        const gw2Text = await validationResponse.text();
+        try {
+          lastBody = JSON.parse(gw2Text);
+        } catch {
+          lastBody = gw2Text;
+        }
+        return NextResponse.json(
+          { error: 'Invalid API key', gw2Status: validationResponse.status, gw2Error: lastBody },
+          { status: 400 }
+        );
       }
 
       const tokenInfo = (await validationResponse.json()) as { permissions?: string[] };
