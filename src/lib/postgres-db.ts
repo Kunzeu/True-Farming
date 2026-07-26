@@ -117,6 +117,10 @@ async function connectClient() {
   if (viaHyperdrive) {
     const client = new Client({ connectionString: cs, connectionTimeoutMillis: 10_000 });
     await client.connect();
+    // Callers use PoolClient-style `.release()`; map it to Client.end().
+    (client as unknown as { release: () => void }).release = () => {
+      void client.end().catch(() => undefined);
+    };
     return client;
   }
 

@@ -1,50 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
-import fs from 'fs';
-import path from 'path';
+import { pool } from '@/lib/postgres-db';
 import { hashPassword } from '@/lib/server/password-utils';
 import { authorizeRequest, authenticateRequest } from '@/lib/server/jwt-utils';
 
 export const runtime = 'nodejs';
-
-// Cargar variables de entorno desde .env
-function loadEnvFile() {
-  const envPath = path.join(process.cwd(), '.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    const envVars: Record<string, string> = {};
-
-    envContent.split('\n').forEach(line => {
-      const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join('=').trim();
-        envVars[key.trim()] = value;
-      }
-    });
-
-    return envVars;
-  }
-  return {};
-}
-
-const envVars = loadEnvFile();
-const databaseUrl = envVars.DATABASE_URL || process.env.DATABASE_URL;
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-// Verificar conexión
-pool.query('SELECT NOW()', (err) => {
-  if (err) {
-
-  } else {
-
-  }
-});
 
 export async function GET(
   request: NextRequest,
