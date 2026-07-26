@@ -7,7 +7,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState<string>('');
@@ -20,11 +20,25 @@ export default function ForgotPasswordPage() {
     setMessage('');
 
     try {
-      // Placeholder: aún no hay endpoint de reset, simulamos éxito
-      await new Promise((res) => setTimeout(res, 800));
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, locale: lang }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setStatus('error');
+        setMessage(
+          data.error ||
+            t('auth.resetEmailFailed', 'No se pudo procesar la solicitud, intenta de nuevo.')
+        );
+        return;
+      }
+
       setStatus('success');
       setMessage(t('auth.resetEmailSent', 'Si el correo existe, te enviamos instrucciones para restablecer la contraseña.'));
-    } catch (err) {
+    } catch {
       setStatus('error');
       setMessage(t('auth.resetEmailFailed', 'No se pudo procesar la solicitud, intenta de nuevo.'));
     } finally {

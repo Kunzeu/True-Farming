@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { GW2Item, GW2Price } from '@/types/gw2';
 import { formatPrice } from '@/lib/gw2-api';
+import WikiItemLink from '@/components/ui/WikiItemLink';
 
 interface ItemCardProps {
   item: GW2Item;
@@ -82,7 +83,9 @@ const ItemCard = ({ item, price, showPrice = true, onClick }: ItemCardProps) => 
 
       {/* Item name */}
       <h3 className={`font-semibold text-sm mb-1 ${getRarityColor(item.rarity)}`}>
-        {item.name}
+        <WikiItemLink name={item.name} itemId={item.id} chatLink={item.chat_link} className="hover:underline">
+          {item.name}
+        </WikiItemLink>
       </h3>
 
       {/* Item type and level */}

@@ -1,8 +1,11 @@
 import { Resend } from 'resend';
 import { buildVerificationUrl } from '@/lib/server/email-verification';
+import { buildPasswordResetUrl } from '@/lib/server/password-reset';
 import {
   type EmailLocale,
   createEmailSendError,
+  createPasswordResetSendError,
+  getPasswordResetEmailContent,
   getVerificationEmailContent,
 } from '@/lib/server/email-i18n';
 
@@ -52,5 +55,33 @@ export async function sendVerificationEmail(
   if (error) {
     console.error('Resend verification email error:', error);
     throw createEmailSendError(locale);
+  }
+}
+
+export async function sendPasswordResetEmail(
+  to: string,
+  username: string,
+  token: string,
+  locale: EmailLocale = 'en'
+): Promise<void> {
+  const resetUrl = buildPasswordResetUrl(token);
+  const resend = getResendClient();
+  const { subject, html } = getPasswordResetEmailContent(
+    locale,
+    username,
+    resetUrl,
+    escapeHtml
+  );
+
+  const { error } = await resend.emails.send({
+    from: getFromAddress(),
+    to,
+    subject,
+    html,
+  });
+
+  if (error) {
+    console.error('Resend password reset email error:', error);
+    throw createPasswordResetSendError(locale);
   }
 }

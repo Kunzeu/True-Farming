@@ -1,0 +1,21 @@
+name = "true-farming"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# ponytail: fill HYPERDRIVE id after creating the binding in CF dashboard
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "YOUR_HYPERDRIVE_ID"
+
+[[r2_buckets]]
+binding = "ROUTES_IMAGES"
+bucket_name = "true-farming-routes"
+
+# Cron: was vercel.json giveaways auto-enroll
+[triggers]
+crons = ["5 19 * * *"]
+
+[vars]
+# Non-secret defaults; secrets via `wrangler secret` / Pages env
+PUBLIC_SITE_URL = "https://www.true-farming.com"

@@ -4,7 +4,6 @@ import { motion } from '@/lib/framer-motion-optimized'
 import Link from 'next/link'
 import Image from 'next/image'
 import Head from 'next/head'
-import Navigation from '@/components/layout/Navigation'
 import {
   Package,
   Gift,
@@ -12,7 +11,6 @@ import {
   Route,
   Clock,
   BarChart3,
-  Settings,
   Save,
   X,
   RotateCcw,
@@ -29,7 +27,6 @@ import {
   Map,
   Sparkles,
   Crown,
-  User,
   Home,
   Calendar,
   Zap
@@ -39,13 +36,10 @@ import { useI18n } from '@/contexts/I18nContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDashboardPreferences } from '@/hooks/useDashboardPreferences'
 import { getActiveFestivalEvents } from '@/lib/festival-dates'
+import OpportunityRadar from '@/components/home/OpportunityRadar'
 import { getPageUsageStats, getUtilityOrder } from '@/lib/page-usage-tracker'
-import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Modal from '@/components/ui/Modal'
-
-// Lazy loading para componentes pesados
-const DashboardSettings = lazy(() => import('@/components/DashboardSettings'))
-
 
 interface DashboardCard {
   id: string
@@ -278,7 +272,8 @@ const initialCards: DashboardCard[] = [
     icon: <RefreshCw className="w-8 h-8" />,
     color: "from-cyan-500 to-sky-600",
     delay: 2.2,
-    visible: true,
+    // ponytail: aún no publicar conversion-guide-core
+    visible: false,
     order: 19
   },
   {
@@ -302,6 +297,17 @@ const initialCards: DashboardCard[] = [
     delay: 2.4,
     visible: true,
     order: 21
+  },
+  {
+    id: "buyout",
+    title: "dashboard.buyout.title",
+    description: "dashboard.buyout.description",
+    href: "/buyout",
+    icon: <BarChart3 className="w-8 h-8" />,
+    color: "from-cyan-500 to-teal-600",
+    delay: 2.5,
+    visible: true,
+    order: 22
   },
 
 ];
@@ -347,7 +353,6 @@ export default function HomePage() {
   const [dashboardCards, setDashboardCards] = useState<DashboardCard[]>([]);
   const [originalCards, setOriginalCards] = useState<DashboardCard[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Función para obtener el icono según el ID y tamaño
@@ -384,6 +389,7 @@ export default function HomePage() {
       "conversionGuideCore": <RefreshCw className={iconClass} />,
       "holidayCalendar": <Calendar className={iconClass} />,
       "expBuffs": <Zap className={iconClass} />,
+      "buyout": <BarChart3 className={iconClass} />,
 
     };
 
@@ -417,6 +423,7 @@ export default function HomePage() {
       "conversionGuideCore": <RefreshCw className="w-8 h-8" />,
       "holidayCalendar": <Calendar className="w-8 h-8" />,
       "expBuffs": <Zap className="w-8 h-8" />,
+      "buyout": <BarChart3 className="w-8 h-8" />,
 
     };
 
@@ -445,6 +452,7 @@ export default function HomePage() {
       "conversionGuideCore": "from-cyan-500 to-sky-600",
       "holidayCalendar": "from-red-500 to-rose-600",
       "expBuffs": "from-yellow-500 to-amber-600",
+      "buyout": "from-cyan-500 to-teal-600",
 
     };
 
@@ -731,10 +739,9 @@ export default function HomePage() {
           fetchPriority="high"
         />
       </Head>
-      <Navigation />
 
       {/* Container principal */}
-      <div className="container mx-auto px-4 pb-8 pt-16">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-16">
 
         {/* Hero — Visions of Eternity */}
         <section className="relative mb-6 overflow-hidden rounded-3xl border border-slate-600/30 min-h-[240px] sm:min-h-[300px] md:min-h-[340px] lg:min-h-[380px]">
@@ -784,56 +791,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Perfil compacto */}
-        <section className="mb-6 rounded-xl border border-slate-500/50 bg-slate-900/75 px-5 py-4 shadow-sm backdrop-blur-sm">
-          {user ? (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <Link href="/profile" className="flex min-w-0 items-center gap-4 transition hover:opacity-90">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-blue-400/50 bg-blue-500/20">
-                  <User className="h-6 w-6 text-blue-200" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm text-gray-300">{t('home.profile.welcome', 'Hello,')}</p>
-                  <p className="truncate text-lg font-bold text-white">{user.username}</p>
-                </div>
-              </Link>
-              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                <Link
-                  href="/account"
-                  className="rounded-lg border border-slate-500/60 bg-slate-800/80 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-slate-400/60 hover:bg-slate-700/80"
-                >
-                  {t('home.profile.account', 'My account')}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowSettings(true)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-500/60 bg-slate-800/80 px-4 py-2 text-sm font-semibold text-gray-100 transition hover:border-slate-400/60 hover:bg-slate-700/80"
-                >
-                  <Settings className="h-4 w-4" />
-                  {t('dashboard.advancedSettingsShort', 'Config')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-gray-300 sm:max-w-xl">{t('home.hero.subtitle')}</p>
-              <div className="flex flex-wrap gap-2 sm:shrink-0">
-                <Link
-                  href="/login"
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
-                >
-                  {t('home.profile.login', 'Sign in')}
-                </Link>
-                <Link
-                  href="/register"
-                  className="rounded-lg border border-slate-500/60 bg-slate-800/80 px-5 py-2 text-sm font-semibold text-gray-100 transition hover:bg-slate-700/80"
-                >
-                  {t('home.profile.register', 'Register')}
-                </Link>
-              </div>
-            </div>
-          )}
-        </section>
+        <OpportunityRadar />
 
         {/* Sección de herramientas */}
         <section className="mb-12 pb-8">
@@ -992,14 +950,6 @@ export default function HomePage() {
         </section>
 
       </div>
-
-      {/* Modal de configuración avanzada */}
-      <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center"><div className="text-white">Cargando...</div></div>}>
-        <DashboardSettings
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-        />
-      </Suspense>
 
       {/* Modal de login requerido */}
       <Modal

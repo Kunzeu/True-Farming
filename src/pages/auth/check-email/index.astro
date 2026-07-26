@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Island from '@/islands/auth__check-email';
+
+const langCookie = Astro.cookies.get('tf_lang')?.value;
+const lang =
+  langCookie === 'de' || langCookie === 'es' || langCookie === 'fr' || langCookie === 'en'
+    ? langCookie
+    : 'en';
+---
+
+<Layout showNav={false}>
+  <Island client:load lang={lang} />
+</Layout>

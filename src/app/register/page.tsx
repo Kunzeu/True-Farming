@@ -29,15 +29,8 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
+  // ponytail: don't gate on isLoading — Astro SSR left a permanent spinner
+  if (isAuthenticated && !isLoading) {
     return null;
   }
 

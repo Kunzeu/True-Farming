@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
-import Navigation from '@/components/layout/Navigation';
 import { Package } from 'lucide-react';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -2454,7 +2453,6 @@ export default function EctoGamblingPage() {
           }
         }
       `}</style>
-      <Navigation />
       
       <main className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header */}

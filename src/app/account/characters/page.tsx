@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Users, Search, Shield, Sword, Zap, Key, AlertCircle, Package, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
@@ -391,7 +390,6 @@ const CharactersPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">

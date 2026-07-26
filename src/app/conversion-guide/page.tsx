@@ -10,12 +10,10 @@ import {
   Info,
   ShoppingCart,
   ArrowRight,
-  ChevronRight,
   X
 } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -174,7 +172,6 @@ export default function ConversionGuidePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col" style={{ scrollBehavior: 'smooth' }}>
-      <Navigation />
       <div className="container mx-auto px-4 py-8 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Sidebar sticky - Desktop Only */}
@@ -237,20 +234,6 @@ export default function ConversionGuidePage() {
                   {activeSection === 'como-vender-conversiones' && <ArrowRight className="w-3 h-3 ml-auto text-yellow-400" />}
                 </button>
 
-                <div className="pt-4 mt-4 border-t border-slate-700/50">
-                  <Link
-                    href="/conversion-guide-core"
-                    className="w-full flex items-center px-3 py-4 rounded-xl transition-all duration-300 bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 hover:border-blue-400 group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Zap className="w-5 h-5 mr-3 text-blue-400 group-hover:scale-110 transition-transform relative z-10" />
-                    <div className="flex flex-col relative z-10">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-0.5">Premium Guide</span>
-                      <span className="font-black text-white">{t('conversionGuidePage.coreLink')}</span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 ml-auto text-blue-400 group-hover:translate-x-1 transition-transform relative z-10" />
-                  </Link>
-                </div>
               </nav>
             </div>
           </aside>

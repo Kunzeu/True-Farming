@@ -1,15 +1,14 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Zap, ExternalLink, Sparkles, Info, Loader2 } from 'lucide-react'
+import { Zap, Sparkles, Info, Loader2 } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useI18n } from '@/contexts/I18nContext'
-import Navigation from '@/components/layout/Navigation'
 import Image from 'next/image'
 import { useGW2Items } from '@/hooks/useGW2ItemCache'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import WikiTooltip from '@/components/ui/WikiTooltip'
-import { createPortal } from 'react-dom'
+import { gw2WikiUrl } from '@/lib/gw2-wiki'
 
 interface GW2Item {
   id: number
@@ -117,192 +116,40 @@ const EXP_BUFFS_CONFIG: ExpBuffConfig[] = [
   }
 ]
 
-// Simple Tooltip Component for non-item buffs
-function SimpleWikiTooltip({ 
-  name, 
-  icon, 
-  boost, 
-  notes, 
+// Clic → wiki (es → inglés). Mantiene el nombre del componente por compatibilidad.
+function SimpleWikiTooltip({
+  name,
   buffKey,
-  onlyEnglish = false,
-  children 
-}: { 
+  children,
+}: {
   name: string
-  icon: string
-  boost: string
+  icon?: string
+  boost?: string
   notes?: string
   buffKey?: string
   onlyEnglish?: boolean
-  children: React.ReactNode 
+  children: React.ReactNode
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-  const triggerRef = useRef<HTMLElement>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        tooltipRef.current &&
-        !tooltipRef.current.contains(event.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen])
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (!isOpen) {
-      if (triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect()
-        const scrollY = window.scrollY
-
-        let top = rect.bottom + scrollY + 8
-        let left = Math.min(rect.left, window.innerWidth - 320 - 16)
-        if (left < 16) left = 16
-        if (rect.bottom + 300 > window.innerHeight + scrollY) {
-          top = rect.top + scrollY - 300
-        }
-
-        setPosition({ top, left })
-      }
-    }
-    setIsOpen(!isOpen)
+  const { lang } = useI18n()
+  const buffNameMap: Record<string, string> = {
+    'expBuffs.resting.name': 'Resting',
+    'expBuffs.enlightenment.name': 'Enlightenment',
+    'expBuffs.ancientCanthan.name': 'Ancient Canthan Secret (effect)',
+    'expBuffs.guildXP.name': 'Guild XP Gain',
+    'expBuffs.guildHeroesBanner.name': 'Guild Heroes Banner Boost',
   }
-
-  const getLocalizedWikiUrl = (buffName: string, targetLang: string) => {
-    // Traducciones de nombres de buffs por idioma
-    const buffNames: Record<string, Record<string, string>> = {
-      'Resting': {
-        'en': 'Resting',
-        'es': 'Resting',
-        'de': 'Ausruhen',
-        'fr': 'Repos'
-      },
-      'Enlightenment': {
-        'en': 'Enlightenment',
-        'es': 'Enlightenment',
-        'de': 'Erleuchtung',
-        'fr': 'Illumination'
-      },
-      'Ancient Canthan Secret': {
-        'en': 'Ancient Canthan Secret (effect)',
-        'es': 'Ancient Canthan Secret (effect)',
-        'de': 'Uraltes canthisches Geheimnis (Effekt)',
-        'fr': 'Ancien secret canthan (effet)'
-      },
-      'Guild XP Gain': {
-        'en': 'Guild XP Gain',
-        'es': 'Guild XP Gain',
-        'de': 'Gilden-Verstärkung: EP-Gewinn',
-        'fr': 'Gain d\'EXP de guilde'
-      },
-      'Guild Heroes Banner': {
-        'en': 'Guild Heroes Banner Boost',
-        'es': 'Potenciador de estandarte de héroes del clan',
-        'de': 'Gilden-Banner für Helden',
-        'fr': 'Bannière des héros de guilde'
-      }
-    }
-
-    // Obtener el nombre traducido (funciona igual que WikiTooltip)
-    const translatedName = buffNames[buffName]?.[targetLang] || buffName
-    
-    // Construir URL igual que WikiTooltip: simplemente reemplaza espacios por _
-    const normalizedName = translatedName.replace(/ /g, '_')
-    const subdomain = targetLang === 'en' ? 'wiki' : `wiki-${targetLang}`
-    
-    return `https://${subdomain}.guildwars2.com/wiki/${normalizedName}`
-  }
+  const wikiName = (buffKey && buffNameMap[buffKey]) || name
 
   return (
-    <>
-      <span
-        ref={triggerRef}
-        onClick={handleToggle}
-        className="cursor-pointer inline-flex"
-      >
-        {children}
-      </span>
-
-      {isOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={tooltipRef}
-          style={{
-            top: position.top,
-            left: position.left,
-            zIndex: 9999
-          }}
-          className="absolute bg-slate-800 border border-purple-500/50 rounded-lg shadow-xl p-4 w-80 animate-in fade-in zoom-in-95 duration-200"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
-            <Image
-              src={icon}
-              alt={name}
-              width={32}
-              height={32}
-              className="w-8 h-8"
-              unoptimized
-            />
-            <div className="flex-1">
-              <h3 className="text-white font-semibold text-sm">{name}</h3>
-              <p className="text-yellow-400 text-xs font-semibold">{boost}</p>
-            </div>
-          </div>
-
-          {/* Notes */}
-          {notes && (
-            <div className="text-gray-300 text-xs mb-3">
-              {notes}
-            </div>
-          )}
-
-          {/* Wiki Links */}
-          <div className="border-t border-gray-700 pt-2">
-            <p className="text-gray-400 text-xs mb-2">Wiki:</p>
-            <div className="flex flex-wrap gap-2">
-              {(onlyEnglish ? ['en'] : ['en', 'es', 'de', 'fr'] as const).map((l) => {
-                // Mapear buffKey a nombre inglés base
-                const buffNameMap: Record<string, string> = {
-                  'expBuffs.resting.name': 'Resting',
-                  'expBuffs.enlightenment.name': 'Enlightenment',
-                  'expBuffs.ancientCanthan.name': 'Ancient Canthan Secret',
-                  'expBuffs.guildXP.name': 'Guild XP Gain',
-                  'expBuffs.guildHeroesBanner.name': 'Guild Heroes Banner'
-                }
-                const baseName = (buffKey && buffNameMap[buffKey]) || name
-                
-                return (
-                  <a
-                    key={l}
-                    href={getLocalizedWikiUrl(baseName, l)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
-                  >
-                    {l.toUpperCase()}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )
-              })}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
+    <a
+      href={gw2WikiUrl(wikiName, lang)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex cursor-pointer"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </a>
   )
 }
 
@@ -357,7 +204,6 @@ export default function ExpBuffsPage() {
 
   return (
     <div className="exp-buffs-page">
-      <Navigation />
       
       <div className="container mx-auto px-4 pb-12 pt-24">
         {/* Hero Section */}

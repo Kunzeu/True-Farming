@@ -7,6 +7,7 @@ import SalvagePageShell from '@/components/salvage/SalvagePageShell';
 import SalvageInfoNote from '@/components/salvage/SalvageInfoNote';
 import ResearchNotesTable from '@/components/salvage/research-notes/ResearchNotesTable';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
+import WikiItemLink from '@/components/ui/WikiItemLink';
 import {
   getPricePerNoteCopper,
   type ResearchNotesCraftingItem,
@@ -150,7 +151,13 @@ export default function ResearchNotesPageLayout({
                   {t('researchNotesPage.bestPricePerNote', 'Best price per note')}
                 </p>
                 <p className="mt-3 text-base font-medium leading-snug text-white">
-                  {bestItem.item.name}
+                  <WikiItemLink
+                    name={bestItem.item.name}
+                    itemId={bestItem.item.id}
+                    className="hover:underline"
+                  >
+                    {bestItem.item.name}
+                  </WikiItemLink>
                 </p>
                 <div className="mt-3 border-t border-emerald-500/20 pt-3">
                   <SalvageCurrency copper={bestItem.pricePerNote} size="lg" />

@@ -28,15 +28,8 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
+  // ponytail: show form while auth boots — gating on isLoading left a permanent spinner under Astro SSR
+  if (isAuthenticated && !isLoading) {
     return null;
   }
 

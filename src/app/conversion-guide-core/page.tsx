@@ -18,6 +18,7 @@ import {
     Hexagon,
     Gem
 } from 'lucide-react';
+import WikiItemLink from '@/components/ui/WikiItemLink';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -216,9 +217,23 @@ export default function ConversionGuideCorePage() {
                                     <div className="flex justify-between items-start mb-8 relative">
                                         <div className="flex flex-col">
                                             <span className={`text-xs font-bold uppercase tracking-[0.2em] mb-1 ${conv.iconColor}`}>
-                                                {items[conv.coreId]?.names?.[lang] || conv.name}
+                                                <WikiItemLink
+                                                    name={items[conv.coreId]?.names?.en || items[conv.coreId]?.name || conv.name}
+                                                    itemId={conv.coreId}
+                                                    className="hover:underline"
+                                                >
+                                                    {items[conv.coreId]?.names?.[lang] || conv.name}
+                                                </WikiItemLink>
                                             </span>
-                                            <h3 className="text-2xl font-black text-white">{items[conv.coreId]?.name || `${conv.name} Core`}</h3>
+                                            <h3 className="text-2xl font-black text-white">
+                                                <WikiItemLink
+                                                    name={items[conv.coreId]?.names?.en || items[conv.coreId]?.name || `${conv.name} Core`}
+                                                    itemId={conv.coreId}
+                                                    className="hover:underline"
+                                                >
+                                                    {items[conv.coreId]?.name || `${conv.name} Core`}
+                                                </WikiItemLink>
+                                            </h3>
                                         </div>
                                         <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-500 ${conv.iconColor}`}>
                                             <SymbolIcon className="w-5 h-5" />
@@ -349,7 +364,13 @@ export default function ConversionGuideCorePage() {
                                         )}
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 whitespace-nowrap bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-md">
-                                        {items[sat.id]?.names?.[lang] || sat.label}
+                                        <WikiItemLink
+                                            name={items[sat.id]?.names?.en || items[sat.id]?.name || sat.label}
+                                            itemId={sat.id}
+                                            className="hover:underline hover:text-gray-200"
+                                        >
+                                            {items[sat.id]?.names?.[lang] || sat.label}
+                                        </WikiItemLink>
                                     </span>
                                 </motion.div>
                             ))}
@@ -396,7 +417,13 @@ export default function ConversionGuideCorePage() {
                                                     )}
                                                 </div>
                                                 <span className="text-xs font-bold uppercase tracking-wider text-gray-300">
-                                                    {items[mat.id]?.names?.[lang] || mat.label}
+                                                    <WikiItemLink
+                                                        name={items[mat.id]?.names?.en || items[mat.id]?.name || mat.label}
+                                                        itemId={mat.id}
+                                                        className="hover:underline hover:text-white"
+                                                    >
+                                                        {items[mat.id]?.names?.[lang] || mat.label}
+                                                    </WikiItemLink>
                                                 </span>
                                             </div>
                                         ))}

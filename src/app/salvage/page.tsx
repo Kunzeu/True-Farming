@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Package, ChevronRight, Star, FileText, Wrench, Gift } from 'lucide-react';
-import Navigation from '@/components/layout/Navigation';
 import Link from 'next/link';
 import GlossaryLink from '@/components/ui/GlossaryLink';
 import SalvagePageShell from '@/components/salvage/SalvagePageShell';
@@ -125,7 +124,6 @@ export default function SalvagePage() {
 
   return (
     <>
-      <Navigation />
       <SalvagePageShell>
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <header className="mb-8 text-center">

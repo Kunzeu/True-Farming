@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react'
 import { Award, Star, Crown, Gem, Hammer, ExternalLink, Loader2, Info, Zap, X, ShoppingCart, Wrench, ArrowRight, MessageCircle, Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useI18n } from '@/contexts/I18nContext'
-import Navigation from '@/components/layout/Navigation'
 import Image from 'next/image'
 import { FALLBACK_ITEMS, isOfflineMode, setApiOffline, setApiOnline } from '@/data/fallback-data'
 import { useGW2Item, useGW2Items } from '@/hooks/useGW2ItemCache'
+import WikiItemLink from '@/components/ui/WikiItemLink'
 
 interface GiftOfMasteryItem {
   id: number
@@ -296,7 +296,17 @@ export default function GiftOfMasteryPage() {
           />
         </div>
         <div>
-          <span className="text-white font-semibold">{quantity} {material.name}</span>
+          <span className="text-white font-semibold">
+            {quantity}{' '}
+            <WikiItemLink
+              name={material.name}
+              itemId={material.id}
+              chatLink={material.chat_link}
+              className="hover:underline"
+            >
+              {material.name}
+            </WikiItemLink>
+          </span>
           {note && <p className="text-gray-400 text-sm">({note})</p>}
         </div>
       </div>
@@ -308,7 +318,6 @@ export default function GiftOfMasteryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
-        <Navigation />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-yellow-600 mx-auto mb-4" />
@@ -322,7 +331,6 @@ export default function GiftOfMasteryPage() {
   if (error && !item) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
-        <Navigation />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="bg-red-900/20 border border-red-500/50 text-red-300 px-4 py-3 rounded mb-4">
@@ -343,7 +351,6 @@ export default function GiftOfMasteryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col" style={{ scrollBehavior: 'smooth' }}>
-        <Navigation />
         
         {/* Banner informativo cuando se usan datos de fallback */}
         {error && item && (

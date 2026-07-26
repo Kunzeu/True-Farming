@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Navigation from '@/components/layout/Navigation';
 import {
   Calendar,
   Star,
@@ -143,7 +142,6 @@ export default function FestivalsPage() {
   const festivals = getFestivals(t);
   return (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}

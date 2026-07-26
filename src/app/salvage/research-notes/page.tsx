@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Gem } from 'lucide-react';
-import Navigation from '@/components/layout/Navigation';
 import ResearchNotesPageLayout from '@/components/salvage/research-notes/ResearchNotesPageLayout';
 import {
   getCraftingLevel,
@@ -496,7 +495,6 @@ export default function ResearchNotesPage() {
 
   return (
     <>
-      <Navigation />
       <ResearchNotesPageLayout
         items={tableItems}
         itemMeta={itemMeta}

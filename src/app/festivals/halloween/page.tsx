@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import Navigation from '@/components/layout/Navigation';
 import { 
   RefreshCw,
   Package,
@@ -598,7 +597,6 @@ const HalloweenPage = () => {
 
   return (
     <>
-      <Navigation />
       <div 
         className="min-h-screen relative"
         style={{

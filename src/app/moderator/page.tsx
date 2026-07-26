@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Navigation from '@/components/layout/Navigation';
 import ModeratorRoute from '@/components/auth/ModeratorRoute';
 import { Plus, Edit, Eye, CheckCircle, XCircle, Map, AlertCircle, Save, X, Copy } from 'lucide-react';
 import { useDatabase, FarmItem } from '@/hooks/useDatabase';
@@ -894,7 +893,6 @@ export default function ModeratorPanel() {
   return (
     <ModeratorRoute>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        <Navigation />
         
         <div className="container mx-auto px-4 py-8">
           {/* Header */}

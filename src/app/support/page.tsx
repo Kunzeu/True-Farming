@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Check, X, Minus } from 'lucide-react';
-import Navigation from '@/components/layout/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { useEffect } from 'react';
@@ -157,7 +156,6 @@ export default function SupportPage() {
 
     return (
         <>
-            <Navigation />
             <div className="w-full max-w-[1600px] mx-auto px-4 py-12">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold mb-4 text-white">{t('support.title')}</h1>

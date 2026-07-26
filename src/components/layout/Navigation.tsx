@@ -418,18 +418,19 @@ const Navigation = () => {
       isImage: true,
       keywords: ['conversion', 'convertir', 'materiales', 'materials', 'tier', 'promote', 't5', 't6', 'ascended', 'forja mistica', 'mystic forge']
     },
-    {
-      href: '/conversion-guide-core',
-      label: t('conversionGuideCorePage.title', 'Core Conversion Guide'),
-      icon: BookOpen,
-      keywords: ['core conversion', 'conversion core', 'lodestone', 'piedra runica', 'nucleo', 'onyx', 'molten', 'glacial', 'destroyer', 'crystal lodestone', 'mystic forge core']
-    },
+    // ponytail: conversion-guide-core aún no publicado
     {
       href: '/garden',
       label: t('gardenPage.titleShort', 'Jardín'),
       icon: 'garden',
       isImage: true,
       keywords: ['garden', 'jardin', 'plantas', 'plants', 'nodes', 'nodos', 'home instance', 'instancia']
+    },
+    {
+      href: '/legendary-tracker',
+      label: t('legendary.title', 'Legendary Tracker'),
+      icon: Crown,
+      keywords: ['legendary', 'legendaria', 'legendarias', 'precursor', 'gift of fortune', 'don de la fortuna', 'mystic tribute', 'tributo mistico', 'crafting', 'fabricacion', 'arbol', 'tree', 'coste', 'cost']
     },
     {
       href: '/gift-of-mastery',
@@ -549,15 +550,13 @@ const Navigation = () => {
       icon: Calendar,
       keywords: ['holiday calendar', 'calendario adviento', 'advent', 'adviento', 'calendar', 'event calendar', 'calendario eventos']
     },
-
-    // Solo mostrar Buyout Calculator para admins
-    ...(user?.role === 'admin' ? [{
+    {
       href: '/buyout',
-      label: 'Buyout Calculator',
+      label: t('pageTitles.buyout', 'Buyout Calculator'),
       icon: ShoppingCart,
-      keywords: ['buyout', 'calculator', 'calculadora', 'tp', 'trading post', 'buy', 'comprar']
-    }] : []),
-  ], [t, user?.role]);
+      keywords: ['buyout', 'calculator', 'calculadora', 'tp', 'trading post', 'buy', 'comprar', 'listings', 'ordenes']
+    },
+  ], [t]);
 
   const handleLogout = () => {
     logout();

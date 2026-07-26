@@ -1,10 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { authorizeRequest } from '@/lib/server/jwt-utils';
-
-export const runtime = 'nodejs';
 
 const MAX_BYTES = 3 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -25,7 +21,11 @@ function slugify(value: string): string {
     .slice(0, 48);
 }
 
-export async function POST(request: NextRequest) {
+function extOf(file: File): string {
+  return EXT_BY_MIME[file.type] || (file.name.includes('.') ? '.' + file.name.split('.').pop()!.toLowerCase() : '.webp');
+}
+
+export async function POST(request: Request, context?: { locals?: App.Locals }) {
   try {
     const authResult = authorizeRequest(request, 'moderator');
     if (!authResult.isAuthorized) {
@@ -43,33 +43,34 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
-
     if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json(
         { error: 'Invalid file type. Use JPG, PNG, WebP or GIF.' },
         { status: 400 }
       );
     }
-
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File too large. Max 3 MB.' }, { status: 400 });
     }
 
-    const ext = EXT_BY_MIME[file.type] || path.extname(file.name).toLowerCase() || '.webp';
-    const baseName = slugify(farmName) || slugify(farmId) || 'route';
-    const suffix = randomBytes(4).toString('hex');
-    const filename = `${baseName}-${suffix}${ext}`;
+    const filename = `${slugify(farmName) || slugify(farmId) || 'route'}-${randomBytes(4).toString('hex')}${extOf(file)}`;
+    const buffer = new Uint8Array(await file.arrayBuffer());
 
-    const routesDir = path.join(process.cwd(), 'public', 'images', 'routes');
-    await fs.mkdir(routesDir, { recursive: true });
+    // Prefer R2 on Cloudflare; fallback to local public/ for `astro dev`
+    const r2 = context?.locals?.runtime?.env?.ROUTES_IMAGES;
+    if (r2) {
+      await r2.put(`images/routes/${filename}`, buffer, {
+        httpMetadata: { contentType: file.type },
+      });
+    } else {
+      const { writeFile, mkdir } = await import('node:fs/promises');
+      const { join } = await import('node:path');
+      const routesDir = join(process.cwd(), 'public', 'images', 'routes');
+      await mkdir(routesDir, { recursive: true });
+      await writeFile(join(routesDir, filename), buffer);
+    }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const filePath = path.join(routesDir, filename);
-    await fs.writeFile(filePath, buffer);
-
-    const publicUrl = `/images/routes/${filename}`;
-
-    return NextResponse.json({ url: publicUrl, filename });
+    return NextResponse.json({ url: `/images/routes/${filename}`, filename });
   } catch (error) {
     console.error('Route image upload failed:', error);
     return NextResponse.json(

@@ -9,8 +9,14 @@ interface InventoryMap {
     [key: number]: number;
 }
 
+/** Saldo por id de moneda (karma, esquirlas de espíritu…). */
+interface WalletMap {
+    [currencyId: number]: number;
+}
+
 interface UseGW2InventoryResult {
     inventoryMap: InventoryMap;
+    walletMap: WalletMap;
     loading: boolean;
     error: string | null;
     status: string;
@@ -23,6 +29,7 @@ interface UseGW2InventoryResult {
 
 export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2InventoryResult {
     const [inventoryMap, setInventoryMap] = useState<InventoryMap>({});
+    const [walletMap, setWalletMap] = useState<WalletMap>({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState('');
@@ -63,7 +70,8 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
         setStatus('Iniciando conexión segura con GW2...');
         setError(null);
         setProgress(0);
-        setInventoryMap({}); // Clear previous map
+        // No vaciar el mapa aquí: si no, el descuento desaparece durante el fetch
+        // y el coste total “salta” como si estuviera roto.
 
         try {
             // Get API Key
@@ -80,15 +88,27 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
             setStatus('Cargando materiales del banco...');
 
             // Initial fetch of account wide items
-            const [materialsRes, bankRes, sharedRes] = await Promise.all([
+            const [materialsRes, bankRes, sharedRes, walletRes] = await Promise.all([
                 fetch(`${GW2_API_BASE}/account/materials?access_token=${apiKey}`, { signal }),
                 fetch(`${GW2_API_BASE}/account/bank?access_token=${apiKey}`, { signal }),
-                fetch(`${GW2_API_BASE}/account/inventory?access_token=${apiKey}`, { signal })
+                fetch(`${GW2_API_BASE}/account/inventory?access_token=${apiKey}`, { signal }),
+                fetch(`${GW2_API_BASE}/account/wallet?access_token=${apiKey}`, { signal })
             ]);
 
             if (signal.aborted) return;
 
             const newInventoryMap: InventoryMap = {};
+
+            if (walletRes.ok) {
+                const wallet = await walletRes.json();
+                if (Array.isArray(wallet)) {
+                    const newWalletMap: WalletMap = {};
+                    for (const c of wallet) {
+                        if (c && c.id != null) newWalletMap[c.id] = c.value ?? 0;
+                    }
+                    setWalletMap(newWalletMap);
+                }
+            }
 
             const addItems = (items: any[]) => {
                 if (Array.isArray(items)) {
@@ -104,7 +124,6 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
             if (bankRes.ok) addItems(await bankRes.json());
             if (sharedRes.ok) addItems(await sharedRes.json());
 
-            setInventoryMap({ ...newInventoryMap });
             setStatus('Obteniendo lista de personajes...');
 
             // Fetch Characters
@@ -112,7 +131,8 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
 
             if (charsRes.ok) {
                 const characters: string[] = await charsRes.json();
-                const BATCH_SIZE = 5;
+                // La API de GW2 tolera ~300 req/min; 15 en paralelo + pausa corta va sobrado
+                const BATCH_SIZE = 15;
                 let processed = 0;
 
                 for (let i = 0; i < characters.length; i += BATCH_SIZE) {
@@ -142,31 +162,33 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
 
                     const results = await Promise.all(batchPromises);
 
-                    setInventoryMap(prev => {
-                        const currentMap = { ...prev };
-                        results.forEach(charInventory => {
-                            if (charInventory?.bags) {
-                                charInventory.bags.forEach((bag: any) => {
-                                    bag?.inventory?.forEach((item: any) => {
-                                        if (item?.id) {
-                                            currentMap[item.id] = (currentMap[item.id] || 0) + item.count;
-                                        }
-                                    });
+                    results.forEach(charInventory => {
+                        if (charInventory?.bags) {
+                            charInventory.bags.forEach((bag: any) => {
+                                bag?.inventory?.forEach((item: any) => {
+                                    if (item?.id) {
+                                        newInventoryMap[item.id] = (newInventoryMap[item.id] || 0) + item.count;
+                                    }
                                 });
-                            }
-                        });
-                        return currentMap;
+                            });
+                        }
                     });
 
                     processed += batch.length;
                     setProgress((processed / characters.length) * 100);
-                    // Status update removed to keep the message static
+                    setStatus(`Inventario: ${processed}/${characters.length} personajes…`);
 
-                    // Delay to be nice to API/thread and avoid rate limits
-                    await new Promise(r => setTimeout(r, 1000));
+                    // Pausa breve solo si quedan más tandas (evita rate limit sin dormir de más)
+                    if (i + BATCH_SIZE < characters.length) {
+                        await new Promise(r => setTimeout(r, 250));
+                    }
                 }
             }
 
+            if (signal.aborted) return;
+
+            // Un solo commit: evita que el descuento “salte” a medias (banco sin bolsas)
+            setInventoryMap({ ...newInventoryMap });
             setStatus('Completado');
             setLastUpdate(new Date());
         } catch (err: any) {
@@ -182,6 +204,7 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
 
     return {
         inventoryMap,
+        walletMap,
         loading,
         error,
         status,

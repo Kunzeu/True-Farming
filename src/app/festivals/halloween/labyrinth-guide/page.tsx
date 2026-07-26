@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import Navigation from '@/components/layout/Navigation';
 import { 
   ArrowLeft,
   Info,
@@ -1529,7 +1528,6 @@ const LabyrinthGuidePage = () => {
 
   return (
     <>
-      <Navigation />
       <div 
         className="min-h-screen relative"
         style={{

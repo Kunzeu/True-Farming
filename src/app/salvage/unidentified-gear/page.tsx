@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Navigation from '@/components/layout/Navigation';
 import SalvagePageShell from '@/components/salvage/SalvagePageShell';
 import {
   UNIDENTIFIED_GEAR_TIERS,
@@ -19,7 +18,6 @@ export default function UnidentifiedGearPage() {
 
   return (
     <>
-      <Navigation />
       <SalvagePageShell>
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
           <Link

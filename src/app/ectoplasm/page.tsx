@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import EctoRecycleCompareTable from '@/components/ectoplasm/EctoRecycleCompareTable';
 
 // IDs de los materiales
 const MATERIAL_IDS = {
@@ -139,7 +139,6 @@ export default function EctoplasmSalvagePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 flex flex-col">
-      <Navigation />
       
       <main className="container mx-auto px-4 py-12 flex-1">
 
@@ -198,6 +197,14 @@ export default function EctoplasmSalvagePage() {
             </Motion>
           ))}
         </div>
+
+        <EctoRecycleCompareTable
+          className="mb-12"
+          ectoSell={marketPrices[MATERIAL_IDS.ecto]?.sell}
+          dustSell={marketPrices[MATERIAL_IDS.dust]?.sell}
+          ectoIcon={materialIcons[MATERIAL_IDS.ecto]}
+          dustIcon={materialIcons[MATERIAL_IDS.dust]}
+        />
 
           {/* Profitability Analysis Section */}
           <Motion
@@ -270,7 +277,7 @@ export default function EctoplasmSalvagePage() {
                   <span className="text-lg font-black text-white">{formatPrice(totalInvestment)}</span>
                 </div>
                 <div className="flex flex-col md:items-end">
-                  <span className="text-xs text-slate-500 uppercase font-bold text-blue-400">{t('ectoplasm.calc.returns')}</span>
+                  <span className="text-xs uppercase font-bold text-blue-400">{t('ectoplasm.calc.returns')}</span>
                   <span className="text-lg font-black text-blue-400">{formatPrice(totalReturns)}</span>
                 </div>
                 <div className="flex flex-col md:items-end pt-1">

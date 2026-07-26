@@ -134,7 +134,9 @@ interface PatreonIdentityResponse {
 }
 
 const PATREON_CAMPAIGN_ID =
-  process.env.NEXT_PUBLIC_PATREON_CAMPAIGN_ID || process.env.PATREON_CAMPAIGN_ID || '';
+  (typeof process !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_PATREON_CAMPAIGN_ID || process.env.PATREON_CAMPAIGN_ID)) ||
+  '';
 
 // Función auxiliar para extraer información de Patreon de forma consistente
 function extractPatreonInfo(patreonData: PatreonIdentityResponse) {
@@ -192,7 +194,13 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
   const autoEnrollGiveawayRef = useRef<string | null>(null);
   const refreshThrottleMs = 120000; // 2 minutos para deduplicar refrescos
 
-  // Verificar token al cargar
+  const broadcastAuth = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('tf-auth-change'));
+    }
+  };
+
+  // Verificar token al cargar (+ sync entre islas Astro)
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('gw2_token');
@@ -235,6 +243,8 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
+    window.addEventListener('tf-auth-change', checkAuth);
+    return () => window.removeEventListener('tf-auth-change', checkAuth);
   }, []);
 
   useEffect(() => {
@@ -333,6 +343,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);
       localStorage.setItem('gw2_user', JSON.stringify(user));
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('tf-auth-change'));
 
       dispatch({
         type: 'AUTH_SUCCESS',
@@ -429,6 +440,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem('gw2_token');
     localStorage.removeItem('gw2_user');
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('tf-auth-change'));
     dispatch({ type: 'AUTH_LOGOUT' });
 
     // Redirigir a la página principal
@@ -697,6 +709,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);
       localStorage.setItem('gw2_user', JSON.stringify(user));
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('tf-auth-change'));
 
       dispatch({
         type: 'AUTH_SUCCESS',
@@ -957,6 +970,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);
       localStorage.setItem('gw2_user', JSON.stringify(user));
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('tf-auth-change'));
 
       dispatch({
         type: 'AUTH_SUCCESS',

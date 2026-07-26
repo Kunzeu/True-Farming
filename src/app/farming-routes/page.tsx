@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import Navigation from '@/components/layout/Navigation';
 import { Search, Map, Clock, RefreshCw, Star } from 'lucide-react';
 import { useDatabase, FarmItem } from '@/hooks/useDatabase';
 import ExpansionIcon from '@/components/ui/ExpansionIcon';
@@ -239,7 +238,6 @@ export default function FarmingRoutes() {
   if (isLoading) {
     return (
       <div className="min-h-screen">
-        <Navigation />
         <div className="mx-auto max-w-[1600px] px-4 py-8 main-content sm:px-6 lg:px-8">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -254,7 +252,6 @@ export default function FarmingRoutes() {
 
   return (
     <div className="min-h-screen">
-        <Navigation />
       
       <main className="main-content mx-auto w-full max-w-[1600px] px-3 py-8 sm:px-5 lg:px-8">
         {/* Header */}

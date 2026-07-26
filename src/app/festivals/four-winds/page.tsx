@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import Image from 'next/image';
-import Navigation from '@/components/layout/Navigation';
 import { 
   RefreshCw,
   Package,
@@ -579,7 +578,6 @@ const FourWindsPage = () => {
       
       {/* Contenido principal */}
       <div className="relative z-10">
-        <Navigation />
       
              <div className="max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

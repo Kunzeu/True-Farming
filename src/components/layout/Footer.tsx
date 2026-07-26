@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
-import { motion } from '@/lib/framer-motion-optimized';
-import { useEffect, useState } from 'react';
 import {
   ExternalLink,
   Heart,
@@ -12,11 +10,9 @@ import {
   Bot,
   Globe,
   Package,
-  Trophy
+  Trophy,
 } from 'lucide-react';
 
-
-// Icono personalizado de X (más fiel al logo oficial)
 const XIcon = ({ className }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
@@ -28,7 +24,6 @@ const XIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Icono personalizado de Discord (logo oficial)
 const DiscordIcon = ({ className }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
@@ -40,227 +35,168 @@ const DiscordIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const sectionTitle =
+  'mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-zinc-500';
+const footerLink =
+  'block text-sm text-zinc-400 transition-colors hover:text-white';
+
 export default function Footer() {
   const { t, lang, setLang } = useI18n();
-  const [isClient, setIsClient] = useState(false);
-
-  // Prevenir errores de hidratación con animaciones dependientes del cliente
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const languages = [
     { code: 'es', name: 'ES' },
     { code: 'en', name: 'EN' },
     { code: 'de', name: 'DE' },
     { code: 'fr', name: 'FR' },
-  ];
-
-  const handleLanguageChange = (newLang: string) => {
-    setLang(newLang as 'en' | 'de' | 'es' | 'fr');
-  };
+  ] as const;
 
   return (
-    <footer className="bg-gray-900 border-t border-gray-700/50 mt-auto relative z-10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* Main Content */}
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-5 md:gap-8 mb-8">
-
-          {/* Apoyo y Contributors */}
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            {/* Apoyo */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 justify-center mb-2 md:mb-3">
-                <Coffee className="w-3 h-3 md:w-4 md:h-4 text-orange-400" />
-                <h3 className="text-white font-semibold text-sm md:text-base">{t('footer.supportSite', 'Apoyo')}</h3>
-              </div>
-              <p className="text-gray-400 text-xs mb-2 md:mb-3 hidden sm:block">
-                {t('footer.supportDescription', 'Ayúdanos a mantener y mejorar la plataforma')}
-              </p>
-              <motion.a
-                href="https://patreon.com/KunzeuLabs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-orange-500 to-pink-500 rounded-lg text-white font-medium text-xs md:text-sm hover:shadow-lg transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div
-                  animate={isClient ? { rotate: [0, 360] } : {}}
-                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                >
-                  <Heart className="w-3 h-3 md:w-4 md:h-4" />
-                </motion.div>
-                <span className="hidden sm:inline">{t('footer.becomePatron', 'Hazte Patrocinador')}</span>
-                <span className="sm:hidden">Patreon</span>
-              </motion.a>
-              <Link href="/support" className="mt-2 block text-xs text-orange-400 hover:text-orange-300 transition-colors hover:underline">
-                {t('footer.viewBenefits', 'Ver beneficios y niveles')}
-              </Link>
-            </div>
-
-            {/* Contributors */}
-            <div>
-              <Link
-                href="/contributions"
-                className="inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg text-white font-medium text-xs md:text-sm hover:shadow-lg transition-all duration-300"
-              >
-                <Trophy className="w-3 h-3 md:w-4 md:h-4" />
-                <span>{t('pageTitles.contributions', 'Contribuciones')}</span>
-              </Link>
-            </div>
-          </motion.div>
+    <footer className="relative z-10 mt-auto border-t border-slate-600/50 bg-slate-900/80 backdrop-blur-sm">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="mb-8 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Apoyo */}
+          <div>
+            <h3 className={sectionTitle}>
+              <Coffee className="h-3.5 w-3.5 text-orange-400" />
+              {t('footer.supportSite', 'Apoyo')}
+            </h3>
+            <p className="mb-3 hidden text-xs leading-relaxed text-zinc-500 sm:block">
+              {t('footer.supportDescription', 'Ayúdanos a mantener y mejorar la plataforma')}
+            </p>
+            <a
+              href="https://patreon.com/KunzeuLabs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3.5 py-2 text-sm font-medium text-orange-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200"
+            >
+              <Heart className="h-4 w-4" />
+              <span className="hidden sm:inline">{t('footer.becomePatron', 'Hazte Patrocinador')}</span>
+              <span className="sm:hidden">Patreon</span>
+            </a>
+            <Link
+              href="/support"
+              className="mt-2 block text-xs text-orange-400/80 transition-colors hover:text-orange-300"
+            >
+              {t('footer.viewBenefits', 'Ver beneficios y niveles')}
+            </Link>
+            <Link
+              href="/contributions"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/50 px-3.5 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-slate-700/50 hover:text-white"
+            >
+              <Trophy className="h-4 w-4 text-cyan-400" />
+              {t('pageTitles.contributions', 'Contribuciones')}
+            </Link>
+          </div>
 
           {/* Comunidad */}
-          <motion.div
-            className="text-center ml-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <div className="flex items-center gap-2 mb-1 md:mb-2 ml-8">
-              <Zap className="w-3 h-3 md:w-4 md:h-4 text-yellow-400 flex-shrink-0" />
-              <h3 className="text-white font-semibold text-sm md:text-base">{t('footer.communityContact', 'Comunidad')}</h3>
-            </div>
-            <div className="space-y-1 ml-8">
-              <motion.a
+          <div>
+            <h3 className={sectionTitle}>
+              <Zap className="h-3.5 w-3.5 text-yellow-400" />
+              {t('footer.communityContact', 'Comunidad')}
+            </h3>
+            <div className="space-y-2">
+              <a
                 href="https://discord.gg/KQSrhA2qmx"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-300 hover:text-white transition-all duration-300 group w-fit"
-                whileHover={{ x: 3 }}
+                className="group flex w-fit items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
               >
-                <DiscordIcon className="w-3 h-3 md:w-4 md:h-4 text-purple-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="font-medium text-xs md:text-sm">Discord</span>
-                <ExternalLink className="w-2 h-2 md:w-3 md:h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
-              </motion.a>
-
-              <motion.a
+                <DiscordIcon className="h-4 w-4 text-indigo-400" />
+                Discord
+                <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+              </a>
+              <a
                 href="https://x.com/TrueFarming"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-300 hover:text-white transition-all duration-300 group w-fit"
-                whileHover={{ x: 3 }}
+                className="group flex w-fit items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
               >
-                <XIcon className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="font-medium text-xs md:text-sm">X</span>
-                <ExternalLink className="w-2 h-2 md:w-3 md:h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
-              </motion.a>
-
-              <motion.a
+                <XIcon className="h-4 w-4 text-zinc-300" />
+                X
+                <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+              </a>
+              <a
                 href="https://discord.com/oauth2/authorize?client_id=1328499706162315334"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-300 hover:text-white transition-all duration-300 group w-fit"
-                whileHover={{ x: 3 }}
+                className="group flex w-fit items-center gap-2 text-sm text-zinc-400 transition-colors hover:text-white"
               >
-                <Bot className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="font-medium text-xs md:text-sm">Bot</span>
-                <ExternalLink className="w-2 h-2 md:w-3 md:h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
-              </motion.a>
+                <Bot className="h-4 w-4 text-sky-400" />
+                Bot
+                <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+              </a>
             </div>
-          </motion.div>
+          </div>
 
           {/* Legal */}
-          <motion.div
-            className="text-left ml-9"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="flex items-center gap-2 mb-2 md:mb-3">
-              <ExternalLink className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
-              <h3 className="text-white font-semibold text-sm md:text-base">{t('footer.legal', 'Legal')}</h3>
-            </div>
-            <div className="space-y-1">
-              <Link href="/privacy-policy" className="block text-xs text-gray-400 hover:text-white transition-colors">
+          <div>
+            <h3 className={sectionTitle}>
+              <ExternalLink className="h-3.5 w-3.5 text-sky-400" />
+              {t('footer.legal', 'Legal')}
+            </h3>
+            <div className="space-y-2">
+              <Link href="/privacy-policy" className={footerLink}>
                 {t('footer.privacyPolicy', 'Política de Privacidad')}
               </Link>
-              <Link href="/terms-of-service" className="block text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="/terms-of-service" className={footerLink}>
                 {t('footer.termsOfService', 'Términos de Servicio')}
               </Link>
-              <Link href="/cookies-info" className="block text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="/cookies-info" className={footerLink}>
                 {t('footer.cookiePolicy', 'Política de Cookies')}
               </Link>
-              <Link href="/data-management" className="block text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="/data-management" className={footerLink}>
                 {t('footer.dataManagement', 'Gestión de Datos')}
               </Link>
             </div>
-          </motion.div>
+          </div>
 
           {/* Changelog */}
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
-            <div className="flex items-center gap-2 justify-center mb-2 md:mb-3">
-              <Package className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
-              <h3 className="text-white font-semibold text-sm md:text-base">{t('footer.changelog', 'Actualizaciones')}</h3>
-            </div>
-            <div className="space-y-1">
-              <Link
-                href="/changelog"
-                className="block text-xs text-gray-400 hover:text-white transition-colors"
-              >
-                <div className="flex items-center gap-1 justify-center">
-                  <Zap className="w-3 h-3" />
-                  {t('footer.viewChangelog', 'Ver Changelog')}
-                </div>
-              </Link>
-            </div>
-          </motion.div>
+          <div>
+            <h3 className={sectionTitle}>
+              <Package className="h-3.5 w-3.5 text-sky-400" />
+              {t('footer.changelog', 'Actualizaciones')}
+            </h3>
+            <Link href="/changelog" className={`${footerLink} inline-flex items-center gap-1.5`}>
+              <Zap className="h-3.5 w-3.5" />
+              {t('footer.viewChangelog', 'Ver Changelog')}
+            </Link>
+          </div>
 
           {/* Idioma */}
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <div className="flex items-center gap-2 justify-center mb-2 md:mb-3">
-              <Globe className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
-              <h3 className="text-white font-semibold text-sm md:text-base">{t('footer.language', 'Idioma')}</h3>
-            </div>
-            <div className="flex gap-1 flex-wrap justify-center">
+          <div>
+            <h3 className={sectionTitle}>
+              <Globe className="h-3.5 w-3.5 text-emerald-400" />
+              {t('footer.language', 'Idioma')}
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
               {languages.map((l) => (
                 <button
                   key={l.code}
-                  onClick={() => handleLanguageChange(l.code)}
-                  className={`px-1.5 md:px-2 py-1 rounded text-xs font-medium transition-all duration-300 ${lang === l.code
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-                    }`}
+                  type="button"
+                  onClick={() => setLang(l.code)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    lang === l.code
+                      ? 'bg-slate-700 text-white'
+                      : 'bg-slate-800 text-zinc-400 hover:bg-slate-700/60 hover:text-white'
+                  }`}
                 >
                   {l.name}
                 </button>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Bottom Section */}
-        <motion.div
-          className="border-t border-gray-700/50 pt-4 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-        >
-          <p className="text-xs text-gray-400 mb-1" suppressHydrationWarning={true}>
-            © {new Date().getFullYear()} True Farming. {t('footer.allRights', 'Todos los derechos reservados.')}
+        <div className="border-t border-slate-600/50 pt-4 text-center">
+          <p className="mb-1 text-xs text-zinc-400" suppressHydrationWarning>
+            © {new Date().getFullYear()} True Farming.{' '}
+            {t('footer.allRights', 'Todos los derechos reservados.')}
           </p>
-          <p className="text-xs text-gray-500">
-            Guild Wars 2 © ArenaNet LLC. {t('footer.notAffiliated', 'No afiliado con ArenaNet.')}
+          <p className="text-xs text-zinc-500">
+            Guild Wars 2 © ArenaNet LLC.{' '}
+            {t('footer.notAffiliated', 'No afiliado con ArenaNet.')}
           </p>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );

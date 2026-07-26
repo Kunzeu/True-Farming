@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Navigation from '@/components/layout/Navigation';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageGearPageLayout from '@/components/salvage/SalvageGearPageLayout';
 import SalvageLoadingState from '@/components/salvage/SalvageLoadingState';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';
 
 interface Material {
   id: number;
@@ -98,24 +98,12 @@ export default function UnidentifiedGearRarePage() {
       const unidGearData = unidGearPrice;
       
       // Construir URL de Wiki basada en el idioma y nombre del item
-      const buildWikiUrl = (itemName: string, language: string) => {
-        // Para español, usar el enlace fijo en inglés
-        if (language === 'es') {
-          return t('salvagePages.wikiLinks.rare', 'https://wiki.guildwars2.com/wiki/Piece_of_Rare_Unidentified_Gear');
-        }
-        
-        const encodedName = encodeURIComponent(itemName.replace(/ /g, '_'));
-        switch (language) {
-          case 'de':
-            return `https://wiki-de.guildwars2.com/wiki/${encodedName}`;
-          case 'fr':
-            return `https://wiki-fr.guildwars2.com/wiki/${encodedName}`;
-          default:
-            return `https://wiki.guildwars2.com/wiki/${encodedName}`;
-        }
-      };
-      
-      setWikiUrl(buildWikiUrl(unidGearItem.name, apiLang));
+      setWikiUrl(
+        gw2WikiUrl(
+          apiLang === 'es' ? 'Piece of Rare Unidentified Gear' : unidGearItem.name,
+          apiLang
+        )
+      );
       
       // Usar precio de compra (buys) para calcular costo real
       if (unidGearData.buys && unidGearData.buys.unit_price) {
@@ -208,7 +196,6 @@ export default function UnidentifiedGearRarePage() {
   if (loading) {
     return (
       <>
-        <Navigation />
         <SalvageLoadingState tier="rare" />
       </>
     );
@@ -216,7 +203,6 @@ export default function UnidentifiedGearRarePage() {
 
   return (
     <>
-      <Navigation />
       <SalvageGearPageLayout
         tier="rare"
         note={t('salvageRare.note', 'Prices are obtained in real-time from the GW2 API...')}

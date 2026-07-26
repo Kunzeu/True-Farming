@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 
 import { motion } from 'framer-motion';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -494,7 +493,6 @@ const JardinesPage = () => {
 
   return (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="container mx-auto px-4 py-8">
 

@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Island from '@/islands/salvage__masterwork';
+
+const langCookie = Astro.cookies.get('tf_lang')?.value;
+const lang =
+  langCookie === 'de' || langCookie === 'es' || langCookie === 'fr' || langCookie === 'en'
+    ? langCookie
+    : 'en';
+---
+
+<Layout showNav={true}>
+  <Island client:idle lang={lang} />
+</Layout>

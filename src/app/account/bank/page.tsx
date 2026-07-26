@@ -7,7 +7,6 @@ import { ArrowLeft, Package, Search, Database } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import Navigation from '@/components/layout/Navigation';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
@@ -351,7 +350,6 @@ const BankPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">

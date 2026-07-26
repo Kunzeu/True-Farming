@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import Navigation from '@/components/layout/Navigation';
 import AdminRoute from '@/components/auth/AdminRoute';
 import { Plus, Edit, Trash2, Save, X, Map, Clock, Users, CheckCircle, Calendar, User as UserIcon, AlertCircle, Copy, User, ChevronUp, ChevronDown, Gift } from 'lucide-react';
 import { validateEmailFormat } from '@/utils/emailValidation';
@@ -1877,7 +1876,6 @@ export default function AdminPanel() {
   return (
     <AdminRoute>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        <Navigation />
 
         <div className="container mx-auto px-4 py-8">
           {/* Header */}

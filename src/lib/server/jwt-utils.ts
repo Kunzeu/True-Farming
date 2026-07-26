@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { NextRequest } from 'next/server';
 
 // Clave secreta para JWT - en producción debe estar en variables de entorno
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
@@ -45,7 +44,7 @@ export function verifyToken(token: string): JWTPayload | null {
 /**
  * Extrae el token del header Authorization
  */
-export function extractTokenFromRequest(request: NextRequest): string | null {
+export function extractTokenFromRequest(request: Request): string | null {
   const authHeader = request.headers.get('authorization');
   
   if (!authHeader) {
@@ -64,7 +63,7 @@ export function extractTokenFromRequest(request: NextRequest): string | null {
 /**
  * Middleware de autenticación para rutas de API
  */
-export function authenticateRequest(request: NextRequest): {
+export function authenticateRequest(request: Request): {
   isAuthenticated: boolean;
   user: JWTPayload | null;
   error?: string;
@@ -123,7 +122,7 @@ export function hasRequiredRole(userRole: string, requiredRole: 'admin' | 'moder
  * Middleware de autorización para rutas de API
  */
 export function authorizeRequest(
-  request: NextRequest, 
+  request: Request, 
   requiredRole: 'admin' | 'moderator' | 'user' = 'user'
 ): {
   isAuthorized: boolean;

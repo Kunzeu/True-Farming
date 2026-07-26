@@ -1,0 +1,17 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-XSS-Protection: 1; mode=block
+
+/images/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/api/farms/*
+  Cache-Control: no-store
+
+/api/auth/*
+  Cache-Control: no-store
+
+/api/admin/*
+  Cache-Control: no-store

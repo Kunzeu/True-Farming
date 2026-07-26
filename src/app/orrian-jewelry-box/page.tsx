@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Info, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Navigation from '@/components/layout/Navigation';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { FALLBACK_ITEMS, isOfflineMode, setApiOffline, setApiOnline } from '@/data/fallback-data';
 
@@ -398,7 +397,6 @@ export default function OrrianJewelryBoxPage() {
   // Memoizar el componente de loading para evitar re-renders
   const LoadingComponent = useMemo(() => (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="max-w-7xl mx-auto p-6">
           <div className="text-center">
@@ -413,7 +411,6 @@ export default function OrrianJewelryBoxPage() {
   // Memoizar el componente de error
   const ErrorComponent = useMemo(() => (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="max-w-7xl mx-auto p-6">
           <div className="text-center">
@@ -437,7 +434,6 @@ export default function OrrianJewelryBoxPage() {
 
   return (
     <>
-      <Navigation />
       
       {/* Banner informativo cuando se usan datos de fallback */}
       {error && itemData && (

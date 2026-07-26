@@ -31,9 +31,9 @@ const defaultPreferences: DashboardPreferences = {
     'glossary',
     'magicMirrors',
     'homestead',
-    'conversionGuideCore',
     'holidayCalendar',
     'expBuffs',
+    'buyout',
   ],
   hiddenCards: [],
   cardSizes: {}

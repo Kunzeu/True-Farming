@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -2428,7 +2427,6 @@ const CraftingPage = () => {
 
   return (
     <>
-      <Navigation />
       <style jsx global>{`
         .font-display {
           font-display: swap;

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Gift, Package, Star, Coins, BarChart3, ArrowLeft } from 'lucide-react';
-import Navigation from '@/components/layout/Navigation';
 import Link from 'next/link';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
@@ -1935,7 +1934,6 @@ export default function FourWindsPrizeBagPage() {
 
   return (
     <>
-      <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
           {/* Hero Section */}

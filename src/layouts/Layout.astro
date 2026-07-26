@@ -1,0 +1,72 @@
+---
+import '../app/globals.css';
+import NavIsland from '@/islands/_nav';
+import ChromeIsland from '@/islands/_chrome';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Show global nav (false for login/register/auth). */
+  showNav?: boolean;
+  /** Override shell background (e.g. profile purple gradient). */
+  bgClass?: string;
+}
+
+const langCookie = Astro.cookies.get('tf_lang')?.value;
+const htmlLang =
+  langCookie === 'de' || langCookie === 'es' || langCookie === 'fr' || langCookie === 'en'
+    ? langCookie
+    : 'en';
+
+const title = Astro.props.title ?? 'True Farming — Guild Wars 2 Farming';
+const description =
+  Astro.props.description ??
+  'Optimize your Guild Wars 2 farming routes, salvage, festivals and more.';
+const showNav = Astro.props.showNav !== false;
+const bgClass =
+  Astro.props.bgClass ?? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900';
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://api.guildwars2.com" />
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
+    <link rel="preconnect" href="https://static.cloudflareinsights.com" />
+    <link rel="dns-prefetch" href="https://render.guildwars2.com" />
+    <link rel="dns-prefetch" href="https://wiki.guildwars2.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta name="google-site-verification" content="6QMoVlJ1hD8y5DCBubEKA5qv_oLb3O4EVRB8OS03LZU" />
+    <meta name="theme-color" content="#c1272d" />
+    <link rel="icon" href="/images/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://www.true-farming.com" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXS6KYHEXT"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-WXS6KYHEXT');
+    </script>
+  </head>
+  <body class="font-sans">
+    <div class:list={['min-h-screen flex flex-col', bgClass]}>
+      {showNav && <NavIsland client:load lang={htmlLang} />}
+      <div class:list={['flex-1', showNav && 'pt-16']}>
+        <slot />
+      </div>
+      <div class="mt-auto">
+        <ChromeIsland client:idle lang={htmlLang} />
+      </div>
+    </div>
+  </body>
+</html>

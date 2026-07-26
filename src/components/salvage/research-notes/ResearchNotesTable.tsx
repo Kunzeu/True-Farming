@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
+import WikiItemLink from '@/components/ui/WikiItemLink';
 import {
   getCraftingDisciplineIcon,
   getCraftingLevelDisplay,
@@ -117,9 +118,13 @@ export default function ResearchNotesTable({
                     ) : (
                       <div className="h-9 w-9 rounded-lg bg-slate-700/50" />
                     )}
-                    <span className={`text-sm font-medium ${getRarityColor(meta?.rarity || '')}`}>
+                    <WikiItemLink
+                      name={item.name}
+                      itemId={item.id}
+                      className={`text-sm font-medium hover:underline ${getRarityColor(meta?.rarity || '')}`}
+                    >
                       {item.name}
-                    </span>
+                    </WikiItemLink>
                   </div>
                 </td>
                 <td className="px-3 py-3.5 text-center text-gray-300">

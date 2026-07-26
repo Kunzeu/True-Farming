@@ -1,20 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
-import Navigation from '@/components/layout/Navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
-    Home,
     RefreshCw,
     ExternalLink,
     ChevronDown,
-    TrendingDown,
     Warehouse,
-    Pickaxe
 } from 'lucide-react';
 
 interface Ingredient {
@@ -198,7 +193,7 @@ const HomesteadPage = () => {
 
     const formatGoldSilverCopper = (copper: number) => {
         if (copper === 0) return (
-            <span className="flex items-center gap-1 font-mono text-white/50">
+            <span className="flex items-center gap-1 font-mono text-zinc-500">
                 0 <img src="https://wiki.guildwars2.com/images/e/eb/Copper_coin.png" alt="c" className="w-3 h-3" />
             </span>
         );
@@ -208,7 +203,7 @@ const HomesteadPage = () => {
         const c = copper % 100;
 
         return (
-            <span className="flex items-center gap-1.5 font-mono">
+            <span className="inline-flex items-center gap-1.5 font-mono">
                 {gold > 0 && (
                     <span className="flex items-center gap-0.5 text-yellow-400">
                         {gold} <img src="https://wiki.guildwars2.com/images/d/d1/Gold_coin.png" alt="g" className="w-3.5 h-3.5" />
@@ -248,71 +243,72 @@ const HomesteadPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-[#e0e0e0] font-sans">
-            <Navigation />
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Hero Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16 border-b border-white/5 pb-10"
-                >
-                    <div className="space-y-2">
-                        <h1 className="text-5xl font-black tracking-tighter uppercase italic text-white flex items-center gap-4">
-                            <Warehouse className="w-12 h-12 text-emerald-400" />
-                            {t('homestead.forge', 'Homestead Forge')} <span className="text-emerald-500 not-italic font-light">Forge</span>
-                        </h1>
-                        <p className="text-white/40 text-lg max-w-xl">
-                            {t('homestead.description', 'Real-time cost analysis for Refined Homestead materials. Find the most efficient way to farm your decorations.')}
-                        </p>
-                    </div>
+        <div className="min-h-screen">
+            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+                <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-3"
+                    >
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+                            <Warehouse className="h-7 w-7 text-emerald-300" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-white sm:text-4xl">
+                                {t('homestead.forge', 'Homestead Forge')}
+                            </h1>
+                            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500 sm:text-base">
+                                {t('homestead.description', 'Real-time cost analysis for Refined Homestead materials. Find the most efficient way to farm your decorations.')}
+                            </p>
+                        </div>
+                    </motion.div>
 
                     <button
                         onClick={fetchMarketData}
                         disabled={loading}
-                        className="group flex items-center gap-3 px-6 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
+                        className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-sm text-gray-300 transition-colors hover:bg-slate-700/50 hover:text-white disabled:opacity-50"
                     >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         {loading ? t('homestead.fetching', 'Fetching Prices...') : t('homestead.refresh', 'Refresh Market Data')}
                     </button>
-                </motion.div>
+                </header>
 
-                {/* Compact Overview Table (Wiki Style) */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mb-12 bg-[#121212]/90 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="mb-8 overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm"
                 >
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="bg-white/5 border-b border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                                <th className="py-4 px-6 md:px-10">{t('homestead.material', 'Material')}</th>
-                                <th className="py-4 px-6 md:px-10 text-right">{t('homestead.cheapest', 'Cheapest Material')}</th>
+                            <tr className="border-b border-slate-600/50 text-xs font-bold uppercase tracking-[0.15em] text-zinc-500">
+                                <th className="px-4 py-3 sm:px-6">{t('homestead.material', 'Material')}</th>
+                                <th className="px-4 py-3 text-right sm:px-6">{t('homestead.cheapest', 'Cheapest Material')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {REFINED_MATERIALS.map((mat) => {
                                 const cheapest = getCheapestOption(mat);
                                 return (
-                                    <tr key={mat.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                                        <td className="py-4 px-6 md:px-10">
+                                    <tr key={mat.id} className="border-b border-slate-700/40 last:border-0 hover:bg-slate-700/30 transition-colors">
+                                        <td className="px-4 py-3 sm:px-6">
                                             <div className="flex items-center gap-3">
                                                 <Image src={mat.icon} alt={names[mat.id] || mat.name} width={24} height={24} className="rounded" />
-                                                <span className="text-sm font-bold text-white tracking-tight">{names[mat.id] || mat.name}</span>
+                                                <span className="text-sm font-semibold text-white">{names[mat.id] || mat.name}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 md:px-10">
+                                        <td className="px-4 py-3 sm:px-6">
                                             <div className="flex items-center justify-end gap-3 text-right">
                                                 <div className="flex items-center gap-2">
                                                     {icons[cheapest.id] ? (
                                                         <Image src={icons[cheapest.id]} alt={names[cheapest.id] || cheapest.name} width={20} height={20} className="rounded-sm" />
                                                     ) : (
-                                                        <div className="w-5 h-5 bg-white/5 rounded-sm animate-pulse" />
+                                                        <div className="h-5 w-5 animate-pulse rounded-sm bg-slate-700/50" />
                                                     )}
-                                                    <span className="text-xs font-medium text-white/50">{names[cheapest.id] || cheapest.name}</span>
+                                                    <span className="text-xs text-zinc-400">{names[cheapest.id] || cheapest.name}</span>
                                                 </div>
-                                                <div className="min-w-[80px] flex justify-end">
+                                                <div className="flex min-w-[80px] justify-end">
                                                     {formatGoldSilverCopper(cheapest.cost)}
                                                 </div>
                                             </div>
@@ -324,56 +320,61 @@ const HomesteadPage = () => {
                     </table>
                 </motion.div>
 
-                {/* Detailed Tables Section */}
-                <div className="space-y-16">
-                    {REFINED_MATERIALS.map((mat, idx) => (
+                <div className="space-y-6">
+                    {REFINED_MATERIALS.map((mat) => (
                         <motion.div
                             key={mat.id}
-                            initial={{ opacity: 0, y: 40 }}
+                            initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="bg-[#0c0c0c] rounded-[2.5rem] border border-white/5 overflow-hidden shadow-3xl"
+                            className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm"
                         >
-                            {/* Table Header Section */}
-                            <div className="p-8 md:p-12 bg-gradient-to-br from-[#121212] to-transparent border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-                                <div className="flex items-center gap-6">
-                                    <div className="p-4 bg-emerald-500/10 rounded-[1.5rem] border border-emerald-500/20">
-                                        <Image src={mat.icon} alt={names[mat.id] || mat.name} width={56} height={56} className="brightness-125 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
+                            <div className="flex flex-col gap-4 border-b border-slate-600/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                                        <Image src={mat.icon} alt={names[mat.id] || mat.name} width={40} height={40} className="rounded" />
                                     </div>
                                     <div>
-                                        <h2 className="text-3xl font-black text-white tracking-tight uppercase">{names[mat.id] || mat.name}</h2>
-                                        <div className="flex items-center gap-3 mt-2">
-                                            <a href={`https://wiki.guildwars2.com/wiki/${mat.name.replace(/ /g, '_')}`} target="_blank" className="text-white/20 hover:text-white/60 transition-colors"><ExternalLink size={14} /></a>
-                                        </div>
+                                        <h2 className="text-xl font-bold text-white">{names[mat.id] || mat.name}</h2>
+                                        <a
+                                            href={`https://wiki.guildwars2.com/wiki/${mat.name.replace(/ /g, '_')}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+                                        >
+                                            <ExternalLink size={12} />
+                                            Wiki
+                                        </a>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-4 bg-black/40 p-4 rounded-2xl border border-white/5 shadow-inner">
-                                    <div className="text-xs font-bold text-white/40 uppercase tracking-widest ml-2">{t('homestead.efficiency', 'Trade Efficiency:')}</div>
+                                <div className="flex items-center gap-3 rounded-xl border border-slate-600/50 bg-slate-900/40 px-3 py-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                                        {t('homestead.efficiency', 'Trade Efficiency:')}
+                                    </span>
                                     <div className="relative">
                                         <select
                                             value={efficiencies[mat.efficiencyKey]}
                                             onChange={(e) => setEfficiencies(prev => ({ ...prev, [mat.efficiencyKey]: parseInt(e.target.value) }))}
-                                            className="bg-[#151515] text-emerald-400 border border-emerald-500/30 rounded-xl px-4 py-2 text-sm font-bold appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 pr-10 hover:border-emerald-500/60 transition-all shadow-lg"
+                                            className="cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-800 px-3 py-1.5 pr-8 text-sm font-medium text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                                         >
                                             <option value={0}>{t('homestead.level0', 'Level 0')}</option>
                                             <option value={1}>{t('homestead.level1', 'Level 1 (Upgraded)')}</option>
                                         </select>
-                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-emerald-500/60" />
+                                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Table Content */}
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
+                                <table className="w-full text-left">
                                     <thead>
-                                        <tr className="bg-white/[0.03] text-[10px] font-black uppercase tracking-[0.2em] text-white/30 border-b border-white/10">
-                                            <th className="py-6 px-10">{t('common.item', 'Item')}</th>
-                                            <th className="py-6 px-6 text-center">{t('homestead.detail.buy', 'Buy Price')}</th>
-                                            <th className="py-6 px-6 text-center">{t('homestead.detail.sell', 'Sell Price')}</th>
-                                            <th className="py-6 px-6 text-center">{t('homestead.detail.required', 'Required')}</th>
-                                            <th className="py-6 px-10 text-right">{t('homestead.detail.total', 'Total Cost')}</th>
+                                        <tr className="border-b border-slate-600/50 text-xs font-bold uppercase tracking-[0.15em] text-zinc-500">
+                                            <th className="px-4 py-3 sm:px-6">{t('common.item', 'Item')}</th>
+                                            <th className="px-3 py-3 text-center">{t('homestead.detail.buy', 'Buy Price')}</th>
+                                            <th className="px-3 py-3 text-center">{t('homestead.detail.sell', 'Sell Price')}</th>
+                                            <th className="px-3 py-3 text-center">{t('homestead.detail.required', 'Required')}</th>
+                                            <th className="px-4 py-3 text-right sm:px-6">{t('homestead.detail.total', 'Total Cost')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -382,55 +383,50 @@ const HomesteadPage = () => {
                                             .map((item, iIndex) => (
                                                 <tr
                                                     key={`${item.id}-${iIndex}`}
-                                                    className={`group transition-all duration-300 border-b border-white/[0.03] last:border-0 ${iIndex === 0 ? 'bg-emerald-500/[0.03] hover:bg-emerald-500/[0.06]' : 'hover:bg-white/[0.02]'}`}
+                                                    className={`border-b border-slate-700/40 last:border-0 transition-colors ${iIndex === 0 ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'hover:bg-slate-700/30'}`}
                                                 >
-                                                    <td className="py-5 px-10">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="relative group/icon">
-                                                                <div className={`absolute inset-0 blur-md opacity-20 transition-opacity ${iIndex === 0 ? 'bg-emerald-400 opacity-40' : 'bg-white/0 group-hover/icon:opacity-20'}`}></div>
-                                                                {icons[item.id] ? (
-                                                                    <Image
-                                                                        src={icons[item.id]}
-                                                                        alt={names[item.id] || item.name}
-                                                                        width={36}
-                                                                        height={36}
-                                                                        className={`relative rounded border transition-all ${iIndex === 0 ? 'border-emerald-500/50 scale-110 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'border-white/10 group-hover:border-white/20'}`}
-                                                                    />
-                                                                ) : (
-                                                                    <div className={`relative w-[36px] h-[36px] rounded border border-white/10 bg-white/5 animate-pulse ${iIndex === 0 ? 'scale-110' : ''}`} />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className={`text-sm font-bold tracking-tight transition-colors ${iIndex === 0 ? 'text-emerald-400' : 'text-white/80 group-hover:text-white'}`}>
-                                                                    {names[item.id] || item.name}
-                                                                </span>
-                                                            </div>
+                                                    <td className="px-4 py-3 sm:px-6">
+                                                        <div className="flex items-center gap-3">
+                                                            {icons[item.id] ? (
+                                                                <Image
+                                                                    src={icons[item.id]}
+                                                                    alt={names[item.id] || item.name}
+                                                                    width={32}
+                                                                    height={32}
+                                                                    className={`rounded border ${iIndex === 0 ? 'border-emerald-500/40' : 'border-slate-600/50'}`}
+                                                                />
+                                                            ) : (
+                                                                <div className="h-8 w-8 animate-pulse rounded border border-slate-600/50 bg-slate-700/50" />
+                                                            )}
+                                                            <span className={`text-sm font-medium ${iIndex === 0 ? 'text-emerald-300' : 'text-gray-200'}`}>
+                                                                {names[item.id] || item.name}
+                                                            </span>
                                                         </div>
                                                     </td>
-                                                    <td className="py-5 px-6 text-center">
-                                                        <div className="flex justify-center scale-90 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                    <td className="px-3 py-3 text-center">
+                                                        <div className="flex justify-center opacity-70">
                                                             {formatGoldSilverCopper(item.buyPrice)}
                                                         </div>
                                                     </td>
-                                                    <td className="py-5 px-6 text-center">
-                                                        <div className="flex justify-center scale-90 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                    <td className="px-3 py-3 text-center">
+                                                        <div className="flex justify-center">
                                                             {formatGoldSilverCopper(item.sellPrice)}
                                                         </div>
                                                     </td>
-                                                    <td className="py-5 px-6 text-center">
+                                                    <td className="px-3 py-3 text-center">
                                                         <div className="flex flex-col items-center">
-                                                            <span className={`text-sm font-black ${item.efficiencyApplies && efficiencies[mat.efficiencyKey] > 0 ? 'text-blue-400' : 'text-white/40'}`}>
+                                                            <span className={`text-sm font-semibold ${item.efficiencyApplies && efficiencies[mat.efficiencyKey] > 0 ? 'text-sky-400' : 'text-zinc-400'}`}>
                                                                 {item.requirement.toFixed(2)}
                                                             </span>
                                                             {item.efficiencyApplies && efficiencies[mat.efficiencyKey] > 0 && (
-                                                                <span className="text-[8px] font-black text-blue-500/60 uppercase tracking-tighter -mt-1">
+                                                                <span className="text-[10px] font-medium uppercase tracking-wide text-sky-500/70">
                                                                     {t('homestead.detail.mastery', 'Mastery Active')}
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="py-5 px-10 text-right">
-                                                        <div className="flex justify-end font-bold scale-105">
+                                                    <td className="px-4 py-3 text-right sm:px-6">
+                                                        <div className="flex justify-end font-semibold">
                                                             {formatGoldSilverCopper(item.totalCost)}
                                                         </div>
                                                     </td>
