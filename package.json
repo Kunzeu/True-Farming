@@ -11,7 +11,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "cf:dev": "wrangler pages dev dist",
+    "cf:dev": "wrangler dev",
     "lint": "eslint src",
     "generate-routes": "node scripts/generate-astro-routes.mjs",
     "build-legendary-recipes": "node scripts/build-legendary-recipes.mjs"

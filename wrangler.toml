@@ -1,7 +1,6 @@
 name = "true-farming"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "dist"
 
 # ponytail: fill HYPERDRIVE id after creating the binding in CF dashboard
 # [[hyperdrive]]
@@ -17,5 +16,5 @@ bucket_name = "true-farming-routes"
 crons = ["5 19 * * *"]
 
 [vars]
-# Non-secret defaults; secrets via `wrangler secret` / Pages env
+# Non-secret defaults; secrets via `wrangler secret` / dashboard env
 PUBLIC_SITE_URL = "https://www.true-farming.com"
