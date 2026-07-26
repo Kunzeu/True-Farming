@@ -1,9 +1,0 @@
-{
-    "atlascode.bitbucket.enabled": true,
-    "atlascode.jira.enabled": true,
-    "github.copilot.chat.commitMessageGeneration.instructions": [
-        {
-            "text": "IMPORTANTE: Genera siempre el mensaje de commit en ESPAÑOL. Sigue EXACTAMENTE este formato:\n\n<tipo>: <resumen conciso (MÁXIMO 50 caracteres en total incluyendo el tipo)>\n\n- archivo.tsx: descripción técnica del cambio\n- archivo2.ts: descripción técnica del cambio\n\nTipos válidos: feat, fix, refactor, docs, style, perf, test, chore.\nEl resumen de la primera línea NO puede superar los 50 caracteres. Cuenta los caracteres. Sin punto final. Siempre en español."
-        }
-    ]
-}
