@@ -91,21 +91,47 @@ export async function PUT(
       return NextResponse.json({ error: 'API key is required' }, { status: 400 });
     }
 
-    // Validar formato básico de API key de GW2 (formato muy flexible)
-    // Las API keys de GW2 pueden tener diferentes formatos y longitudes
-    // Acepta cualquier combinación de grupos de 4-20 caracteres hex separados por guiones
+    const trimmedKey = String(apiKey).trim();
+
+    // Formato flexible: grupos hex separados por guiones (API keys de GW2).
     const apiKeyRegex = /^[A-F0-9]{4,20}(-[A-F0-9]{4,20}){3,10}$/i;
-    if (!apiKeyRegex.test(apiKey)) {
+    if (!apiKeyRegex.test(trimmedKey)) {
       return NextResponse.json({ error: 'Invalid API key format' }, { status: 400 });
     }
 
-    // Verificar que la API key es válida haciendo una llamada a la API de GW2
+    const REQUIRED = ['account', 'inventories', 'characters', 'wallet'] as const;
+
     try {
-      const validationResponse = await fetch(`https://api.guildwars2.com/v2/tokeninfo?access_token=${apiKey}`);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10_000);
+      let validationResponse: Response;
+      try {
+        validationResponse = await fetch(
+          `https://api.guildwars2.com/v2/tokeninfo?access_token=${encodeURIComponent(trimmedKey)}`,
+          { signal: controller.signal }
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+
       if (!validationResponse.ok) {
         return NextResponse.json({ error: 'Invalid API key' }, { status: 400 });
       }
-    } catch (error) {
+
+      const tokenInfo = (await validationResponse.json()) as { permissions?: string[] };
+      const permissions = Array.isArray(tokenInfo.permissions) ? tokenInfo.permissions : [];
+      const missing = REQUIRED.filter((p) => !permissions.includes(p));
+      if (missing.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Missing required permissions',
+            missingPermissions: missing,
+            permissions,
+          },
+          { status: 400 }
+        );
+      }
+    } catch {
       return NextResponse.json({ error: 'Failed to validate API key' }, { status: 400 });
     }
 
@@ -117,7 +143,7 @@ export async function PUT(
                 created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId"
     `;
 
-    const result = await pool.query(query, [apiKey, id]);
+    const result = await pool.query(query, [trimmedKey, id]);
 
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -128,7 +154,7 @@ export async function PUT(
     // Debug logs para producción
     console.log(`[API Key PUT] User ${id} updated:`, {
       success: true,
-      apiKeyLength: apiKey.length,
+      apiKeyLength: trimmedKey.length,
       updatedAt: user.updatedAt
     });
 

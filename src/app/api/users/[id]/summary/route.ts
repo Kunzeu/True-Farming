@@ -65,10 +65,16 @@ export async function GET(
         }, { headers: { 'Cache-Control': 'private, no-cache, no-store, must-revalidate' } });
       }
       try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8_000);
         const [tokenRes, accountRes] = await Promise.all([
-          fetch(`https://api.guildwars2.com/v2/tokeninfo?access_token=${gw2ApiKey}`),
-          fetch(`https://api.guildwars2.com/v2/account?access_token=${gw2ApiKey}`),
-        ]);
+          fetch(`https://api.guildwars2.com/v2/tokeninfo?access_token=${encodeURIComponent(gw2ApiKey)}`, {
+            signal: controller.signal,
+          }),
+          fetch(`https://api.guildwars2.com/v2/account?access_token=${encodeURIComponent(gw2ApiKey)}`, {
+            signal: controller.signal,
+          }),
+        ]).finally(() => clearTimeout(timer));
 
         // Verificar si ambas respuestas son exitosas
         if (tokenRes.ok && accountRes.ok) {

@@ -240,13 +240,27 @@ export default function ProfilePage() {
 
   // API Key functions
   const validateApiKey = async (key: string) => {
-    if (!key.trim()) return false;
+    if (!key.trim()) return { ok: false as const, error: 'empty' };
 
     try {
-      const response = await fetch(`/api/gw2/validate?api_key=${encodeURIComponent(key)}`, { cache: 'no-store' });
-      return response.ok;
+      const response = await fetch(`/api/gw2/validate?api_key=${encodeURIComponent(key.trim())}`, {
+        cache: 'no-store',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.valid) {
+        return {
+          ok: true as const,
+          accountName: data.accountInfo?.name as string | undefined,
+          permissions: data.permissions as string[] | undefined,
+        };
+      }
+      return {
+        ok: false as const,
+        error: (data.error as string) || 'invalid',
+        missingPermissions: data.missingPermissions as string[] | undefined,
+      };
     } catch {
-      return false;
+      return { ok: false as const, error: 'network' };
     }
   };
 
@@ -260,35 +274,55 @@ export default function ProfilePage() {
     setApiKeyMessage('');
 
     try {
-      const valid = await validateApiKey(apiKey);
-      setIsApiKeyValid(valid);
+      const result = await validateApiKey(apiKey);
+      setIsApiKeyValid(result.ok);
 
-      if (valid) {
-        // Save to database
+      if (result.ok) {
         const response = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ apiKey }),
+          body: JSON.stringify({ apiKey: apiKey.trim() }),
         });
 
         if (response.ok) {
+          try {
+            localStorage.setItem('gw2_api_key', apiKey.trim());
+          } catch { /* ignore */ }
+          if (result.accountName) setAccountName(result.accountName);
           setHasApiKey(true);
           setApiKeyMessage(t('profile.apiKey.saved', 'API key saved successfully'));
-          // Confirmar inmediatamente desde el backend (evitar estado fantasma por caché)
           try {
-            const confirmResp = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, { cache: 'no-store' });
+            const confirmResp = await fetch(`/api/users/${user.id}/api-key?user_id=${user.id}`, {
+              cache: 'no-store',
+            });
             if (confirmResp.ok) {
               const confirmData = await confirmResp.json();
               setHasApiKey(!!confirmData.hasApiKey);
+              if (confirmData.apiKey) setApiKey(confirmData.apiKey);
             }
-          } catch { }
-          // No validar automáticamente para evitar tráfico adicional
+            const summaryResp = await fetch(`/api/users/${user.id}/summary`, { cache: 'no-store' });
+            if (summaryResp.ok) {
+              const summaryData = await summaryResp.json();
+              setHasApiKey(!!summaryData.hasApiKey);
+              if (summaryData.accountInfo?.name) setAccountName(summaryData.accountInfo.name);
+            }
+          } catch { /* ignore */ }
         } else {
-          const errorData = await response.json();
-          setApiKeyMessage(errorData.error || t('profile.apiKey.errorSave', 'Error saving API key'));
+          const errorData = await response.json().catch(() => ({}));
+          if (Array.isArray(errorData.missingPermissions) && errorData.missingPermissions.length > 0) {
+            setApiKeyMessage(
+              `${t('profile.apiKey.missingPermissions', 'Faltan permisos')}: ${errorData.missingPermissions.join(', ')}`
+            );
+          } else {
+            setApiKeyMessage(errorData.error || t('profile.apiKey.errorSave', 'Error saving API key'));
+          }
         }
+      } else if (result.missingPermissions?.length) {
+        setApiKeyMessage(
+          `${t('profile.apiKey.missingPermissions', 'Faltan permisos')}: ${result.missingPermissions.join(', ')}`
+        );
       } else {
         setApiKeyMessage(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
       }
@@ -317,6 +351,10 @@ export default function ProfilePage() {
         setAccountName('');
         setIsApiKeyValid(null);
         setHasApiKey(false);
+        try {
+          localStorage.removeItem('gw2_api_key');
+          sessionStorage.removeItem('gw2_api_key');
+        } catch { /* ignore */ }
         setApiKeyMessage('');
         setShowApiKey(false);
 

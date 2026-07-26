@@ -1864,6 +1864,7 @@
   "profile.apiKey.saved": "Clave API guardada exitosamente",
   "profile.apiKey.errorSave": "Error al guardar la clave API",
   "profile.apiKey.invalid": "Clave API inválida. Verifica los permisos.",
+  "profile.apiKey.missingPermissions": "Faltan permisos",
   "profile.apiKey.errorValidate": "Error al validar la clave API",
   "profile.apiKey.deleted": "Clave API eliminada exitosamente",
   "profile.apiKey.errorDelete": "Error al eliminar la clave API",

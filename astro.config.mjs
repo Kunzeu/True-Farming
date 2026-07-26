@@ -27,6 +27,16 @@ export default defineConfig({
     : cloudflare({
         platformProxy: { enabled: false },
       }),
+  // Workers/proxy: Origin del navegador != host interno sin allowedDomains → 403 CSRF en PUT/POST.
+  security: {
+    checkOrigin: true,
+    allowedDomains: [
+      { hostname: 'www.true-farming.com', protocol: 'https' },
+      { hostname: 'true-farming.com', protocol: 'https' },
+      { hostname: 'true-farming.kunjohn24.workers.dev', protocol: 'https' },
+      { hostname: 'localhost', protocol: 'http' },
+    ],
+  },
   integrations: [react()],
   vite: {
     server: {
