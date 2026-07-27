@@ -113,6 +113,16 @@ for (const pageFile of pageFiles) {
   const clientDir = eager ? 'client:load' : 'client:idle';
   const layoutProps = `showNav={${showNav}}`;
 
+  const pageTitle =
+    !posixRel || posixRel === '.'
+      ? 'True Farming - Guild Wars 2 Farming'
+      : `${posixRel
+          .split('/')
+          .map((s) => s.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()))
+          .join(' / ')} - True Farming`;
+  const pageDescription =
+    'True Farming - Guild Wars 2 tools for farming routes, salvage, festivals, legendary tracker and more.';
+
   const islandBody = isOrphanChild
     ? `'use client';
 
@@ -164,7 +174,7 @@ const lang =
     : 'en';
 ---
 
-<Layout ${layoutProps}>
+<Layout ${layoutProps} title={${JSON.stringify(pageTitle)}} description={${JSON.stringify(pageDescription)}}>
   <Island ${clientDir} lang={lang} />
 </Layout>
 `

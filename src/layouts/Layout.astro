@@ -6,10 +6,14 @@ import ChromeIsland from '@/islands/_chrome';
 interface Props {
   title?: string;
   description?: string;
+  /** Absolute or site-relative image for link previews (OG/Twitter). */
+  image?: string;
   /** Show global nav (false for login/register/auth). */
   showNav?: boolean;
   /** Override shell background (e.g. profile purple gradient). */
   bgClass?: string;
+  /** openGraph type, default website */
+  ogType?: string;
 }
 
 const langCookie = Astro.cookies.get('tf_lang')?.value;
@@ -18,13 +22,32 @@ const htmlLang =
     ? langCookie
     : 'en';
 
-const title = Astro.props.title ?? 'True Farming — Guild Wars 2 Farming';
+// Origen de la petición: sirve www y workers.dev (pruebas) sin romper og:image.
+const requestOrigin = Astro.url.origin;
+const productionOrigin =
+  (typeof import.meta.env.PUBLIC_SITE_URL === 'string' && import.meta.env.PUBLIC_SITE_URL) ||
+  (typeof process !== 'undefined' && process.env?.PUBLIC_SITE_URL) ||
+  'https://www.true-farming.com';
+
+const isWorkersPreview = /\.workers\.dev$/i.test(Astro.url.hostname);
+// En workers.dev usamos ese host para previews; en prod, PUBLIC_SITE_URL.
+const siteOrigin = isWorkersPreview ? requestOrigin : productionOrigin;
+
+const canonicalURL = new URL(Astro.url.pathname + Astro.url.search, siteOrigin).toString();
+
+const title = Astro.props.title ?? 'True Farming - Guild Wars 2 Farming';
 const description =
   Astro.props.description ??
-  'Optimize your Guild Wars 2 farming routes, salvage, festivals and more.';
+  'Optimize your Guild Wars 2 farming routes, salvage, festivals, legendary tracker and more.';
 const showNav = Astro.props.showNav !== false;
 const bgClass =
   Astro.props.bgClass ?? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900';
+const ogType = Astro.props.ogType ?? 'website';
+
+const imagePath = Astro.props.image ?? '/images/og-default.png';
+const ogImage = imagePath.startsWith('http')
+  ? imagePath
+  : new URL(imagePath, siteOrigin).toString();
 ---
 
 <!doctype html>
@@ -34,6 +57,28 @@ const bgClass =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph (Discord / Facebook / LinkedIn / iMessage) -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="True Farming" />
+    <meta property="og:locale" content={htmlLang === 'es' ? 'es_ES' : htmlLang === 'de' ? 'de_DE' : htmlLang === 'fr' ? 'fr_FR' : 'en_US'} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:secure_url" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="True Farming - Guild Wars 2" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <link rel="preconnect" href="https://api.guildwars2.com" />
     <link rel="preconnect" href="https://pagead2.googlesyndication.com" />
     <link rel="preconnect" href="https://static.cloudflareinsights.com" />
@@ -45,11 +90,10 @@ const bgClass =
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta name="google-site-verification" content="6QMoVlJ1hD8y5DCBubEKA5qv_oLb3O4EVRB8OS03LZU" />
     <meta name="theme-color" content="#c1272d" />
     <link rel="icon" href="/images/icons/favicon.svg" type="image/svg+xml" />
-    <link rel="canonical" href="https://www.true-farming.com" />
+    <link rel="apple-touch-icon" href="/images/icons/icon.ico" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXS6KYHEXT"></script>
     <script is:inline>
       window.dataLayer = window.dataLayer || [];

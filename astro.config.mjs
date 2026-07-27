@@ -21,6 +21,7 @@ function envDef(...keys) {
 }
 
 export default defineConfig({
+  site: env.PUBLIC_SITE_URL || process.env.PUBLIC_SITE_URL || 'https://www.true-farming.com',
   output: 'server',
   adapter: isDev
     ? node({ mode: 'standalone' })
