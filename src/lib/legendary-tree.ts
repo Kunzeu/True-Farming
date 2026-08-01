@@ -43,7 +43,7 @@ export type LegendaryData = {
   items: Record<string, ItemMeta>;
 };
 
-export type PriceMap = Record<number, { buy: number; sell: number }>;
+export type PriceMap = Record<number, { buy: number; sell: number; sellQty?: number }>;
 
 /** `sell` = comprar al instante; `buy` = poner orden de compra. */
 export type PriceMode = 'sell' | 'buy';
@@ -97,6 +97,7 @@ export const RARE_RIFT_ESSENCE_ID = 79;
 export const MASTERWORK_RIFT_ESSENCE_ID = 80;
 export const ANTIQUATED_DUCAT_ID = 81;
 export const AETHER_RICH_SAP_ID = 83;
+export const IMPERIAL_FAVOR_ID = 68;
 
 export const GIFT_OF_SURVIVORS_ID = 106712;
 export const GIFT_OF_PEOPLE_ID = 105804;
@@ -147,6 +148,10 @@ export const CURRENCY_META: Record<number, { name: string; icon: string }> = {
     name: 'Masterwork Rift Essence',
     icon: 'https://render.guildwars2.com/file/E0A96441F8405ABEF06114BE750154583CF3B1D2/3630023.png',
   },
+  [IMPERIAL_FAVOR_ID]: {
+    name: 'Imperial Favor',
+    icon: '/images/expansions/Imperial_Favor.webp',
+  },
 };
 
 /**
@@ -173,6 +178,11 @@ export const CURRENCY_SOURCES: Record<number, CurrencySource> = {
       { key: 'single', label: '1 × 21', output: 1, price: 21 },
       { key: 'bundle', label: '25 × 525', output: 25, price: 525 },
     ],
+  },
+  // Gen 3: Blessing of the Jade Empress @ Myung-Hee
+  97829: {
+    currency: IMPERIAL_FAVOR_ID,
+    options: [{ key: 'single', label: '500 Favor', output: 1, price: 500 }],
   },
 };
 
@@ -271,6 +281,41 @@ const SYNTHETIC_RECIPES: Record<number, RecipeEntry> = {
   },
 };
 
+/** Klobjarne: logro la 1ª vez; recompra = remnant (amalgamadas + mapa + karma). */
+export const STANDING_STONES_TIMEPIECE_ID = 103578;
+export const VALKYRIE_BEARKIN_WAR_HELM_ID = 103257;
+const CURIOUS_LOWLAND_HONEYCOMB_ID = 103038;
+const CURIOUS_MURSAAT_CURRENCY_ID = 102494;
+const AMALGAMATED_GEMSTONE_ID = 68063;
+
+/** override `buy` = remnant vendor; sin override / `craft` = logro (account). */
+export const REPURCHASE_RECIPES: Record<number, RecipeEntry> = {
+  [STANDING_STONES_TIMEPIECE_ID]: {
+    name: 'Standing Stones Timepiece Remnant',
+    source: 'Vendor: Lowland Shore (after mastery)',
+    output: 1,
+    ingredients: [
+      { id: CURIOUS_LOWLAND_HONEYCOMB_ID, count: 25 },
+      { id: AMALGAMATED_GEMSTONE_ID, count: 25 },
+      { id: currencyAsItemId(KARMA_ID), count: 10_050 },
+    ],
+  },
+  [VALKYRIE_BEARKIN_WAR_HELM_ID]: {
+    name: 'Bearkin War Helm Remnant',
+    source: 'Vendor: Janthir Syntri (after mastery)',
+    output: 1,
+    ingredients: [
+      { id: CURIOUS_MURSAAT_CURRENCY_ID, count: 25 },
+      { id: AMALGAMATED_GEMSTONE_ID, count: 25 },
+      { id: currencyAsItemId(KARMA_ID), count: 10_050 },
+    ],
+  },
+};
+
+export function isRepurchaseItem(id: number): boolean {
+  return id in REPURCHASE_RECIPES;
+}
+
 /** Meta mínima de mats que el dataset del wiki no incluye. */
 const EXTRA_ITEMS: Record<string, ItemMeta> = {
   [String(SHARD_OF_GLORY_ID)]: {
@@ -333,13 +378,42 @@ const EXTRA_ITEMS: Record<string, ItemMeta> = {
     rarity: 'Basic',
     tradeable: false,
   },
+  [String(CURIOUS_LOWLAND_HONEYCOMB_ID)]: {
+    name: 'Curious Lowland Honeycomb',
+    icon: null,
+    rarity: 'Basic',
+    tradeable: false,
+  },
+  [String(CURIOUS_MURSAAT_CURRENCY_ID)]: {
+    name: 'Curious Mursaat Currency',
+    icon: null,
+    rarity: 'Basic',
+    tradeable: false,
+  },
+  [String(currencyAsItemId(KARMA_ID))]: {
+    name: 'Karma',
+    icon: CURRENCY_META[KARMA_ID].icon,
+    rarity: 'Basic',
+    tradeable: false,
+  },
+  [String(currencyAsItemId(IMPERIAL_FAVOR_ID))]: {
+    name: 'Imperial Favor',
+    icon: CURRENCY_META[IMPERIAL_FAVOR_ID].icon,
+    rarity: 'Basic',
+    tradeable: false,
+  },
 };
 
 /** Dataset embebido: el SSR ya puede pintar el árbol sin esperar un fetch. */
 export const legendaryData = rawLegendaryData as LegendaryData;
 
-function recipeOf(data: LegendaryData, id: number): RecipeEntry | null {
-  return SYNTHETIC_RECIPES[id] ?? data.recipes[String(id)] ?? null;
+function recipeOf(data: LegendaryData, id: number, override?: 'buy' | 'craft'): RecipeEntry | null {
+  // ponytail: buy on Klobjarne mats = remnant vendor path
+  if (override === 'buy' && REPURCHASE_RECIPES[id]) return REPURCHASE_RECIPES[id];
+  const recipe = SYNTHETIC_RECIPES[id] ?? data.recipes[String(id)] ?? null;
+  // ponytail: demotions Forja (Dust←Brick, etc.) list the output as ingredient — never expand
+  if (recipe?.ingredients.some((ing) => ing.id === id)) return null;
+  return recipe;
 }
 
 export function itemMeta(data: LegendaryData, id: number): ItemMeta {
@@ -446,8 +520,30 @@ function unitCost(ctx: CostContext, id: number): UnitCost {
     };
   }
 
+  // Klobjarne: siempre costear remnant (buy); logro = account sin oro
+  if (isRepurchaseItem(id)) {
+    const rr = REPURCHASE_RECIPES[id];
+    ctx.stack.add(id);
+    let sum = 0;
+    for (const ing of rr.ingredients) {
+      sum += unitCost(ctx, ing.id).best * ing.count;
+    }
+    ctx.stack.delete(id);
+    const remnant = sum / (rr.output || 1);
+    const mode = ctx.overrides[id] === 'buy' ? 'buy' : 'account';
+    const result: UnitCost = {
+      buy: remnant,
+      craft: 0,
+      best: mode === 'buy' ? remnant : 0,
+      mode,
+      canChoose: true,
+    };
+    ctx.memo.set(id, result);
+    return result;
+  }
+
   let craft: number | null = null;
-  const recipe = recipeOf(ctx.data, id);
+  const recipe = recipeOf(ctx.data, id, ctx.overrides[id]);
   if (recipe) {
     ctx.stack.add(id);
     let sum = 0;
@@ -526,7 +622,8 @@ function clonePool(pool: Record<number, number>): Record<number, number> {
 function buildNode(ctx: BuildContext, id: number, requested: number, depth: number, key: string): TreeNode {
   const buyUnit = unitPrice(ctx.prices, id, ctx.mode);
   const sides = tpSides(ctx.prices, id);
-  const recipe = recipeOf(ctx.data, id);
+  const override = ctx.overrides[id];
+  const recipe = recipeOf(ctx.data, id, override);
   const reference = unitCost(ctx, id);
   const vendor = VENDOR_SOURCES[id];
   const source = vendor
@@ -546,7 +643,7 @@ function buildNode(ctx: BuildContext, id: number, requested: number, depth: numb
       owned,
       depth,
       mode: 'account',
-      canChoose: false,
+      canChoose: isRepurchaseItem(id),
       source,
       buyUnit,
       tpSell: sides.sell,
@@ -556,6 +653,57 @@ function buildNode(ctx: BuildContext, id: number, requested: number, depth: numb
       currency: null,
       children: [],
       extras: recipe?.extras ?? [],
+    };
+  }
+
+  // Klobjarne: logro (account) vs remnant (buy → expand recipe)
+  if (isRepurchaseItem(id)) {
+    if (override === 'buy' && recipe) {
+      const batches = need / (recipe.output || 1);
+      ctx.path.add(id);
+      const children = recipe.ingredients.map((ing, index) =>
+        buildNode(ctx, ing.id, batches * ing.count, depth + 1, `${key}.${index}`)
+      );
+      ctx.path.delete(id);
+      const total = children.reduce((sum, child) => sum + child.total, 0);
+      return {
+        key,
+        id,
+        need,
+        owned,
+        depth,
+        mode: 'buy',
+        canChoose: true,
+        source: recipe.source,
+        buyUnit: total / need,
+        tpSell: null,
+        tpBuy: null,
+        craftUnit: 0,
+        total,
+        currency: null,
+        children,
+        extras: [],
+      };
+    }
+    ctx.accountReq.set(id, (ctx.accountReq.get(id) ?? 0) + need);
+    return {
+      key,
+      id,
+      need,
+      owned,
+      depth,
+      mode: 'account',
+      canChoose: true,
+      source: null,
+      // ponytail: buyUnit = remnant unit so toggle can show cost while on logro
+      buyUnit: reference.buy,
+      tpSell: null,
+      tpBuy: null,
+      craftUnit: 0,
+      total: 0,
+      currency: null,
+      children: [],
+      extras: [],
     };
   }
 
@@ -584,7 +732,6 @@ function buildNode(ctx: BuildContext, id: number, requested: number, depth: numb
   }
 
   const canCraft = !!recipe && depth < 12 && !ctx.path.has(id) && !ctx.stack.has(id);
-  const override = ctx.overrides[id];
 
   let craftChildren: TreeNode[] = [];
   let craftTotal: number | null = null;
@@ -830,7 +977,7 @@ export function collectIds(data: LegendaryData, rootId: number): number[] {
   const walk = (id: number, depth: number) => {
     if (ids.has(id) || depth > 12 || id < 0) return;
     ids.add(id);
-    const recipe = recipeOf(data, id);
+    const recipe = recipeOf(data, id) ?? REPURCHASE_RECIPES[id];
     for (const ing of recipe?.ingredients ?? []) walk(ing.id, depth + 1);
   };
   walk(rootId, 0);
@@ -841,6 +988,48 @@ export function flattenTree(node: TreeNode, out: TreeNode[] = []): TreeNode[] {
   out.push(node);
   for (const child of node.children) flattenTree(child, out);
   return out;
+}
+
+/** Lista de compra TP + mats de remanente Klobjarne (mapa) cuando mode=buy. */
+export function shoppingList(root: TreeNode): { id: number; need: number; total: number }[] {
+  const map = new Map<number, { need: number; total: number }>();
+  const add = (id: number, need: number, total: number) => {
+    const cur = map.get(id) ?? { need: 0, total: 0 };
+    cur.need += need;
+    cur.total += total;
+    map.set(id, cur);
+  };
+  const walk = (n: TreeNode, underRemnant = false) => {
+    if (n.need <= 0) return;
+    if (n.mode === 'buy' && !isRepurchaseItem(n.id) && n.id > 0) {
+      add(n.id, n.need, n.total);
+      return;
+    }
+    // honeycomb / mursaat bajo remnant: no cotizan, pero sí cuentan en materiales
+    if (underRemnant && n.mode === 'account' && n.id > 0 && n.children.length === 0) {
+      add(n.id, n.need, 0);
+      return;
+    }
+    const next = underRemnant || isRepurchaseItem(n.id);
+    for (const c of n.children) walk(c, next);
+  };
+  walk(root);
+  return [...map.entries()]
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.total - a.total || b.need - a.need);
+}
+
+export function armorWeight(entry: LegendaryEntry): 'light' | 'medium' | 'heavy' | null {
+  if ((entry.kind ?? 'weapon') !== 'armor') return null;
+  const n = entry.name;
+  if (/\bLight\b/.test(n)) return 'light';
+  if (/\bMedium\b/.test(n)) return 'medium';
+  if (/\bHeavy\b/.test(n)) return 'heavy';
+  if (/Breastplate|Gauntlets|Greaves|Helmet|Pauldrons|Tassets|Cuisses/.test(n)) return 'heavy';
+  if (/Jerkin|Jacket|Shoulderpads|Mask/.test(n)) return 'medium';
+  if (/Cowl|Mantle|Vestments|Crown|Regalia|Vambraces|Shoes|Pants/.test(n)) return 'light';
+  if (/Boots|Gloves|Leggings/.test(n)) return 'medium';
+  return null;
 }
 
 /**
@@ -858,11 +1047,15 @@ export async function fetchPrices(ids: number[]): Promise<PriceMap> {
       if (!res.ok) continue;
       const rows = (await res.json()) as {
         id: number;
-        buys?: { unit_price: number };
-        sells?: { unit_price: number };
+        buys?: { unit_price: number; quantity?: number };
+        sells?: { unit_price: number; quantity?: number };
       }[];
       for (const row of rows) {
-        map[row.id] = { buy: row.buys?.unit_price ?? 0, sell: row.sells?.unit_price ?? 0 };
+        map[row.id] = {
+          buy: row.buys?.unit_price ?? 0,
+          sell: row.sells?.unit_price ?? 0,
+          sellQty: row.sells?.quantity ?? 0,
+        };
       }
     } catch {
       // sin precios el nodo se muestra como no comprable

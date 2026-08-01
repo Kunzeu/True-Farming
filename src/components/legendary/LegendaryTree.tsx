@@ -1,12 +1,13 @@
 'use client';
 
-import { ChevronRight, Hammer, Lock, ShoppingCart, Store } from 'lucide-react';
+import { ChevronRight, Hammer, Lock, ShoppingCart, Store, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import type { GW2Item } from '@/types/gw2';
 import {
   CURRENCY_META,
   VENDOR_SOURCES,
   gw2WikiUrl,
+  isRepurchaseItem,
   itemMeta,
   type LegendaryData,
   type NodeMode,
@@ -43,6 +44,9 @@ type Labels = {
   tpInstant: string;
   tpOrder: string;
   vendor: string;
+  achievement: string;
+  remnant: string;
+  markDone: string;
 };
 
 type RowProps = {
@@ -53,6 +57,8 @@ type RowProps = {
   onToggle: (key: string) => void;
   onDecide: (id: number, mode: 'buy' | 'craft') => void;
   onCurrencyDecide: (id: number, choice: string) => void;
+  onMarkDone?: (id: number, done: boolean) => void;
+  markedIds?: Set<number>;
   labels: Labels;
   priceMode: PriceMode;
 };
@@ -73,7 +79,47 @@ function ChoiceToggle({
   onDecide: (id: number, mode: 'buy' | 'craft') => void;
   priceMode: PriceMode;
 }) {
-  if (!node.canChoose || node.craftUnit === null) return null;
+  if (!node.canChoose) return null;
+
+  // Klobjarne: craft = logro, buy = remnant
+  if (isRepurchaseItem(node.id)) {
+    const remnantCost = node.mode === 'buy' ? node.total : (node.buyUnit ?? 0) * Math.max(node.need, 1);
+    return (
+      <div className="inline-flex shrink-0 rounded-lg border border-slate-600/50 bg-slate-950/50 p-0.5">
+        <button
+          type="button"
+          onClick={() => onDecide(node.id, 'craft')}
+          title={labels.achievement}
+          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition ${
+            node.mode === 'account' ? 'bg-amber-500/20 text-amber-200' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <Trophy className="h-3 w-3" />
+          <span>{labels.achievement}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onDecide(node.id, 'buy')}
+          title={labels.remnant}
+          className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold transition ${
+            node.mode === 'buy' ? 'bg-cyan-500/20 text-cyan-200' : 'text-zinc-500 hover:text-zinc-300'
+          }`}
+        >
+          <ShoppingCart className="h-3 w-3" />
+          <span>{labels.remnant}</span>
+          {remnantCost > 0 && (
+            <SalvageCurrency
+              copper={remnantCost}
+              size="sm"
+              className={`!text-[11px] ${node.mode === 'buy' ? '' : 'opacity-60'}`}
+            />
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  if (node.craftUnit === null) return null;
   const tpUnit = activeTpUnit(node, priceMode);
   if (tpUnit === null) return null;
 
@@ -155,6 +201,8 @@ function TreeRow({
   onToggle,
   onDecide,
   onCurrencyDecide,
+  onMarkDone,
+  markedIds,
   labels,
   priceMode,
 }: RowProps) {
@@ -173,6 +221,7 @@ function TreeRow({
   const tpLabel = priceMode === 'sell' ? labels.tpInstant : labels.tpOrder;
   // de/fr: nombre localizado; en: nombre EN; es: EN vía englishName + chat link
   const wikiTitle = lang === 'de' || lang === 'fr' ? name : fallback.name;
+  const isMarked = markedIds?.has(node.id) ?? false;
 
   return (
     <>
@@ -191,6 +240,16 @@ function TreeRow({
           </button>
         ) : (
           <span className="h-5 w-5 shrink-0" />
+        )}
+
+        {onMarkDone && node.depth > 0 && node.id > 0 && (
+          <input
+            type="checkbox"
+            checked={isMarked}
+            onChange={(e) => onMarkDone(node.id, e.target.checked)}
+            title={labels.markDone}
+            className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-slate-500 bg-slate-900 text-emerald-500"
+          />
         )}
 
         {icon ? (
@@ -214,7 +273,7 @@ function TreeRow({
           })}
           target="_blank"
           rel="noopener noreferrer"
-          className={`min-w-0 truncate text-sm font-medium hover:underline ${RARITY_COLOR[rarity] ?? 'text-zinc-200'}`}
+          className={`min-w-0 truncate text-sm font-medium hover:underline ${RARITY_COLOR[rarity] ?? 'text-zinc-200'} ${isMarked ? 'line-through opacity-60' : ''}`}
           title={wikiTitle}
         >
           {name}
@@ -320,6 +379,8 @@ function TreeRow({
             onToggle={onToggle}
             onDecide={onDecide}
             onCurrencyDecide={onCurrencyDecide}
+            onMarkDone={onMarkDone}
+            markedIds={markedIds}
             labels={labels}
             priceMode={priceMode}
           />

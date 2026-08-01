@@ -138,9 +138,9 @@ export default function EctoRecycleCompareTable({
             <tr>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                  {dustIcon && (
-                    <Image src={dustIcon} alt="" width={24} height={24} className="rounded" />
-                  )}
+                  {ectoIcon && (
+                    <Image src={ectoIcon} alt="" width={24} height={24} className="rounded" />
+                  )}                  
                   <span className="rounded bg-amber-500/20 px-2 py-0.5 text-sm font-semibold text-amber-200">
                     {t('ectoplasm.recycle.recycle', 'Recycle')}
                   </span>

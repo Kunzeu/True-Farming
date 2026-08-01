@@ -22,6 +22,7 @@ import { useGW2Inventory } from '@/hooks/useGW2Inventory';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
 import LegendaryTree from '@/components/legendary/LegendaryTree';
 import {
+  armorWeight,
   buildTree,
   collectIds,
   CURRENCY_META,
@@ -30,6 +31,7 @@ import {
   gw2WikiUrl,
   itemMeta,
   legendaryData,
+  shoppingList,
   type CurrencyOverride,
   type DecisionOverride,
   type LegendaryKind,
@@ -38,8 +40,30 @@ import {
 } from '@/lib/legendary-tree';
 
 const DEFAULT_ID = 30704; // Twilight
+const MARKED_KEY = 'tf-legendary-marked';
 
 const KIND_ORDER: (LegendaryKind | 'all')[] = ['all', 'weapon', 'armor', 'backpack', 'trinket'];
+type ArmorWeight = 'all' | 'light' | 'medium' | 'heavy';
+type WeaponSort = 'default' | 'profit';
+
+function loadMarked(legId: number): Set<number> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MARKED_KEY) || '{}') as Record<string, number[]>;
+    return new Set(raw[String(legId)] ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveMarked(legId: number, ids: Set<number>) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MARKED_KEY) || '{}') as Record<string, number[]>;
+    raw[String(legId)] = [...ids];
+    localStorage.setItem(MARKED_KEY, JSON.stringify(raw));
+  } catch {
+    /* ignore quota */
+  }
+}
 
 const card =
   'rounded-2xl border border-slate-600/40 bg-slate-800/40 p-5 shadow-lg shadow-black/10 backdrop-blur-sm';
@@ -61,6 +85,10 @@ export default function LegendaryTrackerPage() {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<LegendaryKind | 'all'>('all');
   const [gen, setGen] = useState<number>(0);
+  const [armorFilter, setArmorFilter] = useState<ArmorWeight>('all');
+  const [weaponSort, setWeaponSort] = useState<WeaponSort>('default');
+  const [catalogPrices, setCatalogPrices] = useState<PriceMap>({});
+  const [markedIds, setMarkedIds] = useState<Set<number>>(new Set());
 
   const {
     inventoryMap,
@@ -78,6 +106,10 @@ export default function LegendaryTrackerPage() {
     if (fromUrl) setSelectedId(fromUrl);
   }, []);
 
+  useEffect(() => {
+    setMarkedIds(loadMarked(selectedId));
+  }, [selectedId]);
+
   const ids = useMemo(() => collectIds(data, selectedId), [data, selectedId]);
 
   useEffect(() => {
@@ -92,23 +124,42 @@ export default function LegendaryTrackerPage() {
     };
   }, [ids]);
 
+  // ponytail: precios de árbol completo solo al ordenar por beneficio
+  useEffect(() => {
+    if (weaponSort !== 'profit') return;
+    let active = true;
+    const weapons = data.legendaries.filter((e) => (e.kind ?? 'weapon') === 'weapon');
+    const need = [...new Set(weapons.flatMap((e) => collectIds(data, e.id)))];
+    fetchPrices(need).then((result) => active && setCatalogPrices(result));
+    return () => {
+      active = false;
+    };
+  }, [weaponSort, data]);
+
   useEffect(() => {
     if (useOwned && hasApiKey) void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al activar el descuento
   }, [useOwned, hasApiKey]);
 
-  const { localizedIds, tree, selected } = useMemo(() => {
+  const ownedPool = useMemo(() => {
+    const pool: Record<number, number> = useOwned ? { ...inventoryMap } : {};
+    for (const id of markedIds) pool[id] = (pool[id] ?? 0) + 999_999;
+    return pool;
+  }, [useOwned, inventoryMap, markedIds]);
+
+  const { localizedIds, tree, selected, materials } = useMemo(() => {
     const entry = data.legendaries.find((l) => l.id === selectedId) ?? data.legendaries[0] ?? null;
     const result = buildTree(data, entry?.id ?? selectedId, prices, {
       mode: priceMode,
-      owned: useOwned ? inventoryMap : undefined,
+      owned: Object.keys(ownedPool).length ? ownedPool : undefined,
       wallet: useOwned ? walletMap : undefined,
       overrides,
       currencyOverrides,
     });
     const localizedIds = [...new Set([...ids, ...data.legendaries.map((l) => l.id)])];
-    return { localizedIds, tree: result, selected: entry };
-  }, [data, selectedId, prices, priceMode, useOwned, inventoryMap, walletMap, ids, overrides, currencyOverrides]);
+    const materials = result ? shoppingList(result.root) : [];
+    return { localizedIds, tree: result, selected: entry, materials };
+  }, [data, selectedId, prices, priceMode, useOwned, walletMap, ids, overrides, currencyOverrides, ownedPool]);
 
   const { items } = useGW2Items(localizedIds, lang);
 
@@ -121,6 +172,19 @@ export default function LegendaryTrackerPage() {
     url.searchParams.set('id', String(id));
     window.history.replaceState({}, '', url.toString());
   }, []);
+
+  const markDone = useCallback(
+    (id: number, done: boolean) => {
+      setMarkedIds((prev) => {
+        const next = new Set(prev);
+        if (done) next.add(id);
+        else next.delete(id);
+        saveMarked(selectedId, next);
+        return next;
+      });
+    },
+    [selectedId]
+  );
 
   const toggleNode = useCallback((key: string) => {
     setExpanded((prev) => {
@@ -139,20 +203,20 @@ export default function LegendaryTrackerPage() {
     setCurrencyOverrides((prev) => ({ ...prev, [id]: choice }));
   }, []);
 
-  // tras forzar fabricar, abrir esa rama para ver ingredientes
+  // tras forzar fabricar / remnant, abrir esa rama
   useEffect(() => {
     if (!tree) return;
-    const craftIds = new Set(
+    const openIds = new Set(
       Object.entries(overrides)
-        .filter(([, mode]) => mode === 'craft')
+        .filter(([, mode]) => mode === 'craft' || mode === 'buy')
         .map(([id]) => Number(id))
     );
-    if (!craftIds.size) return;
+    if (!openIds.size) return;
     setExpanded((prev) => {
       let changed = false;
       const next = new Set(prev);
       for (const node of flattenTree(tree.root)) {
-        if (craftIds.has(node.id) && node.children.length && !next.has(node.key)) {
+        if (openIds.has(node.id) && node.children.length && !next.has(node.key)) {
           next.add(node.key);
           changed = true;
         }
@@ -166,18 +230,36 @@ export default function LegendaryTrackerPage() {
     setExpanded(new Set(flattenTree(tree.root).filter((n) => n.children.length).map((n) => n.key)));
   };
 
+  const weaponScores = useMemo(() => {
+    if (kind !== 'weapon' || weaponSort !== 'profit') return null;
+    const map = new Map<number, number>();
+    for (const entry of data.legendaries) {
+      if ((entry.kind ?? 'weapon') !== 'weapon') continue;
+      const net = Math.floor((catalogPrices[entry.id]?.sell ?? 0) * 0.85);
+      const cost = buildTree(data, entry.id, catalogPrices, { mode: priceMode }).total;
+      map.set(entry.id, net - cost);
+    }
+    return map;
+  }, [kind, weaponSort, data, catalogPrices, priceMode]);
+
   const visibleLegendaries = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return data.legendaries.filter((entry) => {
+    let list = data.legendaries.filter((entry) => {
       const entryKind = entry.kind ?? 'weapon';
       if (kind !== 'all' && entryKind !== kind) return false;
       if (kind === 'weapon' && gen && entry.gen !== gen) return false;
+      if (kind === 'armor' && armorFilter !== 'all' && armorWeight(entry) !== armorFilter) return false;
       if (!needle) return true;
       const localized = items[entry.id]?.name ?? entry.name;
       const haystack = `${localized} ${entry.name} ${entry.set ?? ''} ${entryKind}`.toLowerCase();
       return haystack.includes(needle);
     });
-  }, [data, query, gen, kind, items]);
+
+    if (weaponScores) {
+      list = [...list].sort((a, b) => (weaponScores.get(b.id) ?? 0) - (weaponScores.get(a.id) ?? 0));
+    }
+    return list;
+  }, [data, query, gen, kind, armorFilter, weaponScores, items]);
 
   const kindLabel = (value: LegendaryKind | 'all') => {
     if (value === 'all') return t('legendary.kind.all', 'All');
@@ -197,6 +279,9 @@ export default function LegendaryTrackerPage() {
     tpInstant: t('legendary.tp.instant', 'Sell'),
     tpOrder: t('legendary.tp.order', 'Buy'),
     vendor: t('legendary.mode.vendor', 'Vendor'),
+    achievement: t('legendary.mode.achievement', 'Achievement'),
+    remnant: t('legendary.mode.remnant', 'Remnant'),
+    markDone: t('legendary.markDone', 'Mark as done'),
   };
 
   // Valor neto recibido al vender la legendaria: precio Sell menos 15% de comisión.
@@ -276,6 +361,45 @@ export default function LegendaryTrackerPage() {
                 ))}
               </div>
             )}
+            {kind === 'armor' && (
+              <div className="flex flex-wrap gap-1.5">
+                {(['all', 'light', 'medium', 'heavy'] as ArmorWeight[]).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setArmorFilter(value)}
+                    className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition ${
+                      armorFilter === value
+                        ? 'border-violet-400/50 bg-violet-500/15 text-violet-200'
+                        : 'border-slate-700/50 bg-slate-950/40 text-zinc-500 hover:text-white'
+                    }`}
+                  >
+                    {t(`legendary.weight.${value}`, value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1))}
+                  </button>
+                ))}
+              </div>
+            )}
+            {kind === 'weapon' && (
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  ['default', 'Default'],
+                  ['profit', 'By profit'],
+                ] as const).map(([value, fallback]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setWeaponSort(value)}
+                    className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition ${
+                      weaponSort === value
+                        ? 'border-violet-400/50 bg-violet-500/15 text-violet-200'
+                        : 'border-slate-700/50 bg-slate-950/40 text-zinc-500 hover:text-white'
+                    }`}
+                  >
+                    {t(`legendary.sort.${value}`, fallback)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 grid max-h-64 grid-cols-1 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -289,6 +413,7 @@ export default function LegendaryTrackerPage() {
                   : entry.set
                     ? entry.set.split(' ')[0]
                     : entryKind.slice(0, 3).toUpperCase();
+              const score = weaponScores?.get(entry.id);
               return (
                 <button
                   key={entry.id}
@@ -304,6 +429,13 @@ export default function LegendaryTrackerPage() {
                     <Image src={meta.icon} alt="" width={24} height={24} className="rounded" />
                   )}
                   <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">{meta.name}</span>
+                  {score != null && (
+                    <SalvageCurrency
+                      copper={Math.abs(score)}
+                      size="sm"
+                      className={`shrink-0 !text-[10px] ${score >= 0 ? '!text-emerald-300' : '!text-rose-300'}`}
+                    />
+                  )}
                   <span className="shrink-0 text-[10px] font-bold uppercase text-zinc-600">{badge}</span>
                 </button>
               );
@@ -525,13 +657,64 @@ export default function LegendaryTrackerPage() {
               onToggle={toggleNode}
               onDecide={decideNode}
               onCurrencyDecide={decideCurrency}
+              onMarkDone={markDone}
+              markedIds={markedIds}
               labels={labels}
               priceMode={priceMode}
             />
           </div>
         )}
 
-        {/* Monedas (karma / esquirlas) descontadas con el wallet */}
+        {/* Materiales TP (como monedas) */}
+        {tree && materials.length > 0 && (
+          <div className={`${card} mt-4`}>
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
+              <ShoppingCart className="h-4 w-4 text-cyan-300" />
+              {t('legendary.materialsTitle', 'Materials needed')}
+            </h2>
+            <p className="mb-3 text-xs text-zinc-500">
+              {t('legendary.materialsSubtitle', 'Trading Post buys left after discounts and marks.')}
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {materials.map((row) => {
+                const meta = items[row.id] ?? itemMeta(data, row.id);
+                return (
+                  <div
+                    key={row.id}
+                    className="flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-900/40 px-2.5 py-1.5"
+                  >
+                    {meta.icon && (
+                      <Image src={meta.icon} alt="" width={20} height={20} className="rounded" />
+                    )}
+                    <a
+                      href={gw2WikiUrl(meta.name, lang, {
+                        itemId: row.id,
+                        englishName: itemMeta(data, row.id).name,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 truncate text-xs text-zinc-300 hover:underline"
+                    >
+                      {meta.name}
+                    </a>
+                    <span className="shrink-0 font-mono text-[11px] text-zinc-500">
+                      ×{Math.ceil(row.need)}
+                    </span>
+                    {row.total > 0 ? (
+                      <SalvageCurrency copper={row.total} size="sm" className="shrink-0 !text-[11px]" />
+                    ) : (
+                      <span className="shrink-0 text-[10px] text-amber-300/80">
+                        {t('legendary.mode.account', 'Account')}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Monedas (karma / esquirlas / favor) descontadas con el wallet */}
         {tree && tree.currencyRequirements.length > 0 && (
           <div className={`${card} mt-4`}>
             <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
