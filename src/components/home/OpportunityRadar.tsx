@@ -21,7 +21,7 @@ const confidenceLabel: Record<RadarOpportunity['confidence'], { key: string; fal
 };
 
 const categoryLabel: Record<RadarOpportunity['category'], { key: string; fallback: string }> = {
-  salvage: { key: 'radar.category.salvage', fallback: 'Salvage' },
+  salvage: { key: 'radar.category.salvage', fallback: 'Salvage' }, // ES: Reciclar
   ecto: { key: 'radar.category.ecto', fallback: 'Ecto' },
 };
 

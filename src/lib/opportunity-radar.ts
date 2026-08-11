@@ -152,9 +152,9 @@ export function buildRadarOpportunities(
   prices: Record<number, RadarPrice>
 ): RadarOpportunity[] {
   const list: RadarOpportunity[] = [
-    salvageOpp('common', 'radar.salvage.common', 'Salvage: Common gear', prices),
-    salvageOpp('masterwork', 'radar.salvage.masterwork', 'Salvage: Masterwork gear', prices),
-    salvageOpp('rare', 'radar.salvage.rare', 'Salvage: Rare gear', prices),
+    salvageOpp('common', 'radar.salvage.common', 'Salvage: Common Unidentified Gear', prices),
+    salvageOpp('masterwork', 'radar.salvage.masterwork', 'Salvage: Masterwork Unidentified Gear', prices),
+    salvageOpp('rare', 'radar.salvage.rare', 'Salvage: Rare Unidentified Gear', prices),
   ].filter((o): o is RadarOpportunity => o != null);
 
   // Profitable first, then by profit desc; keep a few negatives so empty markets still show signal
