@@ -75,8 +75,7 @@ const boxCalculatorData: BoxCalculatorItem[] = [
   { id: 19723, name: 'Green Wood Log', icon: '', numPerBox: 91, pricePerUnit: 15, pricePerBox: 1065, myMaterials: 0, resultingBoxes: 0 },
   { id: 19726, name: 'Soft Wood Log', icon: '', numPerBox: 66, pricePerUnit: 25, pricePerBox: 850, myMaterials: 0, resultingBoxes: 0 },
   { id: 19727, name: 'Seasoned Wood Log', icon: '', numPerBox: 18, pricePerUnit: 45, pricePerBox: 585, myMaterials: 0, resultingBoxes: 0 },
-  { id: 96052, name: 'Research Notes', icon: '', numPerBox: 10, pricePerUnit: 90, pricePerBox: 15000, myMaterials: 0, resultingBoxes: 0 },
-];
+  { id: 96052, name: 'Research Notes', icon: '', numPerBox: 15, pricePerUnit: 90, pricePerBox: 15000, myMaterials: 0, resultingBoxes: 0 },
 
 // IDs primarios para "Apertura de Cajas" (rellenar con la lista definitiva)
 interface BoxOpeningPrimaryItem {
