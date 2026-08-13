@@ -14,18 +14,22 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined);
 
-// Import estático de mensajes (Tree-shake friendly)
 import en from '@/i18n/messages/en.json';
 import de from '@/i18n/messages/de.json';
 import es from '@/i18n/messages/es.json';
 import fr from '@/i18n/messages/fr.json';
 
 const LANG_STORAGE_KEY = 'tf_lang';
+// ponytail: Nav y páginas son islas Astro distintas; storage no dispara en el mismo tab
+const LANG_EVENT = 'tf_lang_change';
 
 const ALL_MESSAGES: Record<LangCode, Messages> = { en, de, es, fr };
 
+function isLangCode(v: string | null | undefined): v is LangCode {
+  return !!v && v in ALL_MESSAGES;
+}
+
 function detectInitialLang(): LangCode {
-  // Para evitar hydration mismatch, usar siempre 'en' como valor inicial SSR/CSR
   return 'en';
 }
 
@@ -38,32 +42,50 @@ export function I18nProvider({ children, initialLang }: { children: React.ReactN
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(LANG_STORAGE_KEY, next);
-        // Escribir cookie para que el servidor pueda renderizar en el idioma correcto en la siguiente petición
         document.cookie = `${LANG_STORAGE_KEY}=${next}; path=/; max-age=${60 * 60 * 24 * 365}`;
-      } catch (e) {
+        window.dispatchEvent(new CustomEvent(LANG_EVENT, { detail: next }));
+      } catch {
         // ignore
       }
     }
   };
 
   useEffect(() => {
-    // Al montar en cliente, resolver idioma real desde localStorage o navegador
-    if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem(LANG_STORAGE_KEY) as LangCode | null;
-      if (stored && ALL_MESSAGES[stored]) {
-        setLangState(stored);
-      } else {
-        const nav = navigator.language?.toLowerCase() || 'en';
-        if (nav.startsWith('es')) setLangState('es');
-        else if (nav.startsWith('de')) setLangState('de');
-        else if (nav.startsWith('fr')) setLangState('fr');
-        else setLangState('en');
-      }
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(LANG_STORAGE_KEY);
+    if (isLangCode(stored)) {
+      setLangState(stored);
+    } else {
+      const nav = navigator.language?.toLowerCase() || 'en';
+      if (nav.startsWith('es')) setLangState('es');
+      else if (nav.startsWith('de')) setLangState('de');
+      else if (nav.startsWith('fr')) setLangState('fr');
+      else setLangState('en');
     }
   }, []);
 
   useEffect(() => {
-    // Mantener <html lang="...">
+    if (typeof window === 'undefined') return;
+
+    const onIslandLang = (e: Event) => {
+      const next = (e as CustomEvent<string>).detail;
+      if (isLangCode(next)) setLangState(next);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LANG_STORAGE_KEY && isLangCode(e.newValue)) {
+        setLangState(e.newValue);
+      }
+    };
+
+    window.addEventListener(LANG_EVENT, onIslandLang);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(LANG_EVENT, onIslandLang);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = lang;
     }
@@ -77,7 +99,6 @@ export function I18nProvider({ children, initialLang }: { children: React.ReactN
       if (typeof value === 'string') {
         return value;
       } else if (typeof value === 'object' && value !== null) {
-        // Si es un objeto anidado, devolver la clave como fallback
         return fallback ?? key;
       }
       return fallback ?? key;
@@ -94,5 +115,3 @@ export function useI18n(): I18nContextValue {
   if (!ctx) throw new Error('useI18n must be used within I18nProvider');
   return ctx;
 }
-
-

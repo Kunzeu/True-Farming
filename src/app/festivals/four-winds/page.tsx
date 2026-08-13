@@ -1,10 +1,14 @@
-'use client';
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
+import FourWindsConfigEditor from '@/components/festivals/FourWindsConfigEditor';
+import {
+  DEFAULT_FOUR_WINDS_CONFIG,
+  type FourWindsConfig,
+} from '@/lib/four-winds-config';
 import { 
   RefreshCw,
   Package,
@@ -33,159 +37,177 @@ interface Gw2Item {
   icon: string;
 }
 
-// Nueva interfaz para la calculadora de cajas
 interface BoxCalculatorItem {
   id: number;
   name: string;
   icon: string;
-  numPerBox: number; // Cantidad fija por caja (solo cambiable por administradores)
+  numPerBox: number;
   pricePerUnit: number;
   pricePerBox: number;
   myMaterials: number;
   resultingBoxes: number;
 }
 
-// Datos fijos para la calculadora de cajas (solo modificables por administradores)
-const boxCalculatorData: BoxCalculatorItem[] = [
-  { id: 19718, name: 'Jute Scrap', icon: '', numPerBox: 100, pricePerUnit: 22, pricePerBox: 748, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19745, name: 'Gossamer Scrap', icon: '', numPerBox: 9, pricePerUnit: 280, pricePerBox: 3080, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19721, name: 'Glob of Ectoplasm', icon: '', numPerBox: 0.25, pricePerUnit: 2500, pricePerBox: 725, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19729, name: 'Thick Leather Section', icon: '', numPerBox: 24, pricePerUnit: 150, pricePerBox: 3600, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19700, name: 'Mithril Ore', icon: '', numPerBox: 31, pricePerUnit: 200, pricePerBox: 3200, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19728, name: 'Thin Leather Section', icon: '', numPerBox: 143, pricePerUnit: 25, pricePerBox: 1000, myMaterials:40, resultingBoxes: 0 },
-  { id: 19722, name: 'Elder Wood Log', icon: '', numPerBox: 45, pricePerUnit: 150, pricePerBox: 3300, myMaterials: 0, resultingBoxes: 0 },
-  { id: 44941, name: 'Watchwork Sprocket', icon: '', numPerBox: 20, pricePerUnit: 500, pricePerBox: 4000, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19719, name: 'Rawhide Leather Section', icon: '', numPerBox: 250, pricePerUnit: 8, pricePerBox: 672, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19702, name: 'Platinum Ore', icon: '', numPerBox: 8, pricePerUnit: 120, pricePerBox: 720, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19739, name: 'Wool Scrap', icon: '', numPerBox: 31, pricePerUnit: 45, pricePerBox: 630, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19699, name: 'Iron Ore', icon: '', numPerBox: 13, pricePerUnit: 35, pricePerBox: 350, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19741, name: 'Cotton Scrap', icon: '', numPerBox: 143, pricePerUnit: 12, pricePerBox: 648, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19701, name: 'Orichalcum Ore', icon: '', numPerBox: 6, pricePerUnit: 380, pricePerBox: 3040, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19743, name: 'Linen Scrap', icon: '', numPerBox: 45, pricePerUnit: 85, pricePerBox: 1360, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19732, name: 'Hardened Leather Section', icon: '', numPerBox: 2, pricePerUnit: 280, pricePerBox: 840, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19731, name: 'Rugged Leather Section', icon: '', numPerBox: 12, pricePerUnit: 85, pricePerBox: 510, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19725, name: 'Ancient Wood Log', icon: '', numPerBox: 9, pricePerUnit: 280, pricePerBox: 1680, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19697, name: 'Copper Ore', icon: '', numPerBox: 36, pricePerUnit: 18, pricePerBox: 558, myMaterials: 0, resultingBoxes: 0 },
-  { id: 24277, name: 'Pile of Crystalline Dust', icon: '', numPerBox: 2, pricePerUnit: 1823, pricePerBox: 911, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19703, name: 'Silver Ore', icon: '', numPerBox: 83, pricePerUnit: 90, pricePerBox: 5940, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19730, name: 'Coarse Leather Section', icon: '', numPerBox: 66, pricePerUnit: 45, pricePerBox: 1035, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19748, name: 'Silk Scrap', icon: '', numPerBox: 111, pricePerUnit: 150, pricePerBox: 7650, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19724, name: 'Hard Wood Log', icon: '', numPerBox: 11, pricePerUnit: 85, pricePerBox: 935, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19698, name: 'Gold Ore', icon: '', numPerBox: 45, pricePerUnit: 180, pricePerBox: 4140, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19723, name: 'Green Wood Log', icon: '', numPerBox: 91, pricePerUnit: 15, pricePerBox: 1065, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19726, name: 'Soft Wood Log', icon: '', numPerBox: 66, pricePerUnit: 25, pricePerBox: 850, myMaterials: 0, resultingBoxes: 0 },
-  { id: 19727, name: 'Seasoned Wood Log', icon: '', numPerBox: 18, pricePerUnit: 45, pricePerBox: 585, myMaterials: 0, resultingBoxes: 0 },
-  { id: 96052, name: 'Research Notes', icon: '', numPerBox: 15, pricePerUnit: 90, pricePerBox: 15000, myMaterials: 0, resultingBoxes: 0 },
-];
+function buildCalculatorItems(cfg: FourWindsConfig, prev?: BoxCalculatorItem[]): BoxCalculatorItem[] {
+  return cfg.boxCalculator.map((item) => {
+    const existing = prev?.find((p) => p.id === item.id);
+    return {
+      id: item.id,
+      name: item.name,
+      icon: existing?.icon || '',
+      numPerBox: item.numPerBox,
+      pricePerUnit: existing?.pricePerUnit ?? item.pricePerUnit,
+      pricePerBox: Math.round((existing?.pricePerUnit ?? item.pricePerUnit) * item.numPerBox),
+      myMaterials: existing?.myMaterials ?? 0,
+      resultingBoxes: existing
+        ? Math.floor((existing.myMaterials || 0) / item.numPerBox)
+        : 0,
+    };
+  });
+}
 
 interface BoxOpeningPrimaryItem {
   id: number;
   name: string;
-  nameEn: string; // ponytail: wiki ES siempre EN
+  nameEn: string;
   icon: string;
   quantity: number;
   perBox: number;
   pricePerUnit?: number;
 }
 
-// ponytail: hardcode por año; picker real si llegan más datasets
-const BOX_OPENING_BY_YEAR = {
-  2025: {
-    boxes: 280000,
-    ids: [
-      24290,24342,24346,24272,24352,24284,24296,24278,24291,24343,24347,24273,24353,24285,24297,24279,24292,24344,24348,24274,24354,24286,24298,24280,24293,24345,24349,24275,24355,24287,24363,24281,24294,24341,24350,24276,24356,24288,24299,24282,24295,24358,24351,24277,24357,24289,24300,24283,66224,19718,19739,19741,19743,19748,19745,19697,19703,19699,19702,19698,19700,19701,19723,19726,19727,19724,19722,19725,19719,19728,19730,19731,19729,19732,43319,43773,43772,102170,88223,43909,48905,88118,48895,43952,
-      96978,70477,88148,70266,66165,42402,43955,63856,91086,100244,88732,92023,84882,79978,82006,81701,81807,99956,98092,98002,72503,99250,
-    ],
-    counts: [
-      1227,1163,1226,1249,1165,1160,1185,1213,989,956,993,946,924,960,920,980,734,700,733,744,766,756,754,661,504,495,491,467,486,494,468,470,255,219,254,256,311,247,245,251,128,121,132,113,133,110,121,123,
-      786889,12025,9132,6018,2974,2048,610,12087,8836,9030,6117,2781,1042,629,12163,9015,5996,2997,4069,583,12098,8927,6125,2944,1196,575,1570,280000,113,152,658,506,161,600,922,310,
-      23,0,0,11,16,1,1,1,0,0,1,1,1,1,0,1,0,0,0,2,1,0,
-    ],
-  },
-  2026: {
-    boxes: 200000,
-    ids: [
-      84882,109239,91086,82006,43773,19699,19702,48898,48897,48896,24274,19697,19727,24275,88118,24351,19739,24344,24277,88160,88121,24295,19724,88197,19731,24273,24354,19732,88176,24300,24298,24358,24283,24289,88122,24292,88150,88201,24348,96978,24280,24363,88223,19723,24357,24286,24287,24355,19703,24349,19726,19718,24293,24281,88207,24345,19701,19730,19725,19719,19729,19745,43319,19698,19728,24272,19743,43952,24353,19741,19700,66165,43909,43903,24276,24343,48905,19722,43906,19748,24299,24356,24294,24285,24282,24341,24288,24350,24291,24297,24347,24279,24342,24352,24278,24346,24284,24296,24290,43772,105068,70266,81807,81701,92023,99956,91924,100010,88914,
-    ],
-    counts: [
-      3,1,1,1,200000,6505,4386,150,165,165,511,8712,4257,334,418,114,6479,512,99,60,59,80,2172,45,2130,650,511,446,54,86,506,85,75,86,61,506,46,56,513,14,524,338,51,8505,75,531,380,343,6441,351,6452,8463,362,326,38,326,399,4364,436,8527,861,428,905,2186,6419,878,2128,173,702,4280,815,1,167,159,173,677,174,827,168,852,179,155,186,642,150,168,164,162,676,643,765,713,837,887,874,857,872,855,833,78,128,4,1,1,1,1,1,1,1,
-    ],
-  },
-} as const;
-
-type BoxOpeningYear = keyof typeof BOX_OPENING_BY_YEAR;
-
-// Clave para localStorage
 const FOUR_WINDS_CALCULATOR_KEY = 'four_winds_calculator_data';
 
 const FourWindsPage = () => {
   usePageTitle('pageTitles.fourWinds', 'Four Winds Festival');
   const { t, lang } = useI18n();
+  const { hasPermission, token } = useAuth();
+  const canEditFourWinds = hasPermission('moderator');
   const [selectedSection, setSelectedSection] = useState<string>('overview');
   const pricesTableRef = useRef<HTMLDivElement | null>(null);
-  
-  // Estados para la calculadora de cajas
-     const [boxCalculatorItems, setBoxCalculatorItems] = useState<BoxCalculatorItem[]>(() => {
-     // Cargar datos guardados del localStorage al inicializar
-     if (typeof window !== 'undefined') {
-       const savedData = localStorage.getItem(FOUR_WINDS_CALCULATOR_KEY);
-       if (savedData) {
-         try {
-           const parsedData = JSON.parse(savedData);
-           // Combinar datos guardados con datos base
-           return boxCalculatorData.map(baseItem => {
-             const savedItem = parsedData.find((item: BoxCalculatorItem) => item.id === baseItem.id);
-             return savedItem ? { ...baseItem, ...savedItem } : baseItem;
-           });
-         } catch (error) {
-           console.error('Error loading saved calculator data:', error);
-         }
-       }
-     }
-     return boxCalculatorData;
-   });
-   
-   // Estado para manejar inputs como strings durante la escritura
-   const [inputValues, setInputValues] = useState<Record<number, string>>({});
-   
-   const [boxCalculatorLoading, setBoxCalculatorLoading] = useState(true);
-  
-  // Estados para selección de items en la calculadora de cajas
+
+  const [fwConfig, setFwConfig] = useState<FourWindsConfig>(() =>
+    structuredClone(DEFAULT_FOUR_WINDS_CONFIG)
+  );
+  const boxCalculatorData = useMemo(
+    () => buildCalculatorItems(fwConfig),
+    [fwConfig]
+  );
+
+  const [boxCalculatorItems, setBoxCalculatorItems] = useState<BoxCalculatorItem[]>(() => {
+    const base = buildCalculatorItems(DEFAULT_FOUR_WINDS_CONFIG);
+    if (typeof window !== 'undefined') {
+      const savedData = localStorage.getItem(FOUR_WINDS_CALCULATOR_KEY);
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          return base.map((baseItem) => {
+            const savedItem = parsedData.find((item: BoxCalculatorItem) => item.id === baseItem.id);
+            return savedItem ? { ...baseItem, ...savedItem, numPerBox: baseItem.numPerBox } : baseItem;
+          });
+        } catch (error) {
+          console.error('Error loading saved calculator data:', error);
+        }
+      }
+    }
+    return base;
+  });
+
+  const [inputValues, setInputValues] = useState<Record<number, string>>({});
+  const [boxCalculatorLoading, setBoxCalculatorLoading] = useState(true);
+
   const [showItemSelectionModal, setShowItemSelectionModal] = useState(false);
-  const [selectedBoxItems, setSelectedBoxItems] = useState<Set<number>>(new Set(boxCalculatorData.map(item => item.id)));
+  const [selectedBoxItems, setSelectedBoxItems] = useState<Set<number>>(
+    () => new Set(DEFAULT_FOUR_WINDS_CONFIG.boxCalculator.map((item) => item.id))
+  );
   const [searchBoxTerm, setSearchBoxTerm] = useState('');
-  // ponytail: iconos GW2 fijos; 300 FT = 1 Tome
-  const FT_PER_TOME = 300;
   const FT_ICON = 'https://render.guildwars2.com/file/63E1A0F023D101045B5BA2331C289327687FC7E3/797790.png';
-  const TOME_ICON = 'https://render.guildwars2.com/file/1932B731E2F70F2F1E3D453A4B7C26B24CF647C0/603246.png';
+  const TOME_ITEM_ID = 43766;
+  const TOME_NAME_EN = 'Tome of Knowledge';
+  const [tomeName, setTomeName] = useState(TOME_NAME_EN);
+  const [tomeIcon, setTomeIcon] = useState(
+    'https://render.guildwars2.com/file/1932B731E2F70F2F1E3D453A4B7C26B24CF647C0/603246.png'
+  );
+  const FT_PER_TOME = fwConfig.tokensPerTome;
   const [festivalTokensInput, setFestivalTokensInput] = useState('');
   const festivalTokens = Math.max(0, parseInt(festivalTokensInput, 10) || 0);
   const tomesFromTokens = Math.floor(festivalTokens / FT_PER_TOME);
   const tokensRemainder = festivalTokens % FT_PER_TOME;
   const tokensToNextTome = festivalTokens === 0 ? FT_PER_TOME : FT_PER_TOME - tokensRemainder;
-  
-  // Estados para ordenamiento
+
   const [sortField, setSortField] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Estado para Items Obtenidos (IDs primarios)
-  const [boxOpeningYear, setBoxOpeningYear] = useState<BoxOpeningYear>(2026);
+  const openingYears = useMemo(
+    () => Object.keys(fwConfig.boxOpening).sort(),
+    [fwConfig.boxOpening]
+  );
+  const [boxOpeningYear, setBoxOpeningYear] = useState<string>('2026');
   const [primaryItems, setPrimaryItems] = useState<BoxOpeningPrimaryItem[]>([]);
   const [primaryLoading, setPrimaryLoading] = useState(false);
   const [primarySortField, setPrimarySortField] = useState<'id' | 'name' | 'quantity' | 'perBox' | 'value85'>('id');
   const [primarySortDirection, setPrimarySortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Estado para Zephyrite Supply Box
   const [zephyriteBoxName, setZephyriteBoxName] = useState<string>(t('fourWinds.zephyrite.name'));
 
-  // Función para guardar datos en localStorage
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://api.guildwars2.com/v2/items/${TOME_ITEM_ID}?lang=${lang}`
+        );
+        if (!res.ok) return;
+        const data: Gw2Item = await res.json();
+        if (cancelled) return;
+        setTomeName(data.name || TOME_NAME_EN);
+        if (data.icon) setTomeIcon(data.icon);
+      } catch (e) {
+        console.error('tome item load', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lang]);
+
+  const applyFwConfig = useCallback((cfg: FourWindsConfig) => {
+    setFwConfig(cfg);
+    setBoxCalculatorItems((prev) => {
+      const next = buildCalculatorItems(cfg, prev);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(FOUR_WINDS_CALCULATOR_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+    setSelectedBoxItems((prev) => {
+      const ids = new Set(cfg.boxCalculator.map((i) => i.id));
+      const kept = [...prev].filter((id) => ids.has(id));
+      return new Set(kept.length ? kept : cfg.boxCalculator.map((i) => i.id));
+    });
+    const years = Object.keys(cfg.boxOpening).sort();
+    setBoxOpeningYear((y) => (cfg.boxOpening[y] ? y : years.at(-1) || y));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/festivals/four-winds/config');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.config) applyFwConfig(data.config);
+      } catch (e) {
+        console.error('four-winds config load', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [applyFwConfig]);
+
   const saveCalculatorData = useCallback((data: BoxCalculatorItem[]) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(FOUR_WINDS_CALCULATOR_KEY, JSON.stringify(data));
     }
   }, []);
 
-  // Función para formatear moneda GW2
   const formatGoldSilverCopper = (copper: number) => {
     const isNegative = copper < 0;
     const abs = Math.abs(copper);
@@ -196,7 +218,6 @@ const FourWindsPage = () => {
     return `${sign}${gold.toString().padStart(2, '0')}G ${silver.toString().padStart(2, '0')}S ${copperRemaining.toString().padStart(2, '0')}C`;
   };
 
-  // ES → wiki EN; de/fr → su wiki con nombre local
   const buildWikiUrl = (englishName: string, localizedName?: string) => {
     const title = lang === 'de' || lang === 'fr' ? (localizedName || englishName) : englishName;
     const host =
@@ -206,63 +227,50 @@ const FourWindsPage = () => {
     return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
   };
 
-  // Función para obtener iconos y precios de la API de GW2
   const fetchBoxCalculatorData = useCallback(async () => {
     try {
       setBoxCalculatorLoading(true);
-      const itemIds = boxCalculatorData.map(item => item.id).join(',');
-      
+      const itemIds = fwConfig.boxCalculator.map(item => item.id).join(',');
+      if (!itemIds) {
+        setBoxCalculatorLoading(false);
+        return;
+      }
+
       const [itemsResponse, pricesResponse] = await Promise.all([
         fetch(`https://api.guildwars2.com/v2/items?ids=${itemIds}&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
+          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
         }),
         fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${itemIds}&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
+          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
         })
       ]);
 
       if (itemsResponse.ok && pricesResponse.ok) {
         const itemsData: Gw2Item[] = await itemsResponse.json();
         const pricesData: Gw2Price[] = await pricesResponse.json();
-        
         const itemsMap: Record<number, Gw2Item> = {};
         const pricesMap: Record<number, Gw2Price> = {};
+        itemsData.forEach(item => { itemsMap[item.id] = item; });
+        pricesData.forEach(price => { pricesMap[price.id] = price; });
 
-        itemsData.forEach(item => {
-          itemsMap[item.id] = item;
-        });
-
-        pricesData.forEach(price => {
-          pricesMap[price.id] = price;
-        });
-
-        // Actualizar los items con los iconos y precios de la API
         setBoxCalculatorItems(prevItems => {
-          const updatedItems = boxCalculatorData.map(item => {
+          const updatedItems = fwConfig.boxCalculator.map(item => {
             const currentPrice = pricesMap[item.id]?.buys?.unit_price || item.pricePerUnit;
             const pricePerBox = Math.round(currentPrice * item.numPerBox);
-            
-            // Mantener los valores actuales de myMaterials y resultingBoxes
             const existingItem = prevItems.find(existing => existing.id === item.id);
-            
             return {
-              ...item,
+              id: item.id,
               name: itemsMap[item.id]?.name || item.name,
               icon: itemsMap[item.id]?.icon || '',
+              numPerBox: item.numPerBox,
               pricePerUnit: currentPrice,
-              pricePerBox: pricePerBox,
-              myMaterials: existingItem?.myMaterials || item.myMaterials,
-              resultingBoxes: existingItem?.resultingBoxes || item.resultingBoxes
+              pricePerBox,
+              myMaterials: existingItem?.myMaterials || 0,
+              resultingBoxes: existingItem
+                ? Math.floor((existingItem.myMaterials || 0) / item.numPerBox)
+                : 0,
             };
           });
-
-          // Guardar en localStorage
           saveCalculatorData(updatedItems);
           return updatedItems;
         });
@@ -272,7 +280,7 @@ const FourWindsPage = () => {
     } finally {
       setBoxCalculatorLoading(false);
     }
-  }, [saveCalculatorData, lang]);
+  }, [lang, fwConfig.boxCalculator, saveCalculatorData]);
 
   // Función para obtener el nombre de Zephyrite Supply Box
   const fetchZephyriteBoxName = useCallback(() => {
@@ -282,7 +290,12 @@ const FourWindsPage = () => {
 
   // Cargar nombres e iconos de los IDs primarios (Apertura de Cajas)
   const fetchPrimaryItems = useCallback(async () => {
-    const { ids: openingIds, counts, boxes } = BOX_OPENING_BY_YEAR[boxOpeningYear];
+    const yearData = fwConfig.boxOpening[boxOpeningYear];
+    if (!yearData) {
+      setPrimaryItems([]);
+      return;
+    }
+    const { ids: openingIds, counts, boxes } = yearData;
     try {
       if (openingIds.length === 0) {
         setPrimaryItems([]);
@@ -334,7 +347,7 @@ const FourWindsPage = () => {
     } finally {
       setPrimaryLoading(false);
     }
-  }, [lang, boxOpeningYear]);
+  }, [lang, boxOpeningYear, fwConfig.boxOpening]);
 
   useEffect(() => {
     // Sincroniza la pestaña con el hash al cargar y cuando cambie
@@ -382,7 +395,7 @@ const FourWindsPage = () => {
   const sortedPrimaryItems = useMemo(() => {
     const items = [...primaryItems];
     const indexById: Record<number, number> = {};
-    BOX_OPENING_BY_YEAR[boxOpeningYear].ids.forEach((id, idx) => {
+    (fwConfig.boxOpening[boxOpeningYear]?.ids || []).forEach((id, idx) => {
       indexById[id] = idx;
     });
     items.sort((a, b) => {
@@ -408,7 +421,7 @@ const FourWindsPage = () => {
       return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
     });
     return items;
-  }, [primaryItems, primarySortField, primarySortDirection, boxOpeningYear]);
+  }, [primaryItems, primarySortField, primarySortDirection, boxOpeningYear, fwConfig.boxOpening]);
 
   // (reservado) Métricas de valor por caja – se calcula después de determinar cheapestByBox
 
@@ -430,9 +443,9 @@ const FourWindsPage = () => {
 
   // Items filtrados para el modal de selección
   const filteredBoxItems = useMemo(() => 
-    boxCalculatorData.filter(item =>
+    boxCalculatorItems.filter(item =>
       item.name.toLowerCase().includes(searchBoxTerm.toLowerCase())
-    ), [searchBoxTerm]
+    ), [searchBoxTerm, boxCalculatorItems]
   );
 
   // Función para actualizar cantidad de materiales en la calculadora de cajas
@@ -644,6 +657,20 @@ const FourWindsPage = () => {
             <p className="text-base sm:text-xl text-gray-300">{t('festivals.page.subtitle').replace('{name}', t('festival.fourWinds'))}</p>
         </motion.div>
 
+        {canEditFourWinds && (
+          <FourWindsConfigEditor
+            config={fwConfig}
+            token={token}
+            onSaved={(cfg) => {
+              applyFwConfig(cfg);
+              // refresh GW2 prices/icons after structure change
+              setTimeout(() => {
+                fetchBoxCalculatorData();
+              }, 0);
+            }}
+          />
+        )}
+
         {/* Navigation Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -755,9 +782,9 @@ const FourWindsPage = () => {
                       <span>{t('fourWinds.cards.tokens.title')}</span>
                     </a>
                     <span className="text-cyan-400">→</span>
-                    <a href={buildWikiUrl('Tome of Knowledge')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:opacity-80">
-                      <Image src={TOME_ICON} alt="" width={32} height={32} className="rounded" unoptimized />
-                      <span>{t('fourWinds.tomeCalc.tome', 'Tome of Knowledge')}</span>
+                    <a href={buildWikiUrl(TOME_NAME_EN, tomeName)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:opacity-80">
+                      <Image src={tomeIcon} alt={tomeName} width={32} height={32} className="rounded" unoptimized />
+                      <span>{tomeName}</span>
                     </a>
                   </h2>
                   <span className="text-cyan-300/90 text-sm font-mono bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded">
@@ -786,9 +813,9 @@ const FourWindsPage = () => {
                   <div className="hidden md:flex items-center justify-center text-cyan-400 text-3xl font-bold px-2">→</div>
 
                   <div className="bg-cyan-950/50 border border-cyan-400/40 rounded-lg p-4 flex flex-col justify-center">
-                    <a href={buildWikiUrl('Tome of Knowledge')} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-cyan-300/80 mb-1 flex items-center gap-2 hover:text-cyan-200 w-fit">
-                      <Image src={TOME_ICON} alt="" width={18} height={18} className="rounded" unoptimized />
-                      {t('fourWinds.tomeCalc.result', 'Tomes')}
+                    <a href={buildWikiUrl(TOME_NAME_EN, tomeName)} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-cyan-300/80 mb-1 flex items-center gap-2 hover:text-cyan-200 w-fit">
+                      <Image src={tomeIcon} alt={tomeName} width={18} height={18} className="rounded" unoptimized />
+                      {tomeName}
                     </a>
                     <div className="text-4xl font-bold text-white font-mono leading-none">
                       {tomesFromTokens.toLocaleString()}
@@ -1156,7 +1183,7 @@ const FourWindsPage = () => {
                 
                 <div className="bg-gray-800/60 rounded-lg p-4 mb-4 border border-cyan-500/20 shadow-lg">
                   <div className="flex justify-center gap-2 mb-3">
-                    {([2025, 2026] as BoxOpeningYear[]).map((y) => (
+                    {openingYears.map((y) => (
                       <button
                         key={y}
                         type="button"
@@ -1174,7 +1201,7 @@ const FourWindsPage = () => {
                   <div className="text-center">
                     <h3 className="text-lg sm:text-xl font-bold text-cyan-400 mb-2">{t('fourWinds.stats.title')}</h3>
                     <p className="text-xl sm:text-2xl font-bold text-white">
-                      {BOX_OPENING_BY_YEAR[boxOpeningYear].boxes.toLocaleString()}
+                      {(fwConfig.boxOpening[boxOpeningYear]?.boxes ?? 1).toLocaleString()}
                     </p>
                     <p className="text-gray-200 text-sm mt-2">{t('fourWinds.stats.desc')}</p>
                     <p className="text-gray-300 text-xs mt-1">
