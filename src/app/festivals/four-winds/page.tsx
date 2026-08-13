@@ -537,7 +537,9 @@ const FourWindsPage = () => {
   }
 
   const cheapestByBox = useMemo(() => {
-    const items = boxCalculatorItems.filter((i) => selectedBoxItems.has(i.id));
+    const items = boxCalculatorItems.filter(
+      (i) => selectedBoxItems.has(i.id) && getPricePerBoxCopper(i) > 0
+    );
     if (items.length === 0) return null;
     return items.reduce((min, curr) => (getPricePerBoxCopper(curr) < getPricePerBoxCopper(min) ? curr : min));
   }, [boxCalculatorItems, selectedBoxItems]);
