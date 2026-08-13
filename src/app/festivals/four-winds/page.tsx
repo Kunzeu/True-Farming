@@ -180,9 +180,11 @@ const FourWindsPage = () => {
       return next;
     });
     setSelectedBoxItems((prev) => {
-      const ids = new Set(cfg.boxCalculator.map((i) => i.id));
-      const kept = [...prev].filter((id) => ids.has(id));
-      return new Set(kept.length ? kept : cfg.boxCalculator.map((i) => i.id));
+      const nextIds = cfg.boxCalculator.map((i) => i.id);
+      const nextSet = new Set(nextIds);
+      const kept = [...prev].filter((id) => nextSet.has(id));
+      const added = nextIds.filter((id) => !prev.has(id));
+      return new Set([...kept, ...added]);
     });
     const years = Object.keys(cfg.boxOpening).sort();
     setBoxOpeningYear((y) => (cfg.boxOpening[y] ? y : years.at(-1) || y));
@@ -668,10 +670,6 @@ const FourWindsPage = () => {
             userId={user?.id ?? null}
             onSaved={(cfg) => {
               applyFwConfig(cfg);
-              // refresh GW2 prices/icons after structure change
-              setTimeout(() => {
-                fetchBoxCalculatorData();
-              }, 0);
             }}
           />
         )}
