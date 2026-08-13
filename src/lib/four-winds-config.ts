@@ -22,23 +22,84 @@ export type FourWindsConfig = {
 export const FOUR_WINDS_CONFIG_SECRET_KEY = 'four_winds_config';
 // ponytail: un solo slot de backup (el anterior al último save)
 export const FOUR_WINDS_CONFIG_BACKUP_KEY = 'four_winds_config_backup';
+export const FESTIVAL_TOKEN_ITEM_ID = 66224;
+export const FESTIVAL_TOKEN_CURRENCY_ID = 50;
 
 export const DEFAULT_FOUR_WINDS_CONFIG: FourWindsConfig = defaultsJson as FourWindsConfig;
 
-/** CSV: item_id,item_name,item_amount,... — negativos en 88145 = cajas abiertas */
+function splitCsvLine(line: string, delim: string): string[] {
+  const out: string[] = [];
+  let cur = '';
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (q && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        q = !q;
+      }
+    } else if (ch === delim && !q) {
+      out.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+function detectDelim(sample: string): string {
+  const counts = [
+    [',', (sample.match(/,/g) || []).length],
+    ['\t', (sample.match(/\t/g) || []).length],
+    [';', (sample.match(/;/g) || []).length],
+  ] as const;
+  return counts.sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/** CSV: item_id,item_name,item_amount,... — negativos = cajas abiertas */
 export function parseBoxOpeningCsv(csv: string): BoxOpeningYearData {
+  const text = csv.replace(/^\uFEFF/, '').trim();
+  if (!text) return { boxes: 0, ids: [], counts: [] };
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const delim = detectDelim(lines.slice(0, 5).join('\n'));
+  const first = splitCsvLine(lines[0], delim).map((c) => c.toLowerCase());
+  const hasHeader = first.some((c) => c.includes('item_id') || c === 'id' || c.includes('item_amount'));
+  let idCol = 0;
+  let amtCol = first.length >= 3 ? 2 : 1;
+  let curIdCol = -1;
+  let curAmtCol = -1;
+  if (hasHeader) {
+    const iId = first.findIndex((c) => c === 'item_id' || c === 'id');
+    const iAmt = first.findIndex((c) => c === 'item_amount' || c === 'amount' || c === 'qty' || c === 'quantity');
+    if (iId >= 0) idCol = iId;
+    if (iAmt >= 0) amtCol = iAmt;
+    curIdCol = first.findIndex((c) => c === 'currency_id');
+    curAmtCol = first.findIndex((c) => c === 'currency_amount');
+  }
   const byId: Record<number, number> = {};
   let boxesFromNeg = 0;
-  for (const line of csv.trim().split(/\r?\n/).slice(1)) {
-    const [idRaw, , amtRaw] = line.split(',');
-    const id = Number(idRaw);
-    if (!id) continue;
-    const amt = Number(amtRaw) || 0;
-    if (amt < 0) {
-      boxesFromNeg += Math.abs(amt);
-      continue;
+  for (const line of lines.slice(hasHeader ? 1 : 0)) {
+    const cols = splitCsvLine(line, delim);
+    const id = Number(cols[idCol]);
+    if (id) {
+      const amt = Number(String(cols[amtCol] ?? '').replace(/[^\d.-]/g, '')) || 0;
+      if (amt < 0) {
+        boxesFromNeg += Math.abs(amt);
+      } else {
+        byId[id] = (byId[id] || 0) + amt;
+      }
     }
-    byId[id] = (byId[id] || 0) + amt;
+    if (curIdCol >= 0 && curAmtCol >= 0) {
+      const cid = Number(cols[curIdCol]);
+      const camt = Number(String(cols[curAmtCol] ?? '').replace(/[^\d.-]/g, '')) || 0;
+      if (cid === FESTIVAL_TOKEN_CURRENCY_ID && camt > 0) {
+        byId[FESTIVAL_TOKEN_ITEM_ID] = (byId[FESTIVAL_TOKEN_ITEM_ID] || 0) + camt;
+      }
+    }
   }
   const ids = Object.keys(byId).map(Number);
   return {
@@ -63,7 +124,7 @@ export function mergeOpeningCsv(
   });
   const ids = Object.keys(byId).map(Number);
   return {
-    boxes: (existing.boxes || 0) + (parsed.boxes || 0),
+    boxes: parsed.boxes ? (existing.boxes || 0) + parsed.boxes : (existing.boxes || 0),
     ids,
     counts: ids.map((id) => byId[id]),
   };

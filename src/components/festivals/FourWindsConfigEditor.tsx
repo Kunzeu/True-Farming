@@ -46,6 +46,15 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
 
   const yearData = draft.boxOpening[year];
 
+  const readJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(t('fourWinds.edit.apiHtml'));
+    }
+  };
+
   const resolveItemName = useCallback(async (idx: number, id: number) => {
     if (!id || id < 1) return;
     setResolvingId(id);
@@ -150,7 +159,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
       try {
         const res = await fetch('/api/festivals/four-winds/config');
         if (!res.ok || cancelled) return;
-        const data = await res.json();
+        const data = await readJson(res);
         if (!cancelled) setHasBackup(!!data.hasBackup);
       } catch { /* ignore */ }
     })();
@@ -174,7 +183,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
         },
         body: JSON.stringify({ restoreBackup: true }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) {
         setStatus(data.error || t('fourWinds.edit.restoreError'));
         return;
@@ -191,13 +200,23 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
   };
 
   const applyCsv = () => {
-    if (!csv.trim()) return;
-    const next = mergeCsv && yearData ? mergeOpeningCsv(yearData, csv) : parseBoxOpeningCsv(csv);
+    if (!csv.trim()) {
+      setStatus(t('fourWinds.edit.csvEmpty'));
+      return;
+    }
+    const parsed = parseBoxOpeningCsv(csv);
+    if (!parsed.ids.length) {
+      setStatus(t('fourWinds.edit.csvEmpty'));
+      return;
+    }
+    const next = mergeCsv && yearData ? mergeOpeningCsv(yearData, csv) : parsed;
+    const boxes = next.boxes || yearData?.boxes || 0;
+    const applied = { ...next, boxes };
     setDraft((d) => ({
       ...d,
-      boxOpening: { ...d.boxOpening, [year]: next },
+      boxOpening: { ...d.boxOpening, [year]: applied },
     }));
-    setStatus(tr('fourWinds.edit.csvApplied', { year, items: next.ids.length, boxes: next.boxes.toLocaleString() }));
+    setStatus(tr('fourWinds.edit.csvApplied', { year, items: applied.ids.length, boxes: applied.boxes.toLocaleString() }));
   };
 
   const addYear = () => {
@@ -246,7 +265,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
         },
         body: JSON.stringify({ config: configToSave }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) {
         setStatus(data.error || t('fourWinds.edit.saveError'));
         return;
@@ -367,11 +386,25 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
             </label>
           </div>
           <p className="text-xs text-gray-400">
+            {t('fourWinds.edit.csvSteps')}
+          </p>
+          <p className="text-xs text-gray-400">
             {tr('fourWinds.edit.itemsCount', { count: yearData?.ids.length ?? 0 })}
             {yearData && yearData.ids.length !== yearData.counts.length ? (' ' + t('fourWinds.edit.idsMismatch')) : ''}
           </p>
           <label className="block text-sm text-gray-300">
             {t('fourWinds.edit.pasteCsv')}
+            <input
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              className="mt-1 block text-xs text-gray-300 file:mr-2 file:px-2 file:py-1 file:rounded file:border-0 file:bg-cyan-700 file:text-white"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setCsv(await file.text());
+                e.target.value = '';
+              }}
+            />
             <textarea
               value={csv}
               onChange={(e) => setCsv(e.target.value)}

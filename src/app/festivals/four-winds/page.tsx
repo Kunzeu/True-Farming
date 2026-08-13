@@ -7,6 +7,7 @@ import Image from 'next/image';
 import FourWindsConfigEditor from '@/components/festivals/FourWindsConfigEditor';
 import {
   DEFAULT_FOUR_WINDS_CONFIG,
+  FESTIVAL_TOKEN_ITEM_ID,
   type FourWindsConfig,
 } from '@/lib/four-winds-config';
 import { 
@@ -193,7 +194,9 @@ const FourWindsPage = () => {
       try {
         const res = await fetch('/api/festivals/four-winds/config');
         if (!res.ok) return;
-        const data = await res.json();
+        const text = await res.text();
+        if (text.trimStart().startsWith('<')) return;
+        const data = JSON.parse(text);
         if (!cancelled && data.config) applyFwConfig(data.config);
       } catch (e) {
         console.error('four-winds config load', e);
@@ -545,8 +548,9 @@ const FourWindsPage = () => {
     avgWithInfAndSSCopper
   } = useMemo(() => {
     const isInfusion = (name: string) => name.toLowerCase().includes('infus');
-    const isFestivalToken = (name: string) => {
-      const n = name.toLowerCase();
+    const isFestivalToken = (item: BoxOpeningPrimaryItem) => {
+      if (item.id === FESTIVAL_TOKEN_ITEM_ID) return true;
+      const n = (item.name || '').toLowerCase();
       return (
         n.includes('festival token') ||
         n.includes('vale del festival') ||
@@ -564,7 +568,7 @@ const FourWindsPage = () => {
       const perBox6 = Math.round((item.perBox || 0) * 1_000_000) / 1_000_000;
       const name = item.name || '';
 
-      if (isFestivalToken(name)) {
+      if (isFestivalToken(item)) {
         // Volver a usar per-box como al inicio
         tokensPerBox += perBox6;
         continue; // tokens no aportan cobre directo, se convierten a SS
