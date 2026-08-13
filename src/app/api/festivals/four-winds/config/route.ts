@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/postgres-db';
-import { authorizeRequest } from '@/lib/server/jwt-utils';
+import { authorizeRequest, hasRequiredRole, type JWTPayload } from '@/lib/server/jwt-utils';
 import {
   DEFAULT_FOUR_WINDS_CONFIG,
   FOUR_WINDS_CONFIG_BACKUP_KEY,
@@ -81,8 +81,48 @@ export async function GET() {
   }
 }
 
+// ponytail: Discord login still stores temp_discord_token_ (not a JWT). Check DB role by userId.
+async function authorizeModeratorWrite(
+  request: NextRequest,
+  userId?: string
+): Promise<{ isAuthorized: boolean; user: JWTPayload | null; error?: string }> {
+  const jwt = authorizeRequest(request, 'moderator');
+  if (jwt.isAuthorized) return jwt;
+  if (!userId) return jwt;
+
+  const r = await pool.query(
+    `SELECT id, email, username, role, is_active as "isActive" FROM users WHERE id = $1`,
+    [userId]
+  );
+  const u = r.rows[0] as
+    | { id: string; email: string; username: string; role: string; isActive: boolean }
+    | undefined;
+  if (!u?.isActive || !hasRequiredRole(u.role, 'moderator')) return jwt;
+
+  return {
+    isAuthorized: true,
+    user: {
+      userId: u.id,
+      email: u.email,
+      username: u.username,
+      role: u.role as JWTPayload['role'],
+      isActive: u.isActive,
+    },
+  };
+}
+
 export async function PUT(request: NextRequest) {
-  const auth = authorizeRequest(request, 'moderator');
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const auth = await authorizeModeratorWrite(
+    request,
+    typeof body.userId === 'string' ? body.userId : undefined
+  );
   if (!auth.isAuthorized) {
     return NextResponse.json(
       { error: 'Unauthorized. Moderator or admin required.', details: auth.error },
@@ -91,7 +131,6 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
 
     // Restaurar backup (swap: current ↔ backup)
     if (body?.restoreBackup === true) {

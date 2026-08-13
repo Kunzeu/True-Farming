@@ -14,13 +14,14 @@ type Props = {
   config: FourWindsConfig;
   onSaved: (config: FourWindsConfig) => void;
   token: string | null;
+  userId: string | null;
 };
 
 type Tab = 'opening' | 'calculator' | 'tomes';
 
 type Gw2ItemLite = { id: number; name: string; icon?: string };
 
-export default function FourWindsConfigEditor({ config, onSaved, token }: Props) {
+export default function FourWindsConfigEditor({ config, onSaved, token, userId }: Props) {
   const { lang, t } = useI18n();
   const tr = (key: string, vars?: Record<string, string | number>) => {
     let out = t(key);
@@ -167,7 +168,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
   }, [open]);
 
   const restoreBackup = async () => {
-    if (!token) {
+    if (!token && !userId) {
       setStatus(t('fourWinds.edit.noSession'));
       return;
     }
@@ -179,13 +180,13 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ restoreBackup: true }),
+        body: JSON.stringify({ restoreBackup: true, userId }),
       });
       const data = await readJson(res);
       if (!res.ok) {
-        setStatus(data.error || t('fourWinds.edit.restoreError'));
+        setStatus([data.error || t('fourWinds.edit.restoreError'), data.details].filter(Boolean).join(' — '));
         return;
       }
       setDraft(data.config);
@@ -231,7 +232,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
   };
 
   const save = async () => {
-    if (!token) {
+    if (!token && !userId) {
       setStatus(t('fourWinds.edit.noSession'));
       return;
     }
@@ -261,13 +262,13 @@ export default function FourWindsConfigEditor({ config, onSaved, token }: Props)
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ config: configToSave }),
+        body: JSON.stringify({ config: configToSave, userId }),
       });
       const data = await readJson(res);
       if (!res.ok) {
-        setStatus(data.error || t('fourWinds.edit.saveError'));
+        setStatus([data.error || t('fourWinds.edit.saveError'), data.details].filter(Boolean).join(' — '));
         return;
       }
       setDraft(data.config);

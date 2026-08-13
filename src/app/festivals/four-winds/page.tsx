@@ -82,7 +82,7 @@ const FOUR_WINDS_CALCULATOR_KEY = 'four_winds_calculator_data';
 const FourWindsPage = () => {
   usePageTitle('pageTitles.fourWinds', 'Four Winds Festival');
   const { t, lang } = useI18n();
-  const { hasPermission, token } = useAuth();
+  const { hasPermission, token, user } = useAuth();
   const canEditFourWinds = hasPermission('moderator');
   const [selectedSection, setSelectedSection] = useState<string>('overview');
   const pricesTableRef = useRef<HTMLDivElement | null>(null);
@@ -665,6 +665,7 @@ const FourWindsPage = () => {
           <FourWindsConfigEditor
             config={fwConfig}
             token={token}
+            userId={user?.id ?? null}
             onSaved={(cfg) => {
               applyFwConfig(cfg);
               // refresh GW2 prices/icons after structure change

@@ -963,9 +963,18 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         }
       };
 
-      // Para Discord login, también necesitaríamos generar un token JWT real
-      // Por ahora, usamos un token temporal
-      const token = 'temp_discord_token_' + Date.now();
+      const sessionRes = await fetch('/api/auth/discord/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token }),
+      });
+      if (!sessionRes.ok) {
+        throw new Error('Error al crear sesión');
+      }
+      const { token } = await sessionRes.json();
+      if (!token || typeof token !== 'string') {
+        throw new Error('Error al crear sesión');
+      }
 
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);
