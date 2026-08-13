@@ -81,6 +81,7 @@ const boxCalculatorData: BoxCalculatorItem[] = [
 interface BoxOpeningPrimaryItem {
   id: number;
   name: string;
+  nameEn: string; // ponytail: wiki ES siempre EN
   icon: string;
   quantity: number;
   perBox: number;
@@ -153,6 +154,15 @@ const FourWindsPage = () => {
   const [showItemSelectionModal, setShowItemSelectionModal] = useState(false);
   const [selectedBoxItems, setSelectedBoxItems] = useState<Set<number>>(new Set(boxCalculatorData.map(item => item.id)));
   const [searchBoxTerm, setSearchBoxTerm] = useState('');
+  // ponytail: iconos GW2 fijos; 300 FT = 1 Tome
+  const FT_PER_TOME = 300;
+  const FT_ICON = 'https://render.guildwars2.com/file/63E1A0F023D101045B5BA2331C289327687FC7E3/797790.png';
+  const TOME_ICON = 'https://render.guildwars2.com/file/1932B731E2F70F2F1E3D453A4B7C26B24CF647C0/603246.png';
+  const [festivalTokensInput, setFestivalTokensInput] = useState('');
+  const festivalTokens = Math.max(0, parseInt(festivalTokensInput, 10) || 0);
+  const tomesFromTokens = Math.floor(festivalTokens / FT_PER_TOME);
+  const tokensRemainder = festivalTokens % FT_PER_TOME;
+  const tokensToNextTome = festivalTokens === 0 ? FT_PER_TOME : FT_PER_TOME - tokensRemainder;
   
   // Estados para ordenamiento
   const [sortField, setSortField] = useState<string>('');
@@ -184,6 +194,16 @@ const FourWindsPage = () => {
     const copperRemaining = abs % 100;
     const sign = isNegative ? '-' : '';
     return `${sign}${gold.toString().padStart(2, '0')}G ${silver.toString().padStart(2, '0')}S ${copperRemaining.toString().padStart(2, '0')}C`;
+  };
+
+  // ES → wiki EN; de/fr → su wiki con nombre local
+  const buildWikiUrl = (englishName: string, localizedName?: string) => {
+    const title = lang === 'de' || lang === 'fr' ? (localizedName || englishName) : englishName;
+    const host =
+      lang === 'de' ? 'wiki-de.guildwars2.com' :
+      lang === 'fr' ? 'wiki-fr.guildwars2.com' :
+      'wiki.guildwars2.com';
+    return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
   };
 
   // Función para obtener iconos y precios de la API de GW2
@@ -270,25 +290,31 @@ const FourWindsPage = () => {
       }
       setPrimaryLoading(true);
       const ids = openingIds.join(',');
-      const [itemsRes, pricesRes] = await Promise.all([
+      const itemFetches: Promise<Response>[] = [
         fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
+          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
         }),
         fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${ids}&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
-        })
-      ]);
+          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
+        }),
+      ];
+      // ponytail: solo ES necesita nombre EN extra para la wiki
+      if (lang === 'es') {
+        itemFetches.push(fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=en`, {
+          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
+        }));
+      }
+      const [itemsRes, pricesRes, enRes] = await Promise.all(itemFetches);
       if (!itemsRes.ok) return;
       const data: Gw2Item[] = await itemsRes.json();
       const pricesData: Gw2Price[] = pricesRes.ok ? await pricesRes.json() : [];
       const pricesMap: Record<number, Gw2Price> = {};
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
+      const nameEnById: Record<number, string> = {};
+      if (enRes?.ok) {
+        const enData: Gw2Item[] = await enRes.json();
+        enData.forEach((d) => { nameEnById[d.id] = d.name; });
+      }
       const countById: Record<number, number> = {};
       openingIds.forEach((id, idx) => {
         countById[id] = counts[idx] ?? 0;
@@ -296,6 +322,7 @@ const FourWindsPage = () => {
       const mapped: BoxOpeningPrimaryItem[] = data.map((d) => ({
         id: d.id,
         name: d.name,
+        nameEn: nameEnById[d.id] || d.name,
         icon: d.icon,
         quantity: countById[d.id] ?? 0,
         perBox: (countById[d.id] ?? 0) / boxes,
@@ -676,17 +703,7 @@ const FourWindsPage = () => {
                         {t('fourWinds.zephyrite.description').replace('{name}', zephyriteBoxName)}
                       </p>
                       <a
-                        href={(() => {
-                          // Mapear idiomas a las URLs correctas de la wiki
-                          // Para español, usar el nombre en inglés ya que la wiki española no existe
-                          const wikiUrls = {
-                            'en': `https://wiki.guildwars2.com/wiki/${encodeURIComponent(zephyriteBoxName.replace(/ /g, '_'))}`,
-                            'es': `https://wiki.guildwars2.com/wiki/Zephyrite_Supply_Box`,
-                            'de': `https://wiki-de.guildwars2.com/wiki/${encodeURIComponent(zephyriteBoxName.replace(/ /g, '_'))}`,
-                            'fr': `https://wiki-fr.guildwars2.com/wiki/${encodeURIComponent(zephyriteBoxName.replace(/ /g, '_'))}`
-                          };
-                          return wikiUrls[lang as keyof typeof wikiUrls] || wikiUrls['en'];
-                        })()}
+                        href={buildWikiUrl('Zephyrite Supply Box', zephyriteBoxName)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600/80 hover:bg-blue-700/80 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-blue-500/50"
@@ -707,9 +724,19 @@ const FourWindsPage = () => {
                     <h3 className="text-white font-semibold mb-2">{t('fourWinds.cards.blitz.title')}</h3>
                     <p className="text-gray-200 text-sm">{t('fourWinds.cards.blitz.desc')}</p>
                     </div>
-                  <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-cyan-500/30 hover:border-cyan-500/50 transition-all duration-200 shadow-lg">
-                    <h3 className="text-white font-semibold mb-2">{t('fourWinds.cards.tokens.title')}</h3>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedSection('calculators')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedSection('calculators'); }}
+                    className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-cyan-500/30 hover:border-cyan-400/70 transition-all duration-200 shadow-lg cursor-pointer"
+                  >
+                    <h3 className="text-white font-semibold mb-2 flex items-center gap-2">
+                      <Image src={FT_ICON} alt="" width={22} height={22} className="rounded" unoptimized />
+                      {t('fourWinds.cards.tokens.title')}
+                    </h3>
                     <p className="text-gray-200 text-sm">{t('fourWinds.cards.tokens.desc')}</p>
+                    <p className="text-cyan-400 text-xs mt-2 font-semibold">{t('fourWinds.tomeCalc.openCalc', 'Open calculator →')}</p>
                   </div>
                 </div>
               </div>
@@ -719,6 +746,70 @@ const FourWindsPage = () => {
                                  {/* Calculators Section */}
             {selectedSection === 'calculators' && (
               <div className="space-y-4">
+              {/* Festival Tokens → Tomes */}
+              <div className="bg-gradient-to-br from-cyan-950/80 to-gray-900/90 backdrop-blur-sm border-2 border-cyan-400/50 rounded-lg p-5 shadow-2xl shadow-cyan-500/10">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <a href={buildWikiUrl('Festival Token')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:opacity-80">
+                      <Image src={FT_ICON} alt="" width={32} height={32} className="rounded" unoptimized />
+                      <span>{t('fourWinds.cards.tokens.title')}</span>
+                    </a>
+                    <span className="text-cyan-400">→</span>
+                    <a href={buildWikiUrl('Tome of Knowledge')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:opacity-80">
+                      <Image src={TOME_ICON} alt="" width={32} height={32} className="rounded" unoptimized />
+                      <span>{t('fourWinds.tomeCalc.tome', 'Tome of Knowledge')}</span>
+                    </a>
+                  </h2>
+                  <span className="text-cyan-300/90 text-sm font-mono bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded">
+                    {FT_PER_TOME} = 1
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
+                  <div className="bg-gray-900/70 border border-cyan-500/25 rounded-lg p-4">
+                    <label className="flex flex-col gap-2">
+                      <a href={buildWikiUrl('Festival Token')} target="_blank" rel="noopener noreferrer" className="text-gray-300 text-sm flex items-center gap-2 hover:text-cyan-300 w-fit">
+                        <Image src={FT_ICON} alt="" width={20} height={20} className="rounded" unoptimized />
+                        {t('fourWinds.cards.tokens.title')}
+                      </a>
+                      <input
+                        type="number"
+                        min="0"
+                        value={festivalTokensInput}
+                        onChange={(e) => setFestivalTokensInput(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-800 border border-cyan-500/40 rounded-lg text-white text-xl font-mono focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                        placeholder="0"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="hidden md:flex items-center justify-center text-cyan-400 text-3xl font-bold px-2">→</div>
+
+                  <div className="bg-cyan-950/50 border border-cyan-400/40 rounded-lg p-4 flex flex-col justify-center">
+                    <a href={buildWikiUrl('Tome of Knowledge')} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider text-cyan-300/80 mb-1 flex items-center gap-2 hover:text-cyan-200 w-fit">
+                      <Image src={TOME_ICON} alt="" width={18} height={18} className="rounded" unoptimized />
+                      {t('fourWinds.tomeCalc.result', 'Tomes')}
+                    </a>
+                    <div className="text-4xl font-bold text-white font-mono leading-none">
+                      {tomesFromTokens.toLocaleString()}
+                    </div>
+                    <div className="text-gray-300 text-sm mt-2">
+                      {t('fourWinds.tomeCalc.remainder', 'Remainder')}:{' '}
+                      <span className="text-cyan-300 font-mono">{tokensRemainder}</span>
+                      {festivalTokens > 0 && tokensRemainder > 0 && (
+                        <span className="text-gray-400"> · {tokensToNextTome} {t('fourWinds.tomeCalc.toNext', 'to next')}</span>
+                      )}
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-gray-800 overflow-hidden border border-cyan-500/20">
+                      <div
+                        className="h-full bg-cyan-400 transition-all duration-200"
+                        style={{ width: `${(tokensRemainder / FT_PER_TOME) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
                 {/* Calculadora de Cajas */}
                <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 shadow-2xl">
                      <h2 className="text-2xl font-bold text-white mb-3 flex items-center">
@@ -806,7 +897,15 @@ const FourWindsPage = () => {
                             {sortedBoxCalculatorItems.filter(item => selectedBoxItems.has(item.id)).map((item, index) => (
                               <tr key={item.id} className={`border-b border-cyan-500/20 hover:bg-cyan-500/10 transition-all duration-200 group ${index % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-800/20'}`}>
                                 <td className="py-2 px-4 text-white text-sm">
-                                  <div className="flex items-center">
+                                  <a
+                                    href={buildWikiUrl(
+                                      boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
+                                      item.name
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center hover:text-cyan-300"
+                                  >
                                     {item.icon ? (
                                       <Image 
                                         src={item.icon} 
@@ -820,7 +919,7 @@ const FourWindsPage = () => {
                                       />
                                     ) : null}
                                     <span className="font-medium">{item.name}</span>
-                                  </div>
+                                  </a>
                                 </td>
                                                                  <td className="py-2 px-2 text-center text-gray-200 font-mono text-sm">
                                    <span>{item.numPerBox}</span>
@@ -881,7 +980,15 @@ const FourWindsPage = () => {
                                                          {sortedBoxCalculatorItems.filter(item => selectedBoxItems.has(item.id)).map((item, index) => (
                                <tr key={item.id} className={`border-b border-cyan-500/20 hover:bg-cyan-500/10 transition-all duration-200 group ${index % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-800/20'}`}>
                                  <td className="py-1 px-4 text-white text-sm">
-                                   <div className="flex items-center">
+                                   <a
+                                     href={buildWikiUrl(
+                                       boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
+                                       item.name
+                                     )}
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                                     className="flex items-center hover:text-cyan-300"
+                                   >
                                                                            {item.icon ? (
                                         <Image 
                                           src={item.icon} 
@@ -895,7 +1002,7 @@ const FourWindsPage = () => {
                                         />
                                       ) : null}
                                      <span className="font-medium">{item.name}</span>
-                                   </div>
+                                   </a>
                                  </td>
                                  <td className="py-1 px-4 text-center">
                                                                      <input
@@ -956,8 +1063,6 @@ const FourWindsPage = () => {
               </div>
             </div>
           )}
-
-          {/* Strategies Section */}
           {selectedSection === 'strategies' && (
             <div className="space-y-4">
               <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 shadow-2xl">
@@ -1214,12 +1319,17 @@ const FourWindsPage = () => {
                             {sortedPrimaryItems.map((item, index) => (
                               <tr key={item.id} className={`border-b border-cyan-500/20 hover:bg-cyan-500/10 transition-all duration-200 ${index % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-800/20'}`}>
                                 <td className="py-2 px-3 text-white">
-                                  <div className="flex items-center gap-2">
+                                  <a
+                                    href={buildWikiUrl(item.nameEn, item.name)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 hover:text-cyan-300"
+                                  >
                                     {item.icon ? (
                                       <Image src={item.icon} alt={item.name} width={28} height={28} className="rounded border border-cyan-500/30" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                     ) : null}
                                     <span className="font-medium text-base">{item.name}</span>
-                                  </div>
+                                  </a>
                                 </td>
                                 <td className="py-2 px-2 text-center text-gray-200 font-mono text-base">
                                   {formatGoldSilverCopper(Math.round((item.pricePerUnit || 0) * 0.85))}
@@ -1328,7 +1438,18 @@ const FourWindsPage = () => {
                                  }}
                                />
                              ) : null}
-                            <div className="text-white font-medium text-sm">{item.name}</div>
+                            <a
+                              href={buildWikiUrl(
+                                boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
+                                item.name
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-white font-medium text-sm hover:text-cyan-300"
+                            >
+                              {item.name}
+                            </a>
                           </div>
                           <div className="text-gray-300 text-xs">Num/Box: {item.numPerBox}</div>
                         </div>
