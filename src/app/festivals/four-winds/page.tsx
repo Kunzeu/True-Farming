@@ -78,15 +78,6 @@ const boxCalculatorData: BoxCalculatorItem[] = [
   { id: 96052, name: 'Research Notes', icon: '', numPerBox: 15, pricePerUnit: 90, pricePerBox: 15000, myMaterials: 0, resultingBoxes: 0 },
 ];
 
-// IDs primarios para "Apertura de Cajas" (rellenar con la lista definitiva)
-interface BoxOpeningPrimaryItem {
-  id: number;
-  name: string;
-  icon: string;
-  quantity: number;
-  perBox: number;
-  pricePerUnit?: number;
-}
 interface BoxOpeningPrimaryItem {
   id: number;
   name: string;
@@ -96,18 +87,32 @@ interface BoxOpeningPrimaryItem {
   pricePerUnit?: number;
 }
 
-const BOX_OPENING_PRIMARY_IDS: number[] = [
-  24290,24342,24346,24272,24352,24284,24296,24278,24291,24343,24347,24273,24353,24285,24297,24279,24292,24344,24348,24274,24354,24286,24298,24280,24293,24345,24349,24275,24355,24287,24363,24281,24294,24341,24350,24276,24356,24288,24299,24282,24295,24358,24351,24277,24357,24289,24300,24283,66224,19718,19739,19741,19743,19748,19745,19697,19703,19699,19702,19698,19700,19701,19723,19726,19727,19724,19722,19725,19719,19728,19730,19731,19729,19732,43319,43773,43772,102170,88223,43909,48905,88118,48895,43952,
-  96978,70477,88148,70266,66165,42402,43955,63856,91086,100244,88732,92023,84882,79978,82006,81701,81807,99956,98092,98002,72503,99250
-];
+// ponytail: hardcode por año; picker real si llegan más datasets
+const BOX_OPENING_BY_YEAR = {
+  2025: {
+    boxes: 280000,
+    ids: [
+      24290,24342,24346,24272,24352,24284,24296,24278,24291,24343,24347,24273,24353,24285,24297,24279,24292,24344,24348,24274,24354,24286,24298,24280,24293,24345,24349,24275,24355,24287,24363,24281,24294,24341,24350,24276,24356,24288,24299,24282,24295,24358,24351,24277,24357,24289,24300,24283,66224,19718,19739,19741,19743,19748,19745,19697,19703,19699,19702,19698,19700,19701,19723,19726,19727,19724,19722,19725,19719,19728,19730,19731,19729,19732,43319,43773,43772,102170,88223,43909,48905,88118,48895,43952,
+      96978,70477,88148,70266,66165,42402,43955,63856,91086,100244,88732,92023,84882,79978,82006,81701,81807,99956,98092,98002,72503,99250,
+    ],
+    counts: [
+      1227,1163,1226,1249,1165,1160,1185,1213,989,956,993,946,924,960,920,980,734,700,733,744,766,756,754,661,504,495,491,467,486,494,468,470,255,219,254,256,311,247,245,251,128,121,132,113,133,110,121,123,
+      786889,12025,9132,6018,2974,2048,610,12087,8836,9030,6117,2781,1042,629,12163,9015,5996,2997,4069,583,12098,8927,6125,2944,1196,575,1570,280000,113,152,658,506,161,600,922,310,
+      23,0,0,11,16,1,1,1,0,0,1,1,1,1,0,1,0,0,0,2,1,0,
+    ],
+  },
+  2026: {
+    boxes: 200000,
+    ids: [
+      84882,109239,91086,82006,43773,19699,19702,48898,48897,48896,24274,19697,19727,24275,88118,24351,19739,24344,24277,88160,88121,24295,19724,88197,19731,24273,24354,19732,88176,24300,24298,24358,24283,24289,88122,24292,88150,88201,24348,96978,24280,24363,88223,19723,24357,24286,24287,24355,19703,24349,19726,19718,24293,24281,88207,24345,19701,19730,19725,19719,19729,19745,43319,19698,19728,24272,19743,43952,24353,19741,19700,66165,43909,43903,24276,24343,48905,19722,43906,19748,24299,24356,24294,24285,24282,24341,24288,24350,24291,24297,24347,24279,24342,24352,24278,24346,24284,24296,24290,43772,105068,70266,81807,81701,92023,99956,91924,100010,88914,
+    ],
+    counts: [
+      3,1,1,1,200000,6505,4386,150,165,165,511,8712,4257,334,418,114,6479,512,99,60,59,80,2172,45,2130,650,511,446,54,86,506,85,75,86,61,506,46,56,513,14,524,338,51,8505,75,531,380,343,6441,351,6452,8463,362,326,38,326,399,4364,436,8527,861,428,905,2186,6419,878,2128,173,702,4280,815,1,167,159,173,677,174,827,168,852,179,155,186,642,150,168,164,162,676,643,765,713,837,887,874,857,872,855,833,78,128,4,1,1,1,1,1,1,1,
+    ],
+  },
+} as const;
 
-const BOX_OPENING_PRIMARY_COUNTS: number[] = [
-  1227,1163,1226,1249,1165,1160,1185,1213,989,956,993,946,924,960,920,980,734,700,733,744,766,756,754,661,504,495,491,467,486,494,468,470,255,219,254,256,311,247,245,251,128,121,132,113,133,110,121,123,
-  786889,12025,9132,6018,2974,2048,610,12087,8836,9030,6117,2781,1042,629,12163,9015,5996,2997,4069,583,12098,8927,6125,2944,1196,575,1570,280000,113,152,658,506,161,600,922,310,
-  23,0,0,11,16,1,1,1,0,0,1,1,1,1,0,1,0,0,0,2,1,0
-];
-
-const TOTAL_OPENED_BOXES = 280000;
+type BoxOpeningYear = keyof typeof BOX_OPENING_BY_YEAR;
 
 // Clave para localStorage
 const FOUR_WINDS_CALCULATOR_KEY = 'four_winds_calculator_data';
@@ -154,6 +159,7 @@ const FourWindsPage = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Estado para Items Obtenidos (IDs primarios)
+  const [boxOpeningYear, setBoxOpeningYear] = useState<BoxOpeningYear>(2026);
   const [primaryItems, setPrimaryItems] = useState<BoxOpeningPrimaryItem[]>([]);
   const [primaryLoading, setPrimaryLoading] = useState(false);
   const [primarySortField, setPrimarySortField] = useState<'id' | 'name' | 'quantity' | 'perBox' | 'value85'>('id');
@@ -256,13 +262,14 @@ const FourWindsPage = () => {
 
   // Cargar nombres e iconos de los IDs primarios (Apertura de Cajas)
   const fetchPrimaryItems = useCallback(async () => {
+    const { ids: openingIds, counts, boxes } = BOX_OPENING_BY_YEAR[boxOpeningYear];
     try {
-      if (BOX_OPENING_PRIMARY_IDS.length === 0) {
+      if (openingIds.length === 0) {
         setPrimaryItems([]);
         return;
       }
       setPrimaryLoading(true);
-      const ids = BOX_OPENING_PRIMARY_IDS.join(',');
+      const ids = openingIds.join(',');
       const [itemsRes, pricesRes] = await Promise.all([
         fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=${lang}`, {
           headers: {
@@ -282,17 +289,16 @@ const FourWindsPage = () => {
       const pricesData: Gw2Price[] = pricesRes.ok ? await pricesRes.json() : [];
       const pricesMap: Record<number, Gw2Price> = {};
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
-      // Construir mapa id -> cantidad
       const countById: Record<number, number> = {};
-      BOX_OPENING_PRIMARY_IDS.forEach((id, idx) => {
-        countById[id] = BOX_OPENING_PRIMARY_COUNTS[idx] ?? 0;
+      openingIds.forEach((id, idx) => {
+        countById[id] = counts[idx] ?? 0;
       });
       const mapped: BoxOpeningPrimaryItem[] = data.map((d) => ({
         id: d.id,
         name: d.name,
         icon: d.icon,
         quantity: countById[d.id] ?? 0,
-        perBox: (countById[d.id] ?? 0) / TOTAL_OPENED_BOXES,
+        perBox: (countById[d.id] ?? 0) / boxes,
         pricePerUnit: pricesMap[d.id]?.sells?.unit_price ?? 0,
       }));
       setPrimaryItems(mapped);
@@ -301,7 +307,7 @@ const FourWindsPage = () => {
     } finally {
       setPrimaryLoading(false);
     }
-  }, [lang]);
+  }, [lang, boxOpeningYear]);
 
   useEffect(() => {
     // Sincroniza la pestaña con el hash al cargar y cuando cambie
@@ -348,9 +354,8 @@ const FourWindsPage = () => {
 
   const sortedPrimaryItems = useMemo(() => {
     const items = [...primaryItems];
-    // Mapa para ordenar por la posición definida en BOX_OPENING_PRIMARY_IDS
     const indexById: Record<number, number> = {};
-    BOX_OPENING_PRIMARY_IDS.forEach((id, idx) => {
+    BOX_OPENING_BY_YEAR[boxOpeningYear].ids.forEach((id, idx) => {
       indexById[id] = idx;
     });
     items.sort((a, b) => {
@@ -376,7 +381,7 @@ const FourWindsPage = () => {
       return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
     });
     return items;
-  }, [primaryItems, primarySortField, primarySortDirection]);
+  }, [primaryItems, primarySortField, primarySortDirection, boxOpeningYear]);
 
   // (reservado) Métricas de valor por caja – se calcula después de determinar cheapestByBox
 
@@ -1045,9 +1050,27 @@ const FourWindsPage = () => {
                 </h2>
                 
                 <div className="bg-gray-800/60 rounded-lg p-4 mb-4 border border-cyan-500/20 shadow-lg">
+                  <div className="flex justify-center gap-2 mb-3">
+                    {([2025, 2026] as BoxOpeningYear[]).map((y) => (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => setBoxOpeningYear(y)}
+                        className={`px-3 py-1 rounded text-sm border transition-colors ${
+                          boxOpeningYear === y
+                            ? 'bg-cyan-600/80 border-cyan-400 text-white'
+                            : 'bg-gray-700/50 border-cyan-500/30 text-gray-300 hover:border-cyan-500/50'
+                        }`}
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
                   <div className="text-center">
                     <h3 className="text-lg sm:text-xl font-bold text-cyan-400 mb-2">{t('fourWinds.stats.title')}</h3>
-                    <p className="text-xl sm:text-2xl font-bold text-white">{t('fourWinds.stats.boxesOpened')}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
+                      {BOX_OPENING_BY_YEAR[boxOpeningYear].boxes.toLocaleString()}
+                    </p>
                     <p className="text-gray-200 text-sm mt-2">{t('fourWinds.stats.desc')}</p>
                     <p className="text-gray-300 text-xs mt-1">
                       {t('fourWinds.stats.credit').split('Vortus43')[0]}
