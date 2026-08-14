@@ -18,3 +18,5 @@ crons = ["5 19 * * *"]
 [vars]
 # Non-secret defaults; secrets via `wrangler secret` / dashboard env
 PUBLIC_SITE_URL = "https://www.true-farming.com"
+EMAIL_FROM = "True Farming <noreply@true-farming.com>"
+NEXT_PUBLIC_APP_URL = "https://www.true-farming.com"
