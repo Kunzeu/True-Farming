@@ -8,9 +8,18 @@ import {
   getPasswordResetEmailContent,
   getVerificationEmailContent,
 } from '@/lib/server/email-i18n';
+import { getWorkerEnvSync } from '@/lib/cf-env';
+
+function envStr(key: 'RESEND_API_KEY' | 'EMAIL_FROM'): string {
+  const worker = getWorkerEnvSync();
+  const fromWorker = worker?.[key];
+  if (typeof fromWorker === 'string' && fromWorker.trim()) return fromWorker.trim();
+  const fromProcess = process.env[key];
+  return typeof fromProcess === 'string' ? fromProcess.trim() : '';
+}
 
 function getResendClient(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = envStr('RESEND_API_KEY');
   if (!apiKey) {
     throw new Error('RESEND_API_KEY is not configured');
   }
@@ -18,7 +27,7 @@ function getResendClient(): Resend {
 }
 
 function getFromAddress(): string {
-  return process.env.EMAIL_FROM || 'True Farming <onboarding@resend.dev>';
+  return envStr('EMAIL_FROM') || 'True Farming <onboarding@resend.dev>';
 }
 
 function escapeHtml(value: string): string {

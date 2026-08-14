@@ -7,6 +7,10 @@ type Env = {
   POSTGRES_URL?: string;
   JWT_SECRET?: string;
   JWT_EXPIRES_IN?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+  NEXT_PUBLIC_APP_URL?: string;
+  APP_URL?: string;
   SESSION?: KVNamespace;
   // Cloudflare Images / Assets — typed loosely; not used directly in app code yet
   IMAGES?: unknown;

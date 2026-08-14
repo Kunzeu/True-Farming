@@ -22,5 +22,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const cs = getConnectionString(workerEnv);
     if (cs) process.env.DATABASE_URL = process.env.DATABASE_URL || cs;
   }
+  // CF secrets live on worker env; hydrate process.env for Node-style callers.
+  for (const key of [
+    'RESEND_API_KEY',
+    'EMAIL_FROM',
+    'JWT_SECRET',
+    'NEXT_PUBLIC_APP_URL',
+    'APP_URL',
+  ] as const) {
+    const v = workerEnv?.[key];
+    if (typeof v === 'string' && v && !process.env[key]) process.env[key] = v;
+  }
   return next();
 });
