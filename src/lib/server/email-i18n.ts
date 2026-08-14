@@ -63,8 +63,9 @@ export function getEmailSendFailedMessage(locale: EmailLocale): string {
   );
 }
 
-export function createEmailSendError(locale: EmailLocale): Error {
-  const error = new Error(getEmailSendFailedMessage(locale)) as Error & { code: string };
+export function createEmailSendError(locale: EmailLocale, details?: string): Error {
+  const base = getEmailSendFailedMessage(locale);
+  const error = new Error(details ? `${base} (${details})` : base) as Error & { code: string };
   error.code = EMAIL_SEND_FAILED;
   return error;
 }
@@ -77,8 +78,9 @@ export function getPasswordResetSendFailedMessage(locale: EmailLocale): string {
   );
 }
 
-export function createPasswordResetSendError(locale: EmailLocale): Error {
-  const error = new Error(getPasswordResetSendFailedMessage(locale)) as Error & { code: string };
+export function createPasswordResetSendError(locale: EmailLocale, details?: string): Error {
+  const base = getPasswordResetSendFailedMessage(locale);
+  const error = new Error(details ? `${base} (${details})` : base) as Error & { code: string };
   error.code = EMAIL_SEND_FAILED;
   return error;
 }

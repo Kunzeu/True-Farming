@@ -63,7 +63,7 @@ export async function sendVerificationEmail(
 
   if (error) {
     console.error('Resend verification email error:', error);
-    throw createEmailSendError(locale);
+    throw createEmailSendError(locale, error.message);
   }
 }
 
@@ -91,6 +91,6 @@ export async function sendPasswordResetEmail(
 
   if (error) {
     console.error('Resend password reset email error:', error);
-    throw createPasswordResetSendError(locale);
+    throw createPasswordResetSendError(locale, error.message);
   }
 }
