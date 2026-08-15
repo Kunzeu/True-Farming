@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useI18n } from '@/contexts/I18nContext';
 import {
@@ -147,10 +147,14 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
     return () => { cancelled = true; };
   }, [open, tab, lang, calcIdsKey]);
 
+  const revertTo = useRef(structuredClone(config));
+
   const syncFromProp = () => {
-    setDraft(structuredClone(config));
+    const snap = structuredClone(revertTo.current);
+    setDraft(snap);
     setIdDrafts({});
     setStatus(null);
+    onSaved(snap);
   };
 
   useEffect(() => {
@@ -190,8 +194,9 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
         return;
       }
       setDraft(data.config);
-      setHasBackup(!!data.hasBackup);
+      revertTo.current = structuredClone(data.config);
       onSaved(data.config);
+      setHasBackup(!!data.hasBackup);
       setStatus(t('fourWinds.edit.restored'));
     } catch (e) {
       setStatus(e instanceof Error ? e.message : t('common.error'));
@@ -213,10 +218,12 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
     const next = mergeCsv && yearData ? mergeOpeningCsv(yearData, csv) : parsed;
     const boxes = next.boxes || yearData?.boxes || 0;
     const applied = { ...next, boxes };
-    setDraft((d) => ({
-      ...d,
-      boxOpening: { ...d.boxOpening, [year]: applied },
-    }));
+    const nextDraft: FourWindsConfig = {
+      ...draft,
+      boxOpening: { ...draft.boxOpening, [year]: applied },
+    };
+    setDraft(nextDraft);
+    onSaved(nextDraft);
     setStatus(tr('fourWinds.edit.csvApplied', { year, items: applied.ids.length, boxes: applied.boxes.toLocaleString() }));
   };
 
@@ -272,6 +279,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
         return;
       }
       setDraft(data.config);
+      revertTo.current = structuredClone(data.config);
       onSaved(data.config);
       setHasBackup(!!data.hasBackup);
       setStatus(t('fourWinds.edit.saved'));
@@ -283,8 +291,10 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
   };
 
   const resetDefaults = () => {
-    setDraft(structuredClone(DEFAULT_FOUR_WINDS_CONFIG));
+    const next = structuredClone(DEFAULT_FOUR_WINDS_CONFIG);
+    setDraft(next);
     setIdDrafts({});
+    onSaved(next);
     setStatus(t('fourWinds.edit.defaultsLoaded'));
   };
 
@@ -293,6 +303,7 @@ export default function FourWindsConfigEditor({ config, onSaved, token, userId }
       <button
         type="button"
         onClick={() => {
+          revertTo.current = structuredClone(config);
           syncFromProp();
           setOpen(true);
         }}

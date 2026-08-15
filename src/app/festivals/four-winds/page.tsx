@@ -49,6 +49,54 @@ interface BoxCalculatorItem {
   resultingBoxes: number;
 }
 
+const GW2_IDS_CHUNK = 200;
+
+async function fetchGw2Chunked<T extends { id: number }>(url: string, ids: number[]): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; i < ids.length; i += GW2_IDS_CHUNK) {
+    const chunk = ids.slice(i, i + GW2_IDS_CHUNK);
+    const res = await fetch(`${url}${chunk.join(',')}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) continue;
+    const data: T[] = await res.json();
+    out.push(...data);
+  }
+  return out;
+}
+
+interface BoxOpeningPrimaryItem {
+  id: number;
+  name: string;
+  nameEn: string;
+  icon: string;
+  quantity: number;
+  perBox: number;
+  pricePerUnit?: number;
+}
+
+function mapOpeningItems(
+  yearData: { boxes: number; ids: number[]; counts: number[] },
+  prev: BoxOpeningPrimaryItem[]
+): BoxOpeningPrimaryItem[] {
+  const prevById = new Map(prev.map((p) => [p.id, p]));
+  const boxes = yearData.boxes || 1;
+  return yearData.ids.map((id, idx) => {
+    const qty = yearData.counts[idx] ?? 0;
+    const old = prevById.get(id);
+    const name = old?.name || `Item ${id}`;
+    return {
+      id,
+      name,
+      nameEn: old?.nameEn || name,
+      icon: old?.icon || '',
+      quantity: qty,
+      perBox: qty / boxes,
+      pricePerUnit: old?.pricePerUnit ?? 0,
+    };
+  });
+}
+
 function buildCalculatorItems(cfg: FourWindsConfig, prev?: BoxCalculatorItem[]): BoxCalculatorItem[] {
   return cfg.boxCalculator.map((item) => {
     const existing = prev?.find((p) => p.id === item.id);
@@ -67,16 +115,6 @@ function buildCalculatorItems(cfg: FourWindsConfig, prev?: BoxCalculatorItem[]):
   });
 }
 
-interface BoxOpeningPrimaryItem {
-  id: number;
-  name: string;
-  nameEn: string;
-  icon: string;
-  quantity: number;
-  perBox: number;
-  pricePerUnit?: number;
-}
-
 const FOUR_WINDS_CALCULATOR_KEY = 'four_winds_calculator_data';
 
 const FourWindsPage = () => {
@@ -86,6 +124,7 @@ const FourWindsPage = () => {
   const canEditFourWinds = hasPermission('moderator');
   const [selectedSection, setSelectedSection] = useState<string>('overview');
   const pricesTableRef = useRef<HTMLDivElement | null>(null);
+  const openingFetchGen = useRef(0);
 
   const [fwConfig, setFwConfig] = useState<FourWindsConfig>(() =>
     structuredClone(DEFAULT_FOUR_WINDS_CONFIG)
@@ -187,7 +226,13 @@ const FourWindsPage = () => {
       return new Set([...kept, ...added]);
     });
     const years = Object.keys(cfg.boxOpening).sort();
-    setBoxOpeningYear((y) => (cfg.boxOpening[y] ? y : years.at(-1) || y));
+    setBoxOpeningYear((y) => {
+      const nextY = cfg.boxOpening[y] ? y : years.at(-1) || y;
+      const yearData = cfg.boxOpening[nextY];
+      openingFetchGen.current += 1;
+      setPrimaryItems((prev) => (yearData ? mapOpeningItems(yearData, prev) : []));
+      return nextY;
+    });
   }, []);
 
   useEffect(() => {
@@ -301,58 +346,67 @@ const FourWindsPage = () => {
       return;
     }
     const { ids: openingIds, counts, boxes } = yearData;
+    const gen = ++openingFetchGen.current;
     try {
       if (openingIds.length === 0) {
         setPrimaryItems([]);
         return;
       }
       setPrimaryLoading(true);
-      const ids = openingIds.join(',');
-      const itemFetches: Promise<Response>[] = [
-        fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=${lang}`, {
-          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
-        }),
-        fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${ids}&lang=${lang}`, {
-          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
-        }),
-      ];
-      // ponytail: solo ES necesita nombre EN extra para la wiki
-      if (lang === 'es') {
-        itemFetches.push(fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=en`, {
-          headers: { 'Accept': 'application/json', 'Accept-Encoding': 'gzip, deflate, br' }
-        }));
-      }
-      const [itemsRes, pricesRes, enRes] = await Promise.all(itemFetches);
-      if (!itemsRes.ok) return;
-      const data: Gw2Item[] = await itemsRes.json();
-      const pricesData: Gw2Price[] = pricesRes.ok ? await pricesRes.json() : [];
+      const [itemsData, pricesData, enData] = await Promise.all([
+        fetchGw2Chunked<Gw2Item>(
+          `https://api.guildwars2.com/v2/items?lang=${lang}&ids=`,
+          openingIds
+        ),
+        fetchGw2Chunked<Gw2Price>(
+          'https://api.guildwars2.com/v2/commerce/prices?ids=',
+          openingIds
+        ),
+        lang === 'es'
+          ? fetchGw2Chunked<Gw2Item>(
+              'https://api.guildwars2.com/v2/items?lang=en&ids=',
+              openingIds
+            )
+          : Promise.resolve([] as Gw2Item[]),
+      ]);
+      if (openingFetchGen.current !== gen) return;
+      const itemsMap: Record<number, Gw2Item> = {};
+      itemsData.forEach((d) => { itemsMap[d.id] = d; });
       const pricesMap: Record<number, Gw2Price> = {};
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
       const nameEnById: Record<number, string> = {};
-      if (enRes?.ok) {
-        const enData: Gw2Item[] = await enRes.json();
-        enData.forEach((d) => { nameEnById[d.id] = d.name; });
-      }
-      const countById: Record<number, number> = {};
-      openingIds.forEach((id, idx) => {
-        countById[id] = counts[idx] ?? 0;
+      enData.forEach((d) => { nameEnById[d.id] = d.name; });
+      const boxCount = boxes || 1;
+      setPrimaryItems((prev) => {
+        if (openingFetchGen.current !== gen) return prev;
+        const prevById = new Map(prev.map((p) => [p.id, p]));
+        return openingIds.map((id, idx) => {
+          const d = itemsMap[id];
+          const qty = counts[idx] ?? 0;
+          const old = prevById.get(id);
+          const name = d?.name || old?.name || `Item ${id}`;
+          return {
+            id,
+            name,
+            nameEn: nameEnById[id] || old?.nameEn || name,
+            icon: d?.icon || old?.icon || '',
+            quantity: qty,
+            perBox: qty / boxCount,
+            pricePerUnit: pricesMap[id]?.sells?.unit_price ?? old?.pricePerUnit ?? 0,
+          };
+        });
       });
-      const mapped: BoxOpeningPrimaryItem[] = data.map((d) => ({
-        id: d.id,
-        name: d.name,
-        nameEn: nameEnById[d.id] || d.name,
-        icon: d.icon,
-        quantity: countById[d.id] ?? 0,
-        perBox: (countById[d.id] ?? 0) / boxes,
-        pricePerUnit: pricesMap[d.id]?.sells?.unit_price ?? 0,
-      }));
-      setPrimaryItems(mapped);
     } catch (e) {
       console.error('Error cargando items primarios:', e);
     } finally {
-      setPrimaryLoading(false);
+      if (openingFetchGen.current === gen) setPrimaryLoading(false);
     }
   }, [lang, boxOpeningYear, fwConfig.boxOpening]);
+
+  useEffect(() => {
+    const yearData = fwConfig.boxOpening[boxOpeningYear];
+    setPrimaryItems((prev) => (yearData ? mapOpeningItems(yearData, prev) : []));
+  }, [boxOpeningYear, fwConfig.boxOpening]);
 
   useEffect(() => {
     // Sincroniza la pestaña con el hash al cargar y cuando cambie
