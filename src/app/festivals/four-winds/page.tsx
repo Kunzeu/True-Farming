@@ -10,6 +10,7 @@ import {
   FESTIVAL_TOKEN_ITEM_ID,
   type FourWindsConfig,
 } from '@/lib/four-winds-config';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';
 import { 
   RefreshCw,
   Package,
@@ -75,6 +76,11 @@ interface BoxOpeningPrimaryItem {
   pricePerUnit?: number;
 }
 
+function realItemName(name: string | undefined, id: number): string {
+  if (!name || name === `Item ${id}`) return '';
+  return name;
+}
+
 function mapOpeningItems(
   yearData: { boxes: number; ids: number[]; counts: number[] },
   prev: BoxOpeningPrimaryItem[]
@@ -84,11 +90,11 @@ function mapOpeningItems(
   return yearData.ids.map((id, idx) => {
     const qty = yearData.counts[idx] ?? 0;
     const old = prevById.get(id);
-    const name = old?.name || `Item ${id}`;
+    const name = realItemName(old?.name, id);
     return {
       id,
-      name,
-      nameEn: old?.nameEn || name,
+      name: name || `Item ${id}`,
+      nameEn: realItemName(old?.nameEn, id),
       icon: old?.icon || '',
       quantity: qty,
       perBox: qty / boxes,
@@ -268,13 +274,13 @@ const FourWindsPage = () => {
     return `${sign}${gold.toString().padStart(2, '0')}G ${silver.toString().padStart(2, '0')}S ${copperRemaining.toString().padStart(2, '0')}C`;
   };
 
-  const buildWikiUrl = (englishName: string, localizedName?: string) => {
-    const title = lang === 'de' || lang === 'fr' ? (localizedName || englishName) : englishName;
-    const host =
-      lang === 'de' ? 'wiki-de.guildwars2.com' :
-      lang === 'fr' ? 'wiki-fr.guildwars2.com' :
-      'wiki.guildwars2.com';
-    return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+  const buildWikiUrl = (englishName: string, localizedName?: string, itemId?: number) => {
+    const en = itemId != null ? realItemName(englishName, itemId) : englishName;
+    const loc = itemId != null ? realItemName(localizedName, itemId) : (localizedName || '');
+    return gw2WikiUrl(loc || en, lang, {
+      itemId,
+      englishName: en || undefined,
+    });
   };
 
   const fetchBoxCalculatorData = useCallback(async () => {
@@ -362,7 +368,7 @@ const FourWindsPage = () => {
           'https://api.guildwars2.com/v2/commerce/prices?ids=',
           openingIds
         ),
-        lang === 'es'
+        lang !== 'en'
           ? fetchGw2Chunked<Gw2Item>(
               'https://api.guildwars2.com/v2/items?lang=en&ids=',
               openingIds
@@ -384,11 +390,16 @@ const FourWindsPage = () => {
           const d = itemsMap[id];
           const qty = counts[idx] ?? 0;
           const old = prevById.get(id);
-          const name = d?.name || old?.name || `Item ${id}`;
+          const dName = realItemName(d?.name, id);
+          const name = dName || realItemName(old?.name, id) || `Item ${id}`;
+          const nameEn =
+            realItemName(nameEnById[id], id) ||
+            (lang === 'en' ? dName : '') ||
+            realItemName(old?.nameEn, id);
           return {
             id,
             name,
-            nameEn: nameEnById[id] || old?.nameEn || name,
+            nameEn,
             icon: d?.icon || old?.icon || '',
             quantity: qty,
             perBox: qty / boxCount,
@@ -986,7 +997,8 @@ const FourWindsPage = () => {
                                   <a
                                     href={buildWikiUrl(
                                       boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
-                                      item.name
+                                      item.name,
+                                      item.id
                                     )}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -1069,7 +1081,8 @@ const FourWindsPage = () => {
                                    <a
                                      href={buildWikiUrl(
                                        boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
-                                       item.name
+                                       item.name,
+                                       item.id
                                      )}
                                      target="_blank"
                                      rel="noopener noreferrer"
@@ -1406,7 +1419,7 @@ const FourWindsPage = () => {
                               <tr key={item.id} className={`border-b border-cyan-500/20 hover:bg-cyan-500/10 transition-all duration-200 ${index % 2 === 0 ? 'bg-gray-800/40' : 'bg-gray-800/20'}`}>
                                 <td className="py-2 px-3 text-white">
                                   <a
-                                    href={buildWikiUrl(item.nameEn, item.name)}
+                                    href={buildWikiUrl(item.nameEn, item.name, item.id)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 hover:text-cyan-300"
@@ -1527,7 +1540,8 @@ const FourWindsPage = () => {
                             <a
                               href={buildWikiUrl(
                                 boxCalculatorData.find((b) => b.id === item.id)?.name || item.name,
-                                item.name
+                                item.name,
+                                item.id
                               )}
                               target="_blank"
                               rel="noopener noreferrer"
