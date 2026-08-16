@@ -2893,6 +2893,8 @@
   "legendary.tp.instant": "Sell",
   "legendary.tp.order": "Buy",
   "legendary.owned": "Possédé",
+  "legendary.progress": "Progression",
+  "legendary.progressHint": "{owned} sur {required} pièces",
   "legendary.markDone": "Marquer comme fait",
   "legendary.materialsTitle": "Matériaux nécessaires",
   "legendary.materialsSubtitle": "Achats au HV restants après remises et marques.",

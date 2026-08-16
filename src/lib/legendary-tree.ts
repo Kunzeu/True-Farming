@@ -990,7 +990,50 @@ export function flattenTree(node: TreeNode, out: TreeNode[] = []): TreeNode[] {
   return out;
 }
 
-/** Lista de compra TP + mats de remanente Klobjarne (mapa) cuando mode=buy. */
+/** Ratio cubierto de ESTE ítem (no de sus nietos). */
+function ownedRatio(n: TreeNode): number {
+  const required = n.need + n.owned;
+  if (required <= 0) return 0;
+  return n.owned / required;
+}
+
+/**
+ * % de un nodo: si ya lo tienes, 100%.
+ * Si se fabrica, media de las piezas DIRECTAS (clovers/dones), no de todo el T6.
+ */
+export function nodeQtyPct(n: TreeNode): number {
+  if (n.owned > 0 && n.need <= 0) return 100;
+  if (n.children.length > 0 && n.mode !== 'buy') {
+    return (n.children.reduce((sum, c) => sum + ownedRatio(c), 0) / n.children.length) * 100;
+  }
+  return ownedRatio(n) * 100;
+}
+
+/** % total: media de las piezas de primer nivel (p. ej. 1 de 4 regalos = 25%). */
+export function treeQtyProgress(root: TreeNode): {
+  owned: number;
+  remaining: number;
+  required: number;
+  pct: number;
+} {
+  const kids = root.children;
+  if (!kids.length) {
+    const required = root.need + root.owned;
+    const pct = nodeQtyPct(root);
+    return { owned: root.owned, remaining: root.need, required, pct: Math.round(pct) };
+  }
+  const pcts = kids.map(nodeQtyPct);
+  const pct = Math.round(pcts.reduce((s, p) => s + p, 0) / kids.length);
+  const done = pcts.filter((p) => p >= 100).length;
+  return {
+    owned: done,
+    remaining: kids.length - done,
+    required: kids.length,
+    pct,
+  };
+}
+
+/** Lista de compra TP + mats de remnant Klobjarne (mapa) cuando mode=buy. */
 export function shoppingList(root: TreeNode): { id: number; need: number; total: number }[] {
   const map = new Map<number, { need: number; total: number }>();
   const add = (id: number, need: number, total: number) => {

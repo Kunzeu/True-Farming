@@ -20,7 +20,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useGW2Items } from '@/hooks/useGW2ItemCache';
 import { useGW2Inventory } from '@/hooks/useGW2Inventory';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
-import LegendaryTree from '@/components/legendary/LegendaryTree';
+import LegendaryTree, { QtyPct } from '@/components/legendary/LegendaryTree';
 import {
   armorWeight,
   buildTree,
@@ -32,6 +32,7 @@ import {
   itemMeta,
   legendaryData,
   shoppingList,
+  treeQtyProgress,
   type CurrencyOverride,
   type DecisionOverride,
   type LegendaryKind,
@@ -147,7 +148,7 @@ export default function LegendaryTrackerPage() {
     return pool;
   }, [useOwned, inventoryMap, markedIds]);
 
-  const { localizedIds, tree, selected, materials } = useMemo(() => {
+  const { localizedIds, tree, selected, materials, qtyProgress } = useMemo(() => {
     const entry = data.legendaries.find((l) => l.id === selectedId) ?? data.legendaries[0] ?? null;
     const result = buildTree(data, entry?.id ?? selectedId, prices, {
       mode: priceMode,
@@ -158,7 +159,8 @@ export default function LegendaryTrackerPage() {
     });
     const localizedIds = [...new Set([...ids, ...data.legendaries.map((l) => l.id)])];
     const materials = result ? shoppingList(result.root) : [];
-    return { localizedIds, tree: result, selected: entry, materials };
+    const qtyProgress = result ? treeQtyProgress(result.root) : null;
+    return { localizedIds, tree: result, selected: entry, materials, qtyProgress };
   }, [data, selectedId, prices, priceMode, useOwned, walletMap, ids, overrides, currencyOverrides, ownedPool]);
 
   const { items } = useGW2Items(localizedIds, lang);
@@ -520,6 +522,20 @@ export default function LegendaryTrackerPage() {
               )}
             </div>
 
+            {qtyProgress && qtyProgress.required > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  {t('legendary.progress', 'Progress')}
+                </span>
+                <QtyPct pct={qtyProgress.pct} size="md" />
+                <span className="text-xs text-zinc-500">
+                  {t('legendary.progressHint', '{owned} of {required} parts')
+                    .replace('{owned}', String(qtyProgress.owned))
+                    .replace('{required}', String(qtyProgress.required))}
+                </span>
+              </div>
+            )}
+
             <div className="mt-3 space-y-2 text-xs">
               {finishedSellNet && (
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-600/50 bg-slate-900/50 px-3 py-2 text-zinc-400">
@@ -753,6 +769,7 @@ export default function LegendaryTrackerPage() {
                         {labels.owned} {Math.floor(req.owned).toLocaleString()}
                       </span>
                     )}
+                    <QtyPct owned={req.owned} required={req.needed} />
                     <span
                       className={`shrink-0 font-mono text-xs font-semibold ${
                         value <= 0 ? 'text-emerald-400' : 'text-sky-300'

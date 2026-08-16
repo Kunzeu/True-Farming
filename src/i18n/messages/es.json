@@ -3042,6 +3042,8 @@
   "legendary.tp.instant": "Sell",
   "legendary.tp.order": "Buy",
   "legendary.owned": "Tienes",
+  "legendary.progress": "Progreso",
+  "legendary.progressHint": "{owned} de {required} piezas",
   "legendary.markDone": "Marcar como hecho",
   "legendary.materialsTitle": "Materiales necesarios",
   "legendary.materialsSubtitle": "Compras del Bazar que quedan tras descuentos y marcas.",

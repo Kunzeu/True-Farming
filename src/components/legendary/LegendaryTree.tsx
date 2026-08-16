@@ -9,6 +9,7 @@ import {
   gw2WikiUrl,
   isRepurchaseItem,
   itemMeta,
+  nodeQtyPct,
   type LegendaryData,
   type NodeMode,
   type PriceMode,
@@ -66,6 +67,59 @@ type RowProps = {
 function activeTpUnit(node: TreeNode, priceMode: PriceMode): number | null {
   if (priceMode === 'sell') return node.tpSell || node.tpBuy;
   return node.tpBuy || node.tpSell;
+}
+
+function pctColor(pct: number): string {
+  if (pct >= 100) return 'text-emerald-300';
+  if (pct >= 50) return 'text-cyan-300';
+  if (pct > 0) return 'text-amber-300';
+  return 'text-zinc-500';
+}
+
+function pctBar(pct: number): string {
+  if (pct >= 100) return 'bg-emerald-400';
+  if (pct >= 50) return 'bg-cyan-400';
+  if (pct > 0) return 'bg-amber-400';
+  return 'bg-zinc-600';
+}
+
+export function QtyPct({
+  owned,
+  required,
+  pct: pctArg,
+  size = 'sm',
+}: {
+  owned?: number;
+  required?: number;
+  pct?: number;
+  size?: 'sm' | 'md';
+}) {
+  const pct = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(pctArg ?? (required && required > 0 ? ((owned ?? 0) / required) * 100 : 0))
+    )
+  );
+  if (pctArg == null && !(required && required > 0)) return null;
+  const barW = size === 'md' ? 'w-24' : 'w-10';
+  const barH = size === 'md' ? 'h-2' : 'h-1.5';
+  const text = size === 'md' ? 'text-sm' : 'text-[11px]';
+  const title =
+    owned != null && required != null
+      ? `${Math.floor(owned).toLocaleString()} / ${Math.ceil(required).toLocaleString()}`
+      : `${pct}%`;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 font-mono font-semibold ${text} ${pctColor(pct)}`}
+      title={title}
+    >
+      <span className={`${barH} ${barW} overflow-hidden rounded-full bg-slate-700/80`}>
+        <span className={`block h-full ${pctBar(pct)}`} style={{ width: `${pct}%` }} />
+      </span>
+      {pct}%
+    </span>
+  );
 }
 
 function ChoiceToggle({
@@ -278,6 +332,8 @@ function TreeRow({
         >
           {name}
         </a>
+
+        {node.depth > 0 && <QtyPct pct={nodeQtyPct(node)} />}
 
         <CurrencyChoice node={node} onCurrencyDecide={onCurrencyDecide} />
 

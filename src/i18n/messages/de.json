@@ -2899,6 +2899,8 @@
   "legendary.tp.instant": "Sell",
   "legendary.tp.order": "Buy",
   "legendary.owned": "Vorhanden",
+  "legendary.progress": "Fortschritt",
+  "legendary.progressHint": "{owned} von {required} Teilen",
   "legendary.markDone": "Als erledigt markieren",
   "legendary.materialsTitle": "Benötigte Materialien",
   "legendary.materialsSubtitle": "Handelsposten-Käufe nach Abzügen und Markierungen.",

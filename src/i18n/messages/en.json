@@ -3006,6 +3006,8 @@
   "legendary.tp.instant": "Sell",
   "legendary.tp.order": "Buy",
   "legendary.owned": "Have",
+  "legendary.progress": "Progress",
+  "legendary.progressHint": "{owned} of {required} parts",
   "legendary.markDone": "Mark as done",
   "legendary.materialsTitle": "Materials needed",
   "legendary.materialsSubtitle": "Trading Post buys left after discounts and marks.",
