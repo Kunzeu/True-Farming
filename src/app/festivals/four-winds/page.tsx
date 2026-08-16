@@ -11,6 +11,7 @@ import {
   type FourWindsConfig,
 } from '@/lib/four-winds-config';
 import { gw2WikiUrl } from '@/lib/gw2-wiki';
+import { maxProfitSS90T6, T6_SS_PRICE_IDS } from '@/lib/t6-ss-profit';
 import { 
   RefreshCw,
   Package,
@@ -190,6 +191,7 @@ const FourWindsPage = () => {
   );
   const [boxOpeningYear, setBoxOpeningYear] = useState<string>('2026');
   const [primaryItems, setPrimaryItems] = useState<BoxOpeningPrimaryItem[]>([]);
+  const [maxProfitSS90, setMaxProfitSS90] = useState(0);
   const [primaryLoading, setPrimaryLoading] = useState(false);
   const [primarySortField, setPrimarySortField] = useState<'id' | 'name' | 'quantity' | 'perBox' | 'value85'>('id');
   const [primarySortDirection, setPrimarySortDirection] = useState<'asc' | 'desc'>('asc');
@@ -359,6 +361,7 @@ const FourWindsPage = () => {
         return;
       }
       setPrimaryLoading(true);
+      const priceIds = [...new Set([...openingIds, ...T6_SS_PRICE_IDS])];
       const [itemsData, pricesData, enData] = await Promise.all([
         fetchGw2Chunked<Gw2Item>(
           `https://api.guildwars2.com/v2/items?lang=${lang}&ids=`,
@@ -366,7 +369,7 @@ const FourWindsPage = () => {
         ),
         fetchGw2Chunked<Gw2Price>(
           'https://api.guildwars2.com/v2/commerce/prices?ids=',
-          openingIds
+          priceIds
         ),
         lang !== 'en'
           ? fetchGw2Chunked<Gw2Item>(
@@ -382,6 +385,7 @@ const FourWindsPage = () => {
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
       const nameEnById: Record<number, string> = {};
       enData.forEach((d) => { nameEnById[d.id] = d.name; });
+      setMaxProfitSS90(maxProfitSS90T6(pricesMap));
       const boxCount = boxes || 1;
       setPrimaryItems((prev) => {
         if (openingFetchGen.current !== gen) return prev;
@@ -608,10 +612,11 @@ const FourWindsPage = () => {
     );
     const ft = primaryItems.find((i) => i.id === FESTIVAL_TOKEN_ITEM_ID)?.quantity ?? 0;
     const perTome = FT_PER_TOME || 300;
-    // ponytail: 0.6g/tomo fijo
-    const withTomesCopper = Math.round(totalValueCopper + (ft / perTome) * 0.6 * 10000);
+    const withTomesCopper = Math.round(
+      totalValueCopper + (ft / perTome) * maxProfitSS90
+    );
     return { totalValueCopper, withTomesCopper };
-  }, [primaryItems, FT_PER_TOME]);
+  }, [primaryItems, FT_PER_TOME, maxProfitSS90]);
 
   const cheapestByBox = useMemo(() => {
     const items = boxCalculatorItems.filter(
