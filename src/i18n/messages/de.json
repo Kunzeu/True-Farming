@@ -693,6 +693,7 @@
   "fourWinds.stats.uniqueItems": "Einzigartige Gegenstände",
   "fourWinds.stats.totalItems": "Gesamtanzahl Gegenstände",
   "fourWinds.stats.totalValue": "Gesamtwert (Verkaufspreis)",
+  "fourWinds.stats.withTomes": "With Tomes",
   "fourWinds.stats.resultsAnalysis": "Ergebnisanalyse",
   "fourWinds.obtained.title": "Erhaltene Gegenstände",
   "fourWinds.obtained.waiting": "Warte auf primäre IDs...",

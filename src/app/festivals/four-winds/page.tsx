@@ -271,7 +271,7 @@ const FourWindsPage = () => {
     const silver = Math.floor((abs % 10000) / 100);
     const copperRemaining = abs % 100;
     const sign = isNegative ? '-' : '';
-    return `${sign}${gold.toString().padStart(2, '0')}G ${silver.toString().padStart(2, '0')}S ${copperRemaining.toString().padStart(2, '0')}C`;
+    return `${sign}${gold.toLocaleString('en-US', { minimumIntegerDigits: 2 })}G ${silver.toString().padStart(2, '0')}S ${copperRemaining.toString().padStart(2, '0')}C`;
   };
 
   const buildWikiUrl = (englishName: string, localizedName?: string, itemId?: number) => {
@@ -601,6 +601,18 @@ const FourWindsPage = () => {
     return Math.round(unit * perBox6);
   }
 
+  const { totalValueCopper, withTomesCopper } = useMemo(() => {
+    const totalValueCopper = primaryItems.reduce(
+      (sum, i) => sum + i.quantity * (i.pricePerUnit || 0),
+      0
+    );
+    const ft = primaryItems.find((i) => i.id === FESTIVAL_TOKEN_ITEM_ID)?.quantity ?? 0;
+    const perTome = FT_PER_TOME || 300;
+    // ponytail: 0.6g/tomo fijo
+    const withTomesCopper = Math.round(totalValueCopper + (ft / perTome) * 0.6 * 10000);
+    return { totalValueCopper, withTomesCopper };
+  }, [primaryItems, FT_PER_TOME]);
+
   const cheapestByBox = useMemo(() => {
     const items = boxCalculatorItems.filter(
       (i) => selectedBoxItems.has(i.id) && getPricePerBoxCopper(i) > 0
@@ -888,7 +900,7 @@ const FourWindsPage = () => {
                       {tomeName}
                     </a>
                     <div className="text-4xl font-bold text-white font-mono leading-none">
-                      {tomesFromTokens.toLocaleString()}
+                      {tomesFromTokens.toLocaleString('en-US')}
                     </div>
                     <div className="text-gray-300 text-sm mt-2">
                       {t('fourWinds.tomeCalc.remainder', 'Remainder')}:{' '}
@@ -1147,10 +1159,10 @@ const FourWindsPage = () => {
                              <tr className="bg-gray-700/60">
                                                               <td className="py-2 px-4 text-right text-gray-200 font-bold text-base">{t('common.total')}:</td>
                                <td className="py-2 px-4 text-center text-white font-bold text-base font-mono">
-                                 {calculateBoxCalculatorTotals().totalMaterials.toLocaleString()}
+                                 {calculateBoxCalculatorTotals().totalMaterials.toLocaleString('en-US')}
                                </td>
                                <td className="py-2 px-4 text-center text-cyan-400 font-bold text-base font-mono">
-                                 {calculateBoxCalculatorTotals().totalBoxes.toLocaleString()}
+                                 {calculateBoxCalculatorTotals().totalBoxes.toLocaleString('en-US')}
                                </td>
                             </tr>
                           </tfoot>
@@ -1273,7 +1285,7 @@ const FourWindsPage = () => {
                   <div className="text-center">
                     <h3 className="text-lg sm:text-xl font-bold text-cyan-400 mb-2">{t('fourWinds.stats.title')}</h3>
                     <p className="text-xl sm:text-2xl font-bold text-white">
-                      {(fwConfig.boxOpening[boxOpeningYear]?.boxes ?? 1).toLocaleString()}
+                      {(fwConfig.boxOpening[boxOpeningYear]?.boxes ?? 1).toLocaleString('en-US')}
                     </p>
                     <p className="text-gray-200 text-sm mt-2">{t('fourWinds.stats.desc')}</p>
                     <p className="text-gray-300 text-xs mt-1">
@@ -1346,21 +1358,25 @@ const FourWindsPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-cyan-500/20 shadow-lg">
                         <div className="text-2xl font-bold text-cyan-400">
-                          {primaryItems.filter(i => i.quantity > 0).length.toLocaleString()}
+                          {primaryItems.filter(i => i.quantity > 0).length.toLocaleString('en-US')}
                         </div>
                          <div className="text-gray-200 text-sm">{t('fourWinds.stats.uniqueItems')}</div>
                       </div>
                       <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-cyan-500/20 shadow-lg">
                         <div className="text-2xl font-bold text-green-400">
-                          {primaryItems.reduce((sum, i) => sum + i.quantity, 0).toLocaleString()}
+                          {primaryItems.reduce((sum, i) => sum + i.quantity, 0).toLocaleString('en-US')}
                         </div>
                          <div className="text-gray-200 text-sm">{t('fourWinds.stats.totalItems')}</div>
                       </div>
                       <div className="bg-gray-800/60 rounded-lg p-3 text-center border border-cyan-500/20 shadow-lg">
                         <div className="text-2xl font-bold text-yellow-400">
-                          {formatGoldSilverCopper(primaryItems.reduce((sum, i) => sum + i.quantity * (i.pricePerUnit || 0), 0))}
+                          {formatGoldSilverCopper(totalValueCopper)}
                         </div>
                          <div className="text-gray-200 text-sm">{t('fourWinds.stats.totalValue')}</div>
+                         <div className="mt-2 text-xl font-bold text-amber-300">
+                          {formatGoldSilverCopper(withTomesCopper)}
+                        </div>
+                         <div className="text-gray-300 text-xs">{t('fourWinds.stats.withTomes')}</div>
                       </div>
                       {/* Eliminado el bloque inferior duplicado de valor por caja */}
                     </div>
@@ -1433,7 +1449,7 @@ const FourWindsPage = () => {
                                 <td className="py-2 px-2 text-center text-gray-200 font-mono text-base">
                                   {formatGoldSilverCopper(Math.round((item.pricePerUnit || 0) * 0.85))}
                                 </td>
-                                <td className="py-2 px-2 text-center text-gray-200 font-mono text-base">{item.quantity.toLocaleString()}</td>
+                                <td className="py-2 px-2 text-center text-gray-200 font-mono text-base">{item.quantity.toLocaleString('en-US')}</td>
                                 <td className="py-2 px-2 text-center text-gray-200 font-mono text-base">{item.perBox.toFixed(6)}</td>
                                 
                               </tr>

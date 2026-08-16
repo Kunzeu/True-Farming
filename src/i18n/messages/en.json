@@ -705,6 +705,7 @@
   "fourWinds.stats.uniqueItems": "Unique Items",
   "fourWinds.stats.totalItems": "Total Items",
   "fourWinds.stats.totalValue": "Total Value (sell price)",
+  "fourWinds.stats.withTomes": "With Tomes",
   "fourWinds.stats.resultsAnalysis": "Results Analysis",
   "fourWinds.obtained.title": "Obtained Items",
   "fourWinds.obtained.waiting": "Waiting for primary IDs...",
