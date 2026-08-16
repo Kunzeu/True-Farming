@@ -242,17 +242,3 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
         lastUpdate
     };
 }
-
-    return {
-        inventoryMap,
-        walletMap,
-        loading,
-        error,
-        status,
-        refresh,
-        progress,
-        hasApiKey,
-        checkApiKey,
-        lastUpdate
-    };
-}
