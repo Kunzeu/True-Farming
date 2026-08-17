@@ -19,10 +19,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, patreonId, patreonTier, patreonStatus } = body as { email?: string; patreonId?: string; patreonTier?: string | null; patreonStatus?: 'active_patron' | 'declined_patron' | 'former_patron' | null };
+    const { email, userId, patreonId, patreonTier, patreonStatus } = body as {
+      email?: string;
+      userId?: string;
+      patreonId?: string;
+      patreonTier?: string | null;
+      patreonStatus?: 'active_patron' | 'declined_patron' | 'former_patron' | null;
+    };
 
-    if (!email || !patreonId) {
-      return NextResponse.json({ error: 'email y patreonId son requeridos' }, { status: 400 });
+    if (!patreonId || (!email && !userId)) {
+      return NextResponse.json({ error: 'patreonId y email o userId son requeridos' }, { status: 400 });
     }
 
     // Determinar el rol objetivo basado en tier/status
@@ -51,12 +57,12 @@ export async function POST(request: NextRequest) {
            is_active = CASE WHEN $3::text = 'active_patron' THEN TRUE ELSE is_active END,
            role = CASE WHEN role IN ('admin','moderator') THEN role ELSE $5 END,
            updated_at = NOW()
-       WHERE email = $4
+       WHERE ($6::text IS NOT NULL AND id::text = $6) OR ($4::text IS NOT NULL AND email = $4)
        RETURNING id, email, username, role, is_active as "isActive",
                  created_at as "createdAt", updated_at as "updatedAt",
                  discord_id as "discordId", gw2_api_key as "gw2ApiKey",
                  patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus", patreon_active as "patreonActive", preferences`,
-      [patreonId, patreonTier ?? null, patreonStatus ?? null, email, nextRole]
+      [patreonId, patreonTier ?? null, patreonStatus ?? null, email ?? null, nextRole, userId ?? null]
     );
 
     if (result.rows.length === 0) {

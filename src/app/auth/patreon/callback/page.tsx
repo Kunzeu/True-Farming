@@ -49,7 +49,7 @@ function PatreonCallbackContent() {
         }
         setStatus('success');
         setMessage('¡Autenticación exitosa! Redirigiendo...');
-        setTimeout(() => router.push('/'), 2000);
+        setTimeout(() => router.push('/profile'), 2000);
       } catch (err) {
         setStatus('error');
         setMessage(

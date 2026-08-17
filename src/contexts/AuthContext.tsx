@@ -686,6 +686,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            userId: dbUser.id,
             email: dbUser.email,
             patreonId: patreonUser.id,
             patreonTier: finalTier ?? null,
@@ -700,8 +701,11 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         console.error('Persist Patreon link threw (loginWithPatreon immediate):', e);
       }
 
-      // Generar token JWT (similar al login con Discord)
-      const token = 'temp_patreon_token_' + Date.now();
+      const existingToken = localStorage.getItem('gw2_token');
+      const token =
+        existingToken && !existingToken.startsWith('temp_')
+          ? existingToken
+          : 'temp_patreon_token_' + Date.now();
 
       // Verificar qué se va a guardar
 
@@ -807,41 +811,39 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
 
 
 
-      // Actualizar usuario actual con información de Patreon
-      await updateUser({
+      const persistRes = await fetch('/api/auth/patreon/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          email: currentUser.email,
+          patreonId: patreonUser.id,
+          patreonTier: finalTier ?? null,
+          patreonStatus: finalStatus ?? null,
+        }),
+      });
+      if (!persistRes.ok) {
+        const text = await persistRes.text();
+        throw new Error(text || 'No se pudo guardar la vinculación de Patreon');
+      }
+
+      const patched: User = {
+        ...currentUser,
         patreonId: patreonUser.id,
         patreonTier: finalTier || undefined,
-        patreonStatus: finalStatus || undefined,
-      });
-
-      // DEBUG: Log de datos que se van a guardar en BD
-      const persistData = {
-        email: currentUser.email,
-        patreonId: patreonUser.id,
-        patreonTier: finalTier ?? null,
-        patreonStatus: finalStatus ?? null
+        patreonStatus: finalStatus || null,
       };
-
-
-      // Persistir en BD inmediatamente por email
-      try {
-        const persistRes = await fetch('/api/auth/patreon/link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(persistData)
-        });
-        if (!persistRes.ok) {
-          await persistRes.text();
-        }
-      } catch { }
-
-
-
+      localStorage.setItem('gw2_user', JSON.stringify(patched));
+      window.dispatchEvent(new Event('tf-auth-change'));
+      dispatch({
+        type: 'AUTH_SUCCESS',
+        payload: { user: patched, token: localStorage.getItem('gw2_token') || '' },
+      });
     } catch (error) {
       console.error('Error linking Patreon:', error);
       throw error;
     }
-  }, [state.user, updateUser]);
+  }, [state.user]);
 
   // Desvincular cuenta de Patreon del usuario actual
   const unlinkPatreon = useCallback(async () => {
