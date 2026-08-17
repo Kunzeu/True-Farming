@@ -696,6 +696,7 @@
   "fourWinds.stats.withTomes": "With Tomes",
   "fourWinds.stats.resultsAnalysis": "Ergebnisanalyse",
   "fourWinds.obtained.title": "Erhaltene Gegenstände",
+  "fourWinds.obtained.downloadRaw": "Rohdaten herunterladen",
   "fourWinds.obtained.waiting": "Warte auf primäre IDs...",
   "fourWinds.obtained.sendIds": "Sende mir die Liste der IDs und ich werde sie hinzufügen.",
   "fourWinds.modal.selectItemsTitle": "Elemente zur Anzeige auswählen",
