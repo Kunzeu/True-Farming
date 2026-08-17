@@ -53,7 +53,10 @@ export default defineConfig({
         'NEXT_PUBLIC_PATREON_REDIRECT_URI',
         'NEXT_PUBLIC_DISCORD_CLIENT_ID',
         'NEXT_PUBLIC_DISCORD_REDIRECT_URI',
-        'NEXT_PUBLIC_BASE_URL'
+        'NEXT_PUBLIC_BASE_URL',
+        'PATREON_CLIENT_ID',
+        'PATREON_CLIENT_SECRET',
+        'PATREON_REDIRECT_URI'
       ),
     },
     ssr: {

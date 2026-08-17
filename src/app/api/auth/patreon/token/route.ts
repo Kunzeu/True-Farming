@@ -3,30 +3,31 @@ import { getWorkerEnvSync } from '@/lib/cf-env';
 
 export const runtime = 'edge';;
 
-function patreonEnv(key: 'PATREON_CLIENT_ID' | 'PATREON_CLIENT_SECRET' | 'PATREON_REDIRECT_URI'): string {
-  const worker = getWorkerEnvSync();
-  const fromWorker = worker?.[key];
-  if (typeof fromWorker === 'string' && fromWorker.trim()) return fromWorker.trim();
-  const fromProcess = process.env[key];
-  return typeof fromProcess === 'string' ? fromProcess.trim() : '';
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { code } = await request.json();
 
     if (!code) {
-      console.error('No authorization code provided');
       return NextResponse.json(
         { error: 'Código de autorización requerido' },
         { status: 400 }
       );
     }
 
-    const clientId = patreonEnv('PATREON_CLIENT_ID');
-    const clientSecret = patreonEnv('PATREON_CLIENT_SECRET');
-    const redirectUri =
-      patreonEnv('PATREON_REDIRECT_URI') || 'https://www.true-farming.com/auth/patreon/callback';
+    const w = getWorkerEnvSync();
+    const clientId = (
+      w?.PATREON_CLIENT_ID ||
+      process.env.PATREON_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_PATREON_CLIENT_ID ||
+      ''
+    ).trim();
+    const clientSecret = (w?.PATREON_CLIENT_SECRET || process.env.PATREON_CLIENT_SECRET || '').trim();
+    const redirectUri = (
+      w?.PATREON_REDIRECT_URI ||
+      process.env.PATREON_REDIRECT_URI ||
+      process.env.NEXT_PUBLIC_PATREON_REDIRECT_URI ||
+      'https://www.true-farming.com/auth/patreon/callback'
+    ).trim();
 
     if (!clientId || !clientSecret) {
       return NextResponse.json(

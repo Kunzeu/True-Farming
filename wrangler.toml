@@ -20,4 +20,5 @@ crons = ["5 19 * * *"]
 # EMAIL_FROM is a Worker secret (noreply@true-farming.com) — do not also put it here
 PUBLIC_SITE_URL = "https://www.true-farming.com"
 NEXT_PUBLIC_APP_URL = "https://www.true-farming.com"
+PATREON_CLIENT_ID = "PWrLYPmnp_Wm8B2xBDTeRUrXcJgh96VNUev0_goTzoeYSus_Zhnukdgh-yIhw5VC"
 PATREON_REDIRECT_URI = "https://www.true-farming.com/auth/patreon/callback"

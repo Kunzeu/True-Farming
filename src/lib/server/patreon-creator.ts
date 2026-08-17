@@ -3,7 +3,7 @@ import { pool } from '@/lib/postgres-db';
 let cachedAccessToken: string | null = null;
 let cachedExpiresAt = 0;
 
-async function getSecret(key: string): Promise<string | null> {
+export async function getAppSecret(key: string): Promise<string | null> {
   try {
     const res = await pool.query(
       'CREATE TABLE IF NOT EXISTS secrets (key text PRIMARY KEY, value text NOT NULL, updated_at timestamptz NOT NULL DEFAULT NOW())'
@@ -52,7 +52,7 @@ export async function getCreatorAccessToken(): Promise<string> {
 
   const clientId = process.env.PATREON_CLIENT_ID;
   const clientSecret = process.env.PATREON_CLIENT_SECRET;
-  const refreshToken = (await getSecret('patreon_creator_refresh_token')) || process.env.PATREON_CREATOR_REFRESH_TOKEN || null;
+  const refreshToken = (await getAppSecret('patreon_creator_refresh_token')) || process.env.PATREON_CREATOR_REFRESH_TOKEN || null;
   const staticAccess = process.env.PATREON_CREATOR_ACCESS_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
     // Si falta refresh/config, intenta usar un access token estático si se proporcionó
