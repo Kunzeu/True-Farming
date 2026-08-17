@@ -708,7 +708,6 @@
   "fourWinds.stats.withTomes": "With Tomes",
   "fourWinds.stats.resultsAnalysis": "Results Analysis",
   "fourWinds.obtained.title": "Obtained Items",
-  "fourWinds.obtained.downloadRaw": "Download raw",
   "fourWinds.obtained.waiting": "Waiting for primary IDs...",
   "fourWinds.obtained.sendIds": "Send me the list of IDs and I will hardcode them.",
   "fourWinds.modal.selectItemsTitle": "Select Items to Display",

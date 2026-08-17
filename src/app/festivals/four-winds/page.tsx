@@ -13,7 +13,6 @@ import {
 import { gw2WikiUrl } from '@/lib/gw2-wiki';
 import { maxProfitSS90T6, T6_SS_PRICE_IDS } from '@/lib/t6-ss-profit';
 import { 
-  Download,
   RefreshCw,
   Package,
   TrendingUp,
@@ -418,37 +417,6 @@ const FourWindsPage = () => {
       if (openingFetchGen.current === gen) setPrimaryLoading(false);
     }
   }, [lang, boxOpeningYear, fwConfig.boxOpening]);
-
-  const downloadOpeningRaw = () => {
-    if (primaryItems.length === 0) return;
-    const boxes = fwConfig.boxOpening[boxOpeningYear]?.boxes ?? 0;
-    const esc = (v: string | number) => {
-      const s = String(v);
-      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const lines = [
-      `# year=${boxOpeningYear} boxes=${boxes}`,
-      'item_id,name,quantity,per_box,sell_copper,value85_copper',
-      ...primaryItems.map((i) =>
-        [
-          i.id,
-          esc(i.name),
-          i.quantity,
-          i.perBox.toFixed(6),
-          i.pricePerUnit || 0,
-          Math.round((i.pricePerUnit || 0) * 0.85),
-        ].join(',')
-      ),
-    ];
-    const url = URL.createObjectURL(
-      new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
-    );
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `four-winds-box-opening-${boxOpeningYear}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   useEffect(() => {
     const yearData = fwConfig.boxOpening[boxOpeningYear];
@@ -1425,16 +1393,6 @@ const FourWindsPage = () => {
                         <Calculator className="w-6 h-6 mr-3 text-cyan-400" />
                         {t('fourWinds.obtained.title')}
                       </h3>
-                      <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={downloadOpeningRaw}
-                        disabled={primaryItems.length === 0}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-700/80 hover:bg-gray-600/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-cyan-500/50 disabled:border-gray-500/50"
-                      >
-                        <Download className="w-4 h-4" />
-                        {t('fourWinds.obtained.downloadRaw')}
-                      </button>
                       <button
                         onClick={fetchPrimaryItems}
                         disabled={primaryLoading}
@@ -1443,7 +1401,6 @@ const FourWindsPage = () => {
                         <RefreshCw className={`w-4 h-4 ${primaryLoading ? 'animate-spin' : ''}`} />
                         {t('common.refreshData', 'Refresh Data')}
                       </button>
-                      </div>
                     </div>
                     {primaryItems.length === 0 ? (
                       <div className="bg-gray-800/50 rounded-lg border border-cyan-500/20 overflow-hidden shadow-lg">

@@ -689,7 +689,6 @@
   "fourWinds.stats.withTomes": "With Tomes",
   "fourWinds.stats.resultsAnalysis": "Analyse des résultats",
   "fourWinds.obtained.title": "Objets obtenus",
-  "fourWinds.obtained.downloadRaw": "Télécharger les données",
   "fourWinds.obtained.waiting": "En attente des IDs primaires...",
   "fourWinds.obtained.sendIds": "Envoyez-moi la liste des IDs et je les ajouterai.",
   "fourWinds.modal.selectItemsTitle": "Sélectionner les éléments à afficher",
