@@ -1,30 +1,26 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 function PatreonCallbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loginWithPatreon, linkPatreon } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-
   const hasRunRef = useRef(false);
 
-  const handlePatreonCallback = useCallback(async () => {
-    if (hasRunRef.current) return; // Evitar múltiples ejecuciones y 'invalid_grant'
-    hasRunRef.current = true;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const state = searchParams.get('state');
-
-    const codePreview = code ? `${code.slice(0, 6)}...${code.slice(-6)}` : null;
+  useEffect(() => {
+    if (hasRunRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    const state = params.get('state');
 
     if (error) {
-      console.error('Patreon OAuth error:', error);
+      hasRunRef.current = true;
       setStatus('error');
       setMessage(`Error en la autenticación de Patreon: ${error}`);
       setTimeout(() => router.push('/login'), 3000);
@@ -32,39 +28,37 @@ function PatreonCallbackContent() {
     }
 
     if (!code) {
-      console.error('No authorization code received');
+      hasRunRef.current = true;
       setStatus('error');
       setMessage('Código de autorización no encontrado');
       setTimeout(() => router.push('/login'), 3000);
       return;
     }
 
-    try {
-      console.log('Starting Patreon authentication with code preview:', codePreview);
-      
-      // Verificar si hay sesión válida (localStorage + contexto)
-      const hasValidSession = user || (typeof window !== 'undefined' && localStorage.getItem('gw2_user') && localStorage.getItem('gw2_token'));
-      
-      if (state === 'link' && hasValidSession) {
-        await linkPatreon(code);
-      } else {
-        // Fallback seguro: si no hay sesión (o state distinto), autenticar/crear usuario
-        await loginWithPatreon(code);
-      }
-      setStatus('success');
-      setMessage('¡Autenticación exitosa! Redirigiendo...');
-      setTimeout(() => router.push('/'), 2000);
-    } catch (error) {
-      console.error('Error en Patreon callback:', error);
-      setStatus('error');
-      setMessage(`Error al procesar la autenticación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-      setTimeout(() => router.push('/login'), 3000);
-    }
-  }, [searchParams, user, loginWithPatreon, linkPatreon, router]);
+    hasRunRef.current = true;
+    const hasValidSession =
+      !!user ||
+      (!!localStorage.getItem('gw2_user') && !!localStorage.getItem('gw2_token'));
 
-  useEffect(() => {
-    handlePatreonCallback();
-  }, [handlePatreonCallback]);
+    (async () => {
+      try {
+        if (state === 'link' && hasValidSession) {
+          await linkPatreon(code);
+        } else {
+          await loginWithPatreon(code);
+        }
+        setStatus('success');
+        setMessage('¡Autenticación exitosa! Redirigiendo...');
+        setTimeout(() => router.push('/'), 2000);
+      } catch (err) {
+        setStatus('error');
+        setMessage(
+          `Error al procesar la autenticación: ${err instanceof Error ? err.message : 'Error desconocido'}`
+        );
+        setTimeout(() => router.push('/login'), 3000);
+      }
+    })();
+  }, [user, loginWithPatreon, linkPatreon, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
@@ -112,23 +106,5 @@ function PatreonCallbackContent() {
 }
 
 export default function PatreonCallbackPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 max-w-md w-full mx-4">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-[#FF424D] animate-spin mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">
-              Cargando...
-            </h2>
-            <p className="text-gray-400">
-              Preparando autenticación
-            </p>
-          </div>
-        </div>
-      </div>
-    }>
-      <PatreonCallbackContent />
-    </Suspense>
-  );
+  return <PatreonCallbackContent />;
 }
