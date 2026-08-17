@@ -11,6 +11,12 @@ type Env = {
   EMAIL_FROM?: string;
   NEXT_PUBLIC_APP_URL?: string;
   APP_URL?: string;
+  PATREON_CLIENT_ID?: string;
+  PATREON_CLIENT_SECRET?: string;
+  PATREON_REDIRECT_URI?: string;
+  PATREON_CAMPAIGN_ID?: string;
+  PATREON_CREATOR_ACCESS_TOKEN?: string;
+  PATREON_CREATOR_REFRESH_TOKEN?: string;
   SESSION?: KVNamespace;
   // Cloudflare Images / Assets — typed loosely; not used directly in app code yet
   IMAGES?: unknown;

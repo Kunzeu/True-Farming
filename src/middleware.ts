@@ -29,6 +29,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     'JWT_SECRET',
     'NEXT_PUBLIC_APP_URL',
     'APP_URL',
+    'PATREON_CLIENT_ID',
+    'PATREON_CLIENT_SECRET',
+    'PATREON_REDIRECT_URI',
+    'PATREON_CAMPAIGN_ID',
+    'PATREON_CREATOR_ACCESS_TOKEN',
+    'PATREON_CREATOR_REFRESH_TOKEN',
   ] as const) {
     const v = workerEnv?.[key];
     if (typeof v === 'string' && v && !process.env[key]) process.env[key] = v;

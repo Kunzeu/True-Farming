@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getWorkerEnvSync } from '@/lib/cf-env';
 
 export const runtime = 'edge';;
+
+function patreonEnv(key: 'PATREON_CLIENT_ID' | 'PATREON_CLIENT_SECRET' | 'PATREON_REDIRECT_URI'): string {
+  const worker = getWorkerEnvSync();
+  const fromWorker = worker?.[key];
+  if (typeof fromWorker === 'string' && fromWorker.trim()) return fromWorker.trim();
+  const fromProcess = process.env[key];
+  return typeof fromProcess === 'string' ? fromProcess.trim() : '';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,45 +23,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que las variables de entorno estén definidas
-    const clientId = process.env.PATREON_CLIENT_ID;
-    const clientSecret = process.env.PATREON_CLIENT_SECRET;
-    
-    // Detectar el entorno y construir la URI de redirección apropiada
-    const host = request.headers.get('host') || '';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const redirectUri = process.env.PATREON_REDIRECT_URI || 
-      (host ? `${protocol}://${host}/auth/patreon/callback` : 'https://www.true-farming.com/auth/patreon/callback');
-
-    console.log('Patreon OAuth Config:', {
-      clientId: clientId ? `Set (${clientId.substring(0, 10)}...)` : 'Missing',
-      clientSecret: clientSecret ? 'Set' : 'Missing',
-      redirectUri: redirectUri || 'Missing',
-      host: host
-    });
-    const codePreview = typeof code === 'string' ? `${code.slice(0, 6)}...${code.slice(-6)}` : null;
-    console.log('Patreon token request debug:', {
-      hasCode: !!code,
-      codeLength: typeof code === 'string' ? code.length : null,
-      codePreview,
-      redirectUriUsed: redirectUri,
-      referer: request.headers.get('referer') || null,
-      origin: request.headers.get('origin') || null,
-    });
+    const clientId = patreonEnv('PATREON_CLIENT_ID');
+    const clientSecret = patreonEnv('PATREON_CLIENT_SECRET');
+    const redirectUri =
+      patreonEnv('PATREON_REDIRECT_URI') || 'https://www.true-farming.com/auth/patreon/callback';
 
     if (!clientId || !clientSecret) {
-      console.error('Missing Patreon OAuth environment variables:', {
-        clientId: !!clientId,
-        clientSecret: !!clientSecret,
-        redirectUri: redirectUri
-      });
       return NextResponse.json(
         { error: 'Configuración de Patreon OAuth incompleta' },
         { status: 500 }
       );
     }
 
-    // Intercambiar el código por un token de acceso
     const tokenResponse = await fetch('https://www.patreon.com/api/oauth2/token', {
       method: 'POST',
       headers: {
