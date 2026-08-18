@@ -12,6 +12,7 @@ import {
 } from '@/lib/four-winds-config';
 import { gw2WikiUrl } from '@/lib/gw2-wiki';
 import { maxProfitSS90T6, T6_SS_PRICE_IDS } from '@/lib/t6-ss-profit';
+import { CORE_CONVERSION_PRICE_IDS, maxProfitSS90Core } from '@/lib/core-conversion';
 import { 
   RefreshCw,
   Package,
@@ -361,7 +362,7 @@ const FourWindsPage = () => {
         return;
       }
       setPrimaryLoading(true);
-      const priceIds = [...new Set([...openingIds, ...T6_SS_PRICE_IDS])];
+      const priceIds = [...new Set([...openingIds, ...T6_SS_PRICE_IDS, ...CORE_CONVERSION_PRICE_IDS])];
       const [itemsData, pricesData, enData] = await Promise.all([
         fetchGw2Chunked<Gw2Item>(
           `https://api.guildwars2.com/v2/items?lang=${lang}&ids=`,
@@ -385,7 +386,7 @@ const FourWindsPage = () => {
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
       const nameEnById: Record<number, string> = {};
       enData.forEach((d) => { nameEnById[d.id] = d.name; });
-      setMaxProfitSS90(maxProfitSS90T6(pricesMap));
+      setMaxProfitSS90(Math.max(maxProfitSS90T6(pricesMap), maxProfitSS90Core(pricesMap)));
       const boxCount = boxes || 1;
       setPrimaryItems((prev) => {
         if (openingFetchGen.current !== gen) return prev;

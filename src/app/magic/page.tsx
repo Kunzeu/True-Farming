@@ -19,6 +19,15 @@ import {
 } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
+import WikiItemLink from '@/components/ui/WikiItemLink';
+import {
+  CORE_CONVERSIONS,
+  CORE_CONVERSION_PRICE_IDS,
+  coreConversionCost,
+  coreLodestone90,
+  coreLodestoneValue,
+  coreProfitPerShard,
+} from '@/lib/core-conversion';
 
 interface Gw2Price {
   id: number;
@@ -202,6 +211,7 @@ const CraftingPage = () => {
   const { t, lang } = useI18n();
   const [selectedSection, setSelectedSection] = useState<string>('overview');
   const [conversionData, setConversionData] = useState<ConversionItem[]>([]);
+  const [coreConversionData, setCoreConversionData] = useState<ConversionItem[]>([]);
   const [isLoadingConversions, setIsLoadingConversions] = useState(false);
 
   const [itemPrices, setItemPrices] = useState<Record<number, Gw2Price>>({});
@@ -255,6 +265,7 @@ const CraftingPage = () => {
     ...t6Materials.map(m => m.id),
     ...t6Materials.map(m => m.t5Id),
     ...Object.values(conversionMaterials),
+    ...CORE_CONVERSION_PRICE_IDS,
   ], [t6Materials, conversionMaterials]);
 
   // IDs de los items en las tablas
@@ -2305,6 +2316,24 @@ const CraftingPage = () => {
       });
 
       setConversionData(calculatedConversions);
+
+      const pricesForCores = pricesMap as Record<number, { buys?: { unit_price?: number }; sells?: { unit_price?: number } }>;
+      setCoreConversionData(CORE_CONVERSIONS.map((pair) => {
+        const cost = coreConversionCost(pricesForCores, pair.coreId);
+        const best = coreLodestoneValue(pricesForCores, pair.lodestoneId, cost);
+        const value90 = coreLodestone90(pricesForCores, pair.lodestoneId);
+        const itemInfo = itemsMap[pair.lodestoneId];
+        return {
+          id: pair.lodestoneId,
+          name: itemInfo?.name || `Item ${pair.lodestoneId}`,
+          icon: itemInfo?.icon || '',
+          precio90: Math.round(value90),
+          precio85: 0,
+          costeConv20: Math.round(best),
+          profit90: Math.round(coreProfitPerShard(value90 - best)),
+          profit85: 0,
+        };
+      }));
     } catch {
       // Error fetching conversion data
       // Aquí podrías agregar un toast o notificación de error
@@ -2368,6 +2397,7 @@ const CraftingPage = () => {
 
   // Memoizar los datos de conversión para evitar re-renders
   const memoizedConversionData = useMemo(() => conversionData, [conversionData]);
+  const memoizedCoreConversionData = useMemo(() => coreConversionData, [coreConversionData]);
 
   // Memoizar las funciones de cálculo para evitar re-renders
   const memoizedFormatGoldSilverCopperJSX = useCallback((copper: number) => {
@@ -3781,7 +3811,7 @@ const CraftingPage = () => {
                   <div className="mb-6 flex justify-center">
                     <Link
                       href="/conversion-guide"
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2"
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
                     >
                       <BookOpen className="w-5 h-5" />
                       {t('magicPage.t6ConversionButton', 'COMO HACER CONVERSIONES DE T6 + VENTA DE ESQUIRLAS ESPIRITUALES')}
@@ -3827,16 +3857,18 @@ const CraftingPage = () => {
                               transition={{ delay: index * 0.1 }}
                               className="border-b border-gray-600 last:border-b-0 hover:bg-gray-600"
                             >
-                              <td className="py-3 px-4 text-white flex items-center">
+                              <td className="py-3 px-4 text-white">
+                                <WikiItemLink name={item.name} itemId={item.id} className="flex items-center gap-2 hover:text-cyan-300">
                                 {item.icon && (
                                   <OptimizedImage 
                                     src={item.icon} 
                                     alt={item.name} 
-                                    className="w-8 h-8 mr-2 rounded"
+                                    className="w-8 h-8 rounded"
                                     priority
                                   />
                                 )}
                                 {item.name}
+                                </WikiItemLink>
                               </td>
                               <td 
                                 className="py-3 px-4 text-white whitespace-nowrap min-w-[100px]"
@@ -3911,6 +3943,113 @@ const CraftingPage = () => {
                                   alignItems: 'center'
                                 }}>
                                   {memoizedFormatGoldSilverCopperJSX(item.profit85)}
+                                </span>
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
+                  <div className="flex items-center mb-6">
+                    <RefreshCw className="w-8 h-8 mr-3 text-yellow-400" />
+                    <h2 className="text-2xl font-bold text-white">
+                      {t('craftingPage.coreConversions', 'Core → Lodestone conversions')}
+                    </h2>
+                  </div>
+                  <div className="mb-6 flex justify-center">
+                    <Link
+                      href="/conversion-guide-core"
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2"
+                    >
+                      <BookOpen className="w-5 h-5" />
+                      {t('magicPage.coreConversionButton', 'HOW TO CONVERT CORES TO LODESTONES')}
+                    </Link>
+                  </div>
+                  {isLoadingConversions ? (
+                    <div className="flex justify-center items-center h-48">
+                      <Loader2 className="animate-spin text-blue-400" size={48} />
+                      <p className="ml-4 text-white text-lg">{t('craftingPage.loadingConversionData', 'Loading conversion data...')}</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full bg-gray-700 rounded-lg overflow-hidden text-sm">
+                        <thead className="bg-gray-600">
+                          <tr>
+                            <th className="py-3 px-4 text-left text-sm font-semibold text-gray-200 whitespace-nowrap">{t('craftingPage.table.material', 'Material')}</th>
+                            <th className="py-3 px-4 text-left text-sm font-semibold text-gray-200 whitespace-nowrap">{t('craftingPage.table.price90', 'Price 90%')}</th>
+                            <th className="py-3 px-4 text-left text-sm font-semibold text-gray-200 whitespace-nowrap">{t('conversionGuideCorePage.totalCost', 'Best price')}</th>
+                            <th className="py-3 px-4 text-left text-sm font-semibold text-gray-200 whitespace-nowrap">{t('craftingPage.table.profitSS90', 'Profit SS 90%')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {memoizedCoreConversionData.map((item, index) => (
+                            <motion.tr
+                              key={item.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.1 }}
+                              className="border-b border-gray-600 last:border-b-0 hover:bg-gray-600"
+                            >
+                              <td className="py-3 px-4 text-white">
+                                <WikiItemLink name={item.name} itemId={item.id} className="flex items-center gap-2 hover:text-cyan-300">
+                                {item.icon && (
+                                  <OptimizedImage
+                                    src={item.icon}
+                                    alt={item.name}
+                                    className="w-8 h-8 rounded"
+                                    priority
+                                  />
+                                )}
+                                {item.name}
+                                </WikiItemLink>
+                              </td>
+                              <td
+                                className="py-3 px-4 text-white whitespace-nowrap min-w-[100px]"
+                                style={{ whiteSpace: 'nowrap', wordBreak: 'keep-all', overflow: 'hidden' }}
+                              >
+                                <span style={{
+                                  display: 'flex',
+                                  whiteSpace: 'nowrap',
+                                  wordBreak: 'keep-all',
+                                  overflow: 'hidden',
+                                  flexWrap: 'nowrap',
+                                  alignItems: 'center'
+                                }}>
+                                  {memoizedFormatGoldSilverCopperJSX(item.precio90)}
+                                </span>
+                              </td>
+                              <td
+                                className="py-3 px-4 text-white whitespace-nowrap min-w-[120px]"
+                                style={{ whiteSpace: 'nowrap', wordBreak: 'keep-all', overflow: 'hidden' }}
+                              >
+                                <span style={{
+                                  display: 'flex',
+                                  whiteSpace: 'nowrap',
+                                  wordBreak: 'keep-all',
+                                  overflow: 'hidden',
+                                  flexWrap: 'nowrap',
+                                  alignItems: 'center'
+                                }}>
+                                  {memoizedFormatGoldSilverCopperJSX(item.costeConv20)}
+                                </span>
+                              </td>
+                              <td
+                                className={`py-3 px-4 text-white font-semibold whitespace-nowrap min-w-[120px] ${getProfitColor(item.profit90)}`}
+                                style={{ whiteSpace: 'nowrap', wordBreak: 'keep-all', overflow: 'hidden' }}
+                              >
+                                <span style={{
+                                  display: 'flex',
+                                  whiteSpace: 'nowrap',
+                                  wordBreak: 'keep-all',
+                                  overflow: 'hidden',
+                                  flexWrap: 'nowrap',
+                                  alignItems: 'center'
+                                }}>
+                                  {memoizedFormatGoldSilverCopperJSX(item.profit90)}
                                 </span>
                               </td>
                             </motion.tr>

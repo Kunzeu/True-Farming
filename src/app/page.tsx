@@ -273,8 +273,7 @@ const initialCards: DashboardCard[] = [
     icon: <RefreshCw className="w-8 h-8" />,
     color: "from-cyan-500 to-sky-600",
     delay: 2.2,
-    // ponytail: aún no publicar conversion-guide-core
-    visible: false,
+    visible: true,
     order: 19
   },
   {

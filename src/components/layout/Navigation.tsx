@@ -22,7 +22,8 @@ import {
   ShoppingCart,
   Star,
   Gift,
-  Search
+  Search,
+  Gem
 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import { canAccessAdventCalendar } from '@/lib/advent-access';
@@ -419,7 +420,12 @@ const Navigation = () => {
       isImage: true,
       keywords: ['conversion', 'convertir', 'materiales', 'materials', 'tier', 'promote', 't5', 't6', 'ascended', 'forja mistica', 'mystic forge']
     },
-    // ponytail: conversion-guide-core aún no publicado
+    {
+      href: '/conversion-guide-core',
+      label: t('conversionGuideCorePage.title', 'Core Conversion Guide'),
+      icon: Gem,
+      keywords: ['core', 'cores', 'lodestone', 'piedra angular', 'onyx', 'molten', 'glacial', 'forja mistica', 'mystic forge']
+    },
     {
       href: '/garden',
       label: t('gardenPage.titleShort', 'Jardín'),
@@ -631,7 +637,7 @@ const Navigation = () => {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         .font-display {
           font-display: swap;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
