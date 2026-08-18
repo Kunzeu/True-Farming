@@ -9,7 +9,8 @@ import {
   BarChart3, 
   Info,
   Calculator,
-  ArrowRight
+  ArrowRight,
+  ArrowLeftRight
 } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
@@ -50,6 +51,7 @@ export default function EctoplasmSalvagePage() {
   const [materialNames, setMaterialNames] = useState<Record<number, string>>({});
   const [marketPrices, setMarketPrices] = useState<Record<number, { buy: number; sell: number }>>({});
   const [ectoCount, setEctoCount] = useState<number>(250);
+  const [dustCount, setDustCount] = useState<number>(462);
   const [selectedKit, setSelectedKit] = useState<string>('silver'); // Default to Silver
 
   useEffect(() => {
@@ -149,6 +151,13 @@ export default function EctoplasmSalvagePage() {
   const totalReturns = Math.floor(expectedDust * dustPrice * COMMON_FACTOR);
   const totalProfit = totalReturns - totalInvestment - totalKitCost;
 
+  const ectosNeeded = Math.ceil(dustCount / DUST_MULTIPLIER);
+  const reverseExpectedDust = ectosNeeded * DUST_MULTIPLIER;
+  const reverseKitCost = Math.ceil(ectosNeeded / kit.charges) * kit.price;
+  const reverseInvestment = Math.floor(ectosNeeded * ectoPrice * COMMON_FACTOR);
+  const reverseReturns = Math.floor(reverseExpectedDust * dustPrice * COMMON_FACTOR);
+  const reverseProfit = reverseReturns - reverseInvestment - reverseKitCost;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 flex flex-col">
       
@@ -231,6 +240,7 @@ export default function EctoplasmSalvagePage() {
             </h2>
           </div>
           <div className="flex flex-col items-center gap-6 relative z-10 max-w-4xl mx-auto">
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.fromEctos')}</p>
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
               <div className="flex flex-col items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.ectoQuantity')}</span>
@@ -300,7 +310,96 @@ export default function EctoplasmSalvagePage() {
                   <span className="text-xs text-slate-500 uppercase font-bold">{t('ectoplasm.calc.profit')}</span>
                   <span className={`text-2xl font-black ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {formatPrice(Math.abs(totalProfit))}
-                    {totalProfit < 0 ? ' (Pérdida)' : ''}
+                    {totalProfit < 0 ? ` (${t('ectoplasm.calc.loss')})` : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full flex items-center gap-4 py-2">
+              <div className="flex-1 h-px bg-slate-700/50" />
+              <span className="flex items-center gap-2 text-xs font-black text-purple-400 uppercase tracking-widest shrink-0">
+                <ArrowLeftRight className="w-4 h-4" />
+                {t('ectoplasm.calc.fromDust')}
+              </span>
+              <div className="flex-1 h-px bg-slate-700/50" />
+            </div>
+
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+              <div className="flex flex-col items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.dustQuantity')}</span>
+                <div className="text-center w-full">
+                  <input
+                    type="number"
+                    min={1}
+                    value={dustCount}
+                    onChange={(e) => setDustCount(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-full text-center bg-transparent border border-slate-700/40 rounded-md px-3 py-2 text-white font-black"
+                  />
+                  <p className="text-xs text-gray-400 mt-2">{t('ectoplasm.calc.addDustQuantity')}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.selectKit')}</span>
+                <div className="w-full flex items-center gap-2">
+                  {materialIcons[kit.itemId] ? (
+                    <Image src={materialIcons[kit.itemId]} alt="" width={32} height={32} />
+                  ) : (
+                    <span className="w-8 h-8 rounded bg-slate-700 shrink-0" />
+                  )}
+                  <select
+                    value={selectedKit}
+                    onChange={(e) => setSelectedKit(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700/40 rounded-md px-3 py-2 text-white font-bold appearance-none cursor-pointer text-center"
+                  >
+                    <option value="master">{t('ectoplasm.kits.master.name')}</option>
+                    <option value="mystic">{t('ectoplasm.kits.mystic.name')}</option>
+                    <option value="silver">{t('ectoplasm.kits.silver.name')}</option>
+                  </select>
+                </div>
+                <div className="text-xs text-gray-400 font-mono text-center">
+                  {kitCostLabel(kit)}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.ectoValueSell')}</span>
+                <div className="text-center font-mono text-white text-xl">{formatPrice(ectoPrice)}</div>
+                {materialIcons[MATERIAL_IDS.ecto] && <Image src={materialIcons[MATERIAL_IDS.ecto]} alt="Ecto" width={48} height={48} />}
+              </div>
+            </div>
+
+            <div className="w-full bg-slate-900/40 p-6 rounded-2xl border border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-center md:text-left">
+                <p className="text-sm text-gray-400">{t('ectoplasm.calc.requiredEctos')}</p>
+                <p className="text-3xl font-black text-white">
+                  {ectosNeeded.toLocaleString('en-US')}{' '}
+                  <span className="text-xs text-gray-400">{t('ectoplasm.table.ecto')}</span>
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  {t('ectoplasm.calc.actualDust')}: {parseFloat(reverseExpectedDust.toFixed(2))} {t('ectoplasm.table.dust')}
+                </p>
+              </div>
+
+              <div className="text-center md:text-right space-y-2">
+                <div className="flex flex-col md:items-end">
+                  <span className="text-xs text-slate-500 uppercase font-bold">{t('ectoplasm.calc.investment')}</span>
+                  <span className="text-lg font-black text-white">{formatPrice(reverseInvestment)}</span>
+                </div>
+                <div className="flex flex-col md:items-end">
+                  <span className="text-xs uppercase font-bold text-blue-400">{t('ectoplasm.calc.returns')}</span>
+                  <span className="text-lg font-black text-blue-400">{formatPrice(reverseReturns)}</span>
+                </div>
+                <div className="flex flex-col md:items-end pt-1">
+                  <span className="text-xs text-slate-500 uppercase font-bold">{t('ectoplasm.calc.kitCost')}</span>
+                  <span className="text-sm font-mono text-slate-400">-{formatPrice(reverseKitCost)}</span>
+                </div>
+                <div className="flex flex-col md:items-end pt-2 border-t border-white/5">
+                  <span className="text-xs text-slate-500 uppercase font-bold">{t('ectoplasm.calc.profit')}</span>
+                  <span className={`text-2xl font-black ${reverseProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {formatPrice(Math.abs(reverseProfit))}
+                    {reverseProfit < 0 ? ` (${t('ectoplasm.calc.loss')})` : ''}
                   </span>
                 </div>
               </div>
