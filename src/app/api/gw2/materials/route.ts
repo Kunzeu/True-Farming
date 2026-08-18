@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { pool } from '@/lib/postgres-db';
+import { fetchItemsByIds, gw2Get } from '@/lib/gw2-ids';
 
 export const runtime = 'nodejs';
-import { pool } from '@/lib/postgres-db';
-
-const GW2_API_BASE = 'https://api.guildwars2.com/v2';
-
-// Cache in-memory para reducir carga
-const materialsCache = new Map<string, { data: unknown; expiry: number }>();
-const MATERIALS_TTL_MS = 15 * 60 * 1000; // 15 minutos
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const start = performance.now();
@@ -19,96 +15,43 @@ export async function GET(request: NextRequest) {
     if (!apiKey && userId) {
       try {
         const result = await pool.query('SELECT gw2_api_key AS "gw2ApiKey" FROM users WHERE id = $1', [userId]);
-        if (result.rows.length > 0) {
-          apiKey = result.rows[0].gw2ApiKey || undefined;
-        }
+        if (result.rows.length > 0) apiKey = result.rows[0].gw2ApiKey || undefined;
       } catch {}
     }
+    const rawLang = (searchParams.get('lang') || '').toLowerCase();
+    const lang = ['en', 'es', 'de', 'fr'].includes(rawLang) ? rawLang : 'en';
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'API key required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'API key required' }, { status: 400 });
     }
 
-    // Check cache first
-    const cached = materialsCache.get(apiKey);
-    const now = Date.now();
-    if (cached && cached.expiry > now) {
-      return NextResponse.json(cached.data, {
-        headers: {
-          'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=30',
-        },
-      });
-    }
-
-    const response = await fetch(`${GW2_API_BASE}/account/materials?access_token=${apiKey}`, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
+    const response = await gw2Get(`/account/materials?access_token=${encodeURIComponent(apiKey)}`);
     if (!response.ok) {
       throw new Error(`GW2 API error: ${response.status} ${response.statusText}`);
     }
 
-    const materialsData = await response.json();
+    const materialsData: Array<{ id: number; count: number; category?: number }> = await response.json();
+    const held = materialsData.filter((m) => m && m.id && m.count > 0);
+    const itemsMap = await fetchItemsByIds(held.map((m) => m.id), lang);
 
-    // Get material details
-    const materialIds = materialsData.map((material: { id: number }) => material.id);
-    
-    if (materialIds.length > 0) {
-      const materialsResponse = await fetch(`${GW2_API_BASE}/materials?ids=${materialIds.join(',')}`);
-      if (materialsResponse.ok) {
-        const materialsDetails = await materialsResponse.json();
-        
-        // Merge material details with storage data
-        const enrichedMaterialsData = materialsData.map((storageMaterial: { id: number }) => {
-          const materialDetails = materialsDetails.find((material: { id: number }) => material.id === storageMaterial.id);
-          return {
-            ...storageMaterial,
-            name: materialDetails?.name || `Material ${storageMaterial.id}`,
-            icon: materialDetails?.icon,
-            category: materialDetails?.category,
-            max_count: materialDetails?.max_count || 250
-          };
-        });
-        
-        // Update cache with enriched data
-        materialsCache.set(apiKey, { data: enrichedMaterialsData, expiry: now + MATERIALS_TTL_MS });
-        
-        const duration = performance.now() - start;
-        console.log(`[API] /gw2/materials ejecutado en ${duration.toFixed(2)}ms`);
-        
-        return NextResponse.json(enrichedMaterialsData, {
-          headers: {
-            'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=30',
-          },
-        });
-      }
-    }
-
-    // Update cache with basic data
-    materialsCache.set(apiKey, { data: materialsData, expiry: now + MATERIALS_TTL_MS });
-
-    const duration = performance.now() - start;
-    console.log(`[API] /gw2/materials ejecutado en ${duration.toFixed(2)}ms`);
-
-    return NextResponse.json(materialsData, {
-      headers: {
-        'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=30',
-      },
+    const enriched = held.map((storageMaterial) => {
+      const item = itemsMap.get(storageMaterial.id);
+      return {
+        ...storageMaterial,
+        name: item?.name || `Item ${storageMaterial.id}`,
+        icon: item?.icon,
+        rarity: item?.rarity,
+        max_count: 250,
+      };
     });
+
+    console.log(`[API] /gw2/materials ejecutado en ${(performance.now() - start).toFixed(2)}ms`);
+    return NextResponse.json(enriched, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    const duration = performance.now() - start;
-    console.error(`[API] /gw2/materials Error después de ${duration.toFixed(2)}ms:`, error);
+    console.error(`[API] /gw2/materials Error después de ${(performance.now() - start).toFixed(2)}ms:`, error);
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch materials data',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
+      { error: 'Failed to fetch materials data', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 },
     );
   }
-} 
+}

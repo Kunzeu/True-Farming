@@ -25,7 +25,7 @@ interface Currency {
 
 const WalletPage = () => {
   const { isAuthenticated, user } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.wallet', t('account.wallet', 'Wallet'));
   const [walletData, setWalletData] = useState<WalletItem[]>([]);
@@ -95,13 +95,13 @@ const WalletPage = () => {
       // Preferir user_id en servidor (evita exponer API key)
       let walletResponse = null as Response | null;
       if (user?.id) {
-        walletResponse = await fetch(`/api/gw2/wallet?user_id=${user.id}`, { cache: 'no-store' });
+        walletResponse = await fetch(`/api/gw2/wallet?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' });
       } else {
         const apiKey = localStorage.getItem('gw2_api_key');
         if (!apiKey || apiKey.trim().length < 10) {
           return;
         }
-        walletResponse = await fetch(`/api/gw2/wallet?api_key=${apiKey}`);
+        walletResponse = await fetch(`/api/gw2/wallet?api_key=${apiKey}&lang=${lang}`);
       }
       if (walletResponse.ok) {
         const payload = await walletResponse.json();
@@ -145,7 +145,7 @@ const WalletPage = () => {
       } finally {
         setIsLoading(false);
       }
-    }, [user?.id, importantCurrencyIds, t]);
+    }, [user?.id, importantCurrencyIds, t, lang]);
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
  
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Package, Search, Database } from 'lucide-react';
@@ -183,10 +183,6 @@ const BankPage = () => {
     setSelectedItem(null);
   };
 
-
-
-  const lastFetchedApiKeyRef = useRef<string | null>(null);
-
   const fetchBankData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -215,14 +211,6 @@ const BankPage = () => {
         return;
       }
 
-      // Preferir user_id para resolver API key en servidor
-      
-      // Avoid re-fetching if the same user was already fetched in this session
-      if (lastFetchedApiKeyRef.current === (user?.id || null)) {
-        setIsLoading(false);
-        return;
-      }
-      
       const response = user?.id
         ? await fetch(`/api/gw2/bank?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
         : await (async () => {
@@ -235,7 +223,6 @@ const BankPage = () => {
       if (response.ok) {
         const data = await response.json();
         setBankItems(data);
-        lastFetchedApiKeyRef.current = user?.id || null;
         // Calcular resumen usando precios incluidos por el servidor si están presentes
         await calculateBankSummary(data);
       } else {

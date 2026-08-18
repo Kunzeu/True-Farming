@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Search, Package, Database } from 'lucide-react';
 import Link from 'next/link';
@@ -25,59 +25,64 @@ import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
 
 const SearchPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { t, lang } = useI18n();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.search', t('pageTitles.search', 'Account Search'));
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [index, setIndex] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchScope, setSearchScope] = useState<'all' | 'bank' | 'characters' | 'storage'>('all');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
 
-  // Reset modal closed state when API becomes healthy
   useEffect(() => {
-    if (isApiHealthy) {
-      setIsModalClosed(false);
-    }
+    if (isApiHealthy) setIsModalClosed(false);
   }, [isApiHealthy]);
 
-  const handleSearch = useCallback(async () => {
-    if (!searchTerm.trim()) return;
-
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const apiKey = localStorage.getItem('gw2_api_key');
-      if (!apiKey || apiKey.trim().length < 10) {
-        return;
-      }
-      
-      const response = await fetch(`/api/gw2/search?q=${encodeURIComponent(searchTerm)}&scope=${searchScope}&api_key=${apiKey}&lang=${lang}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResults(data);
-      } else {
-        if (response.status >= 500 || response.status === 0) {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const apiKey = localStorage.getItem('gw2_api_key');
+        const params = new URLSearchParams({ lang });
+        if (user?.id) params.set('user_id', user.id);
+        else if (apiKey && apiKey.trim().length >= 10) params.set('api_key', apiKey);
+        else {
+          setIsLoading(false);
+          return;
+        }
+        const response = await fetch(`/api/gw2/search?${params}`, { cache: 'no-store' });
+        if (cancelled) return;
+        if (response.ok) {
+          const data = await response.json();
+          setIndex(Array.isArray(data) ? data : []);
+        } else if (response.status >= 500 || response.status === 0) {
           setApiError(`API Error: ${response.status} ${response.statusText}`);
         }
+      } catch {
+        if (!cancelled) setApiError('Network error or service unavailable');
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error searching:', error);
-      setApiError('Network error or service unavailable');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchTerm, searchScope, lang]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, user?.id]);
 
-
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      const timeoutId = setTimeout(handleSearch, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [handleSearch, searchTerm]);
+  const searchResults = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return [];
+    return index.filter((item) => {
+      if (searchScope !== 'all' && item.category !== searchScope && !(searchScope === 'bank' && item.category === 'shared')) {
+        return false;
+      }
+      return item.name.toLowerCase().includes(q);
+    });
+  }, [index, searchTerm, searchScope]);
 
   if (!isAuthenticated) {
     return (
@@ -178,7 +183,7 @@ const SearchPage = () => {
         {isLoading && (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                         <p className="text-gray-400">{t('search.loading', 'Searching...')}</p>
+                         <p className="text-gray-400">{t('search.loading', 'Loading account...')}</p>
           </div>
         )}
 

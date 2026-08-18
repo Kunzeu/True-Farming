@@ -21,7 +21,7 @@ interface Material {
 
 const StoragePage = () => {
   const { isAuthenticated, user } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.storage', t('pageTitles.storage', 'Material Storage'));
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -67,13 +67,13 @@ const StoragePage = () => {
 
       // Preferir user_id en servidor (evita exponer API key)
       const response = user?.id
-        ? await fetch(`/api/gw2/materials?user_id=${user.id}`, { cache: 'no-store' })
+        ? await fetch(`/api/gw2/materials?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
         : await (async () => {
             const apiKey = localStorage.getItem('gw2_api_key');
             if (!apiKey || apiKey.trim().length < 10) {
               return new Response(null, { status: 400 });
             }
-            return fetch(`/api/gw2/materials?api_key=${apiKey}`);
+            return fetch(`/api/gw2/materials?api_key=${apiKey}&lang=${lang}`);
           })();
       if (response.ok) {
         const data = await response.json();
@@ -89,7 +89,7 @@ const StoragePage = () => {
       } finally {
         setIsLoading(false);
       }
-    }, [user?.id, t]);
+    }, [user?.id, t, lang]);
 
 
   useEffect(() => {

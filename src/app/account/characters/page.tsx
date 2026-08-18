@@ -95,7 +95,7 @@ const CharactersPage = () => {
         
         // Fetch characters and profession data in parallel
         const [charactersResponse, professionsResponse] = await Promise.all([
-          fetch(`/api/gw2/characters?api_key=${apiKey}`),
+          fetch(`/api/gw2/characters?api_key=${apiKey}`, { cache: 'no-store' }),
           fetch(`/api/gw2/professions?lang=${lang}`)
         ]);
 
