@@ -156,6 +156,10 @@ const Navigation = () => {
   // Funciones para manejar el estado del menú de guías con localStorage
   const handleGuidesMenuToggle = (isOpen: boolean) => {
     setIsGuidesMenuOpen(isOpen);
+    if (isOpen) {
+      setIsToolsMenuOpen(false);
+      if (typeof window !== 'undefined') localStorage.setItem('toolsMenuOpen', 'false');
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('guidesMenuOpen', JSON.stringify(isOpen));
     }
@@ -171,6 +175,10 @@ const Navigation = () => {
   // Funciones para manejar el estado del menú de tools con localStorage
   const handleToolsMenuToggle = (isOpen: boolean) => {
     setIsToolsMenuOpen(isOpen);
+    if (isOpen) {
+      setIsGuidesMenuOpen(false);
+      if (typeof window !== 'undefined') localStorage.setItem('guidesMenuOpen', 'false');
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('toolsMenuOpen', JSON.stringify(isOpen));
     }
@@ -879,12 +887,12 @@ const Navigation = () => {
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute left-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+                        className="absolute left-0 mt-2 w-[36rem] max-h-[min(70vh,28rem)] overflow-y-auto bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 grid grid-cols-2">
                         {guidesItems.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 min-w-0"
                             onClick={() => handleGuidesMenuToggle(false)}>
                             {item.isImage ? (
                               <Image
@@ -892,14 +900,14 @@ const Navigation = () => {
                                 alt={item.label}
                                 width={item.icon === 'Shadow_of_the_Mad_King' ? 48 : 32}
                                 height={item.icon === 'Shadow_of_the_Mad_King' ? 48 : 32}
-                                className={item.icon === 'Shadow_of_the_Mad_King' ? 'w-6 h-6' : item.icon === 'Glosary' ? 'w-4 h-4 mix-blend-screen' : 'w-4 h-4'}
+                                className={`shrink-0 ${item.icon === 'Shadow_of_the_Mad_King' ? 'w-6 h-6' : item.icon === 'Glosary' ? 'w-4 h-4 mix-blend-screen' : 'w-4 h-4'}`}
                                 unoptimized={item.icon === 'conversion-guide' || item.icon === 'magic-mirror' || item.icon === 'garden' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                 style={item.icon === 'Glosary' ? { backgroundColor: 'transparent', background: 'transparent' } : undefined}
                               />
                             ) : (
-                              <item.icon className="w-4 h-4" />
+                              <item.icon className="w-4 h-4 shrink-0" />
                             )}
-                            <span>{item.label}</span>
+                            <span className="truncate">{item.label}</span>
                           </Link>
                         ))}
                       </motion.div>
@@ -922,12 +930,12 @@ const Navigation = () => {
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute left-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+                        className="absolute right-0 mt-2 w-[36rem] max-h-[min(70vh,28rem)] overflow-y-auto bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 grid grid-cols-2">
                         {toolsItems.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 min-w-0"
                             onClick={() => handleToolsMenuToggle(false)}>
                             {item.isImage ? (
                               <Image
@@ -935,13 +943,13 @@ const Navigation = () => {
                                 alt={item.label}
                                 width={16}
                                 height={16}
-                                className="w-4 h-4"
+                                className="w-4 h-4 shrink-0"
                                 unoptimized={item.icon === 'magic-mirror' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                               />
                             ) : (
-                              <item.icon className="w-4 h-4" />
+                              <item.icon className="w-4 h-4 shrink-0" />
                             )}
-                            <span>{item.label}</span>
+                            <span className="truncate">{item.label}</span>
                           </Link>
                         ))}
                       </motion.div>
