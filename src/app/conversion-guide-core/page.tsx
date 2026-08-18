@@ -155,7 +155,7 @@ export default function ConversionGuideCorePage() {
                         className="flex flex-col items-center text-center max-w-4xl mx-auto"
                     >
                         <Link
-                            href="/magic"
+                            href="/magic#conversions#Lodestone"
                             className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg transition-colors text-gray-300 hover:text-white"
                         >
                             <ChevronRight className="w-4 h-4 rotate-180" />

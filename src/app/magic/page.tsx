@@ -210,6 +210,7 @@ const CraftingPage = () => {
   usePageTitle('dashboard.magic.title', 'Magia');
   const { t, lang } = useI18n();
   const [selectedSection, setSelectedSection] = useState<string>('overview');
+  const [hashSub, setHashSub] = useState('');
   const [conversionData, setConversionData] = useState<ConversionItem[]>([]);
   const [coreConversionData, setCoreConversionData] = useState<ConversionItem[]>([]);
   const [isLoadingConversions, setIsLoadingConversions] = useState(false);
@@ -2362,25 +2363,25 @@ const CraftingPage = () => {
     });
   }, [lang]);
 
-  // Manejar hash de la URL para navegación directa a secciones
+  // Manejar hash de la URL para navegación directa a secciones (/magic#conversions#Lodestone)
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.substring(1); // Remover el #
-      if (hash && ['overview', 'conversions', 'volatile-magic', 'unbound-magic', 'strategies'].includes(hash)) {
-        setSelectedSection(hash);
+      const [section, sub] = window.location.hash.substring(1).split('#');
+      if (section && ['overview', 'conversions', 'volatile-magic', 'unbound-magic', 'strategies'].includes(section)) {
+        setSelectedSection(section);
       }
+      setHashSub(sub || '');
     };
 
-    // Verificar hash inicial
     handleHashChange();
-
-    // Escuchar cambios en el hash
     window.addEventListener('hashchange', handleHashChange);
-    
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    if (selectedSection !== 'conversions' || !hashSub) return;
+    document.getElementById(hashSub)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hashSub, selectedSection, isLoadingConversions]);
 
   // Función para color de ganancia con gradación progresiva - OPTIMIZADA
   const getProfitColor = useCallback((profit: number) => {
@@ -3953,12 +3954,12 @@ const CraftingPage = () => {
                   )}
                 </div>
 
-                <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
+                <div id="Lodestone" className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6 scroll-mt-24">
                   <div className="flex items-center mb-6">
                     <RefreshCw className="w-8 h-8 mr-3 text-yellow-400" />
-                    <h2 className="text-2xl font-bold text-white">
+                    <a href="#conversions#Lodestone" className="text-2xl font-bold text-white hover:text-cyan-300">
                       {t('craftingPage.coreConversions', 'Core → Lodestone conversions')}
-                    </h2>
+                    </a>
                   </div>
                   <div className="mb-6 flex justify-center">
                     <Link
