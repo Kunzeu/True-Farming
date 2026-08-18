@@ -31,13 +31,14 @@ export default function OpenedPage() {
     name: t('opened.essence.unlockedCoffer', 'Unlocked Rift Essence Coffer'),
     icon: defaultCofferIcon
   });
+  const [astralMass, setAstralMass] = useState<{ name: string, icon: string } | null>(null);
 
   // Función para obtener los datos del Rift Essence Coffer según el idioma
   const fetchRiftEssenceCoffer = useCallback(async (language: string) => {
     const delaysMs = [250, 500, 1000];
     for (let attempt = 0; attempt < delaysMs.length; attempt++) {
       try {
-        const response = await fetch(`https://api.guildwars2.com/v2/items?ids=101266&lang=${language}`);
+        const response = await fetch(`https://api.guildwars2.com/v2/items?ids=101266,101727&lang=${language}`);
         if (!response.ok) {
           // Reintentar en 5xx o 429
           if (response.status >= 500 || response.status === 429) throw new Error(`HTTP ${response.status}`);
@@ -53,9 +54,13 @@ export default function OpenedPage() {
           throw new Error('non-JSON');
         }
         const data: GW2Item[] = await response.json();
-        if (data && data.length > 0) {
-          const cofferData = data[0];
+        const cofferData = data.find((item) => item.id === 101266);
+        const astralData = data.find((item) => item.id === 101727);
+        if (cofferData) {
           setRiftEssenceCoffer({ name: cofferData.name, icon: cofferData.icon });
+        }
+        if (astralData) {
+          setAstralMass({ name: astralData.name, icon: astralData.icon });
         }
         return;
       } catch (err) {
@@ -192,6 +197,49 @@ export default function OpenedPage() {
                       {t('salvagePage.explore', 'Explorar')}
                     </span>
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+
+            {/* Astral Fluctuating Mass */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="group">
+              <Link href="/opened/astral-mass">
+                <div className="bg-gradient-to-br from-indigo-500/20 to-violet-600/20 backdrop-blur-sm rounded-xl p-6 border border-indigo-500/30 hover:scale-105 transition-all duration-300 cursor-pointer">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500/20 to-violet-600/20 rounded-lg flex items-center justify-center border border-indigo-500/30 overflow-hidden">
+                      {astralMass?.icon ? (
+                        <Image
+                          src={astralMass.icon}
+                          alt={astralMass.name}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 object-contain"
+                        />
+                      ) : (
+                        <Package className="w-8 h-8 text-indigo-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-indigo-400 group-hover:text-white transition-colors">
+                        {astralMass?.name || t('pageTitles.astralMass', 'Masa fluctuante astral')}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-sm font-medium text-indigo-400 group-hover:text-white transition-colors">
+                      {t('salvagePage.explore', 'Explorar')}
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>

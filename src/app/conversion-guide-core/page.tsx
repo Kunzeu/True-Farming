@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import WikiItemLink from '@/components/ui/WikiItemLink';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatGW2Currency } from '@/utils/gw2-currency';
 import { CORE_ECTO_ID, coreConversionCost, coreLodestone90, coreLodestoneValue, coreProfitPerShard, coreUnitCost } from '@/lib/core-conversion';
 import { motion } from 'framer-motion';
@@ -163,7 +164,14 @@ export default function ConversionGuideCorePage() {
                         </Link>
 
                         <div className="flex items-center justify-center mb-4">
-                            <Gem className="w-12 h-12 text-purple-400 mr-4" />
+                            <Image
+                                src="/images/assets/conversionlodestone.gif"
+                                alt=""
+                                width={48}
+                                height={48}
+                                className="mr-4 h-12 w-12"
+                                unoptimized
+                            />
                             <h1 className="text-4xl font-bold text-white">
                                 {t('conversionGuideCorePage.title')}
                             </h1>

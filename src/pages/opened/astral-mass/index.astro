@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Island from '@/islands/opened__astral-mass';
+
+const langCookie = Astro.cookies.get('tf_lang')?.value;
+const lang =
+  langCookie === 'de' || langCookie === 'es' || langCookie === 'fr' || langCookie === 'en'
+    ? langCookie
+    : 'en';
+---
+
+<Layout showNav={true} title={"Opened / Astral Fluctuating Mass - True Farming"} description={"True Farming - Guild Wars 2 tools for farming routes, salvage, festivals, legendary tracker and more."}>
+  <Island client:idle lang={lang} />
+</Layout>

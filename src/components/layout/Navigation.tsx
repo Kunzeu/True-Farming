@@ -22,11 +22,9 @@ import {
   ShoppingCart,
   Star,
   Gift,
-  Search,
-  Gem
+  Search
 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
-import { canAccessAdventCalendar } from '@/lib/advent-access';
 
 // Tipos para los elementos de navegación
 interface NavItem {
@@ -385,11 +383,15 @@ const Navigation = () => {
       return 'https://wiki.guildwars2.com/images/2/2d/Plant_resource_%28map_icon%29.png';
     }
 
-    const isAssetsIcon = icon === 'GOM' || icon === 'GOJM' || icon === 'Glosary' || icon === 'Community' || icon === 'conversion-guide' || icon === 'Explorer';
+    if (icon === 'legendary-crafting') {
+      return 'https://wiki.guildwars2.com/images/e/ee/Legendary_Crafting.png';
+    }
+
+    const isAssetsIcon = icon === 'GOM' || icon === 'GOJM' || icon === 'Glosary' || icon === 'Community' || icon === 'conversion-guide' || icon === 'conversionlodestone' || icon === 'Explorer';
     const isFestivalIcon = icon === 'Shadow_of_the_Mad_King';
 
     const folder = isAssetsIcon ? 'assets' : isFestivalIcon ? 'festivals' : 'expansions';
-    const extension = icon === 'conversion-guide' ? 'gif' : 'webp';
+    const extension = icon === 'conversion-guide' || icon === 'conversionlodestone' ? 'gif' : 'webp';
     const query = icon === 'Explorer' ? '?v=2' : '';
 
     return `/images/${folder}/${icon}.${extension}${query}`;
@@ -423,7 +425,8 @@ const Navigation = () => {
     {
       href: '/conversion-guide-core',
       label: t('conversionGuideCorePage.title', 'Core Conversion Guide'),
-      icon: Gem,
+      icon: 'conversionlodestone',
+      isImage: true,
       keywords: ['core', 'cores', 'lodestone', 'piedra angular', 'onyx', 'molten', 'glacial', 'forja mistica', 'mystic forge']
     },
     {
@@ -436,7 +439,8 @@ const Navigation = () => {
     {
       href: '/legendary-tracker',
       label: t('legendary.title', 'Legendary Tracker'),
-      icon: Crown,
+      icon: 'legendary-crafting',
+      isImage: true,
       keywords: ['legendary', 'legendaria', 'legendarias', 'precursor', 'gift of fortune', 'don de la fortuna', 'mystic tribute', 'tributo mistico', 'crafting', 'fabricacion', 'arbol', 'tree', 'coste', 'cost']
     },
     {
@@ -525,7 +529,7 @@ const Navigation = () => {
       label: t('openedPage.title', 'Contenedores Abribles'),
       icon: 'Community',
       isImage: true,
-      keywords: ['containers', 'contenedores', 'bags', 'bolsas', 'boxes', 'cajas', 'open', 'abrir', 'loot', 'laurels', 'laurel', 'essence', 'esencia', 'rift', 'four winds prize', 'premio cuatro vientos']
+      keywords: ['containers', 'contenedores', 'bags', 'bolsas', 'boxes', 'cajas', 'open', 'abrir', 'loot', 'laurels', 'laurel', 'essence', 'esencia', 'rift', 'four winds prize', 'premio cuatro vientos', 'astral', 'fluctuating mass', 'masa fluctuante', 'wizard tower']
     },
     {
       href: '/salvage',
@@ -551,21 +555,13 @@ const Navigation = () => {
       icon: Gift,
       keywords: ['orrian jewelry', 'caja joyas orrianas', 'orrian', 'karma box', 'caja karma', 'lost orrian', 'joyas perdidas', 'jewelry box']
     },
-    ...(canAccessAdventCalendar(user)
-      ? [{
-          href: '/holiday-calendar',
-          label: t('nav.holidayCalendar', 'Advent Calendar'),
-          icon: Calendar,
-          keywords: ['holiday calendar', 'calendario adviento', 'advent', 'adviento', 'calendar', 'event calendar', 'calendario eventos']
-        } satisfies NavItem]
-      : []),
     {
       href: '/buyout',
       label: t('pageTitles.buyout', 'Buyout Calculator'),
       icon: ShoppingCart,
       keywords: ['buyout', 'calculator', 'calculadora', 'tp', 'trading post', 'buy', 'comprar', 'listings', 'ordenes']
     },
-  ], [t, user]);
+  ], [t]);
 
   const handleLogout = () => {
     logout();
@@ -726,7 +722,6 @@ const Navigation = () => {
                     style={{ width: '6rem', minWidth: '6rem', display: 'inline-block', textAlign: 'center' }}
                   />
                 </div>
-                {/* Enlace Calendario de Adviento */}
                 {/* Enlace Giveaways */}
                 <Link
                   href="/giveaways"
@@ -811,7 +806,7 @@ const Navigation = () => {
                                     width={16}
                                     height={16}
                                     className="w-4 h-4"
-                                    unoptimized={item.icon === 'magic-mirror'}
+                                    unoptimized={item.icon === 'magic-mirror' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                   />
                                 ) : (
                                   typeof item.icon === 'function' ? (
@@ -898,7 +893,7 @@ const Navigation = () => {
                                 width={item.icon === 'Shadow_of_the_Mad_King' ? 48 : 32}
                                 height={item.icon === 'Shadow_of_the_Mad_King' ? 48 : 32}
                                 className={item.icon === 'Shadow_of_the_Mad_King' ? 'w-6 h-6' : item.icon === 'Glosary' ? 'w-4 h-4 mix-blend-screen' : 'w-4 h-4'}
-                                unoptimized={item.icon === 'conversion-guide' || item.icon === 'magic-mirror' || item.icon === 'garden'}
+                                unoptimized={item.icon === 'conversion-guide' || item.icon === 'magic-mirror' || item.icon === 'garden' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                 style={item.icon === 'Glosary' ? { backgroundColor: 'transparent', background: 'transparent' } : undefined}
                               />
                             ) : (
@@ -941,7 +936,7 @@ const Navigation = () => {
                                 width={16}
                                 height={16}
                                 className="w-4 h-4"
-                                unoptimized={item.icon === 'magic-mirror'}
+                                unoptimized={item.icon === 'magic-mirror' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                               />
                             ) : (
                               <item.icon className="w-4 h-4" />
@@ -1144,7 +1139,7 @@ const Navigation = () => {
                                   width={item.icon === 'Shadow_of_the_Mad_King' ? 32 : 16}
                                   height={item.icon === 'Shadow_of_the_Mad_King' ? 32 : 16}
                                   className={item.icon === 'Shadow_of_the_Mad_King' ? 'w-8 h-8' : item.icon === 'Glosary' ? 'w-5 h-5 mix-blend-screen' : 'w-5 h-5'}
-                                  unoptimized={item.icon === 'magic-mirror'}
+                                  unoptimized={item.icon === 'magic-mirror' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                   style={item.icon === 'Glosary' ? { backgroundColor: 'transparent', background: 'transparent' } : undefined}
                                 />
                               ) : (
@@ -1180,7 +1175,7 @@ const Navigation = () => {
                                         width={20}
                                         height={20}
                                         className="w-5 h-5"
-                                        unoptimized={item.icon === 'conversion-guide' || item.icon === 'magic-mirror' || item.icon === 'garden'}
+                                        unoptimized={item.icon === 'conversion-guide' || item.icon === 'magic-mirror' || item.icon === 'garden' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                       />
                                     ) : (
                                       <item.icon className="w-5 h-5" />
@@ -1218,7 +1213,7 @@ const Navigation = () => {
                                         width={20}
                                         height={20}
                                         className={item.icon === 'Glosary' ? 'w-5 h-5 mix-blend-screen' : 'w-5 h-5'}
-                                        unoptimized={item.icon === 'magic-mirror'}
+                                        unoptimized={item.icon === 'magic-mirror' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                                         style={item.icon === 'Glosary' ? { backgroundColor: 'transparent', background: 'transparent' } : undefined}
                                       />
                                     ) : (
@@ -1391,7 +1386,7 @@ const Navigation = () => {
                             width={20}
                             height={20}
                             className="w-5 h-5"
-                            unoptimized={item.icon === 'magic-mirror' || item.icon === 'conversion-guide' || item.icon === 'garden'}
+                            unoptimized={item.icon === 'magic-mirror' || item.icon === 'conversion-guide' || item.icon === 'garden' || item.icon === 'legendary-crafting' || item.icon === 'conversionlodestone'}
                           />
                         ) : (
                           typeof item.icon === 'function' ? (

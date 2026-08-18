@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   ChevronsDownUp,
   ChevronsUpDown,
-  Crown,
   Loader2,
   Lock,
   RefreshCw,
@@ -296,8 +295,15 @@ export default function LegendaryTrackerPage() {
     <div className="min-h-screen">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <header className="mb-8 text-center">
-          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-fuchsia-400/30 bg-gradient-to-br from-fuchsia-500/20 to-violet-600/10">
-            <Crown className="h-7 w-7 text-fuchsia-300" />
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-400/30 bg-gradient-to-br from-fuchsia-500/20 to-violet-600/10">
+            <Image
+              src="https://wiki.guildwars2.com/images/e/ee/Legendary_Crafting.png"
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+              unoptimized
+            />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             {t('legendary.title', 'Legendary Tracker')}
