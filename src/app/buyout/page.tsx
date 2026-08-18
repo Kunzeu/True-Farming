@@ -21,6 +21,34 @@ import {
   getItemListings,
 } from '@/lib/gw2-api';
 import { formatGW2Currency } from '@/utils/gw2-currency';
+
+function GoldMaskInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: number;
+  onChange: (copper: number) => void;
+  className: string;
+}) {
+  return (
+    <input
+      inputMode="numeric"
+      value={formatGW2Currency(value)}
+      className={className}
+      onKeyDown={(e) => {
+        if (e.key >= '0' && e.key <= '9') {
+          e.preventDefault();
+          onChange(value * 10 + Number(e.key));
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          e.preventDefault();
+          onChange(Math.floor(value / 10));
+        }
+      }}
+      onChange={() => {}}
+    />
+  );
+}
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 
@@ -550,17 +578,13 @@ export default function BuyoutPage() {
                   </h3>
                 </div>
                 <label className="mb-1.5 block text-xs text-zinc-500">
-                  {t('buyout.calc.budgetInput', 'Budget (copper)')}
+                  {t('buyout.calc.budgetInput', 'Budget')}
                 </label>
-                <input
-                  type="number"
+                <GoldMaskInput
                   value={calculatorData.buyTotalValue}
-                  onChange={(e) => updateCalculator('buyTotalValue', parseInt(e.target.value) || 0)}
+                  onChange={(v) => updateCalculator('buyTotalValue', v)}
                   className={inputCls}
                 />
-                <p className="mt-1.5 text-xs font-mono text-zinc-500">
-                  ≈ {formatGW2Currency(calculatorData.buyTotalValue)}
-                </p>
                 {metrics && (
                   <MetricRows
                     metrics={metrics.buyTotalValue}
@@ -580,17 +604,13 @@ export default function BuyoutPage() {
                   </h3>
                 </div>
                 <label className="mb-1.5 block text-xs text-zinc-500">
-                  {t('buyout.calc.toPriceInput', 'Max unit price (copper)')}
+                  {t('buyout.calc.toPriceInput', 'Max unit price')}
                 </label>
-                <input
-                  type="number"
+                <GoldMaskInput
                   value={calculatorData.buyToPrice}
-                  onChange={(e) => updateCalculator('buyToPrice', parseInt(e.target.value) || 0)}
+                  onChange={(v) => updateCalculator('buyToPrice', v)}
                   className={inputCls}
                 />
-                <p className="mt-1.5 text-xs font-mono text-zinc-500">
-                  ≈ {formatGW2Currency(calculatorData.buyToPrice)}
-                </p>
                 {metrics && (
                   <MetricRows
                     metrics={metrics.buyToPrice}
