@@ -89,6 +89,17 @@ export default function EctoplasmSalvagePage() {
     fetchMaterialData();
   }, [lang]);
 
+  function formatGSC(copper: number) {
+    const sign = copper < 0 ? '-' : '';
+    const abs = Math.abs(copper);
+    const g = Math.floor(abs / 10000);
+    const rem = abs - g * 10000;
+    const s = Math.floor(rem / 100);
+    const c = Math.round((rem - s * 100) * 100) / 100;
+    const cStr = Number.isInteger(c) ? String(c).padStart(2, '0') : c.toFixed(2);
+    return `${sign}${g.toLocaleString('en-US', { minimumIntegerDigits: 2 })}G ${String(s).padStart(2, '0')}S ${cStr}C`;
+  }
+
   function formatPrice(copper: number) {
     if (!copper) return '...';
     const g = Math.floor(copper / 10000);
@@ -107,11 +118,10 @@ export default function EctoplasmSalvagePage() {
     return materialIcons[id] || null;
   }
 
-  // Kit costs and charges
   const KITS_INFO = {
-    master: { price: 1536, charges: 25 },
-    mystic: { price: 2624, charges: 250 },
-    silver: { price: 60, charges: 1 } // Silver is per-use (permanent)
+    master: { price: 1536, charges: 25, itemId: MATERIAL_IDS.kitMaster },
+    mystic: { price: 2624, charges: 250, itemId: MATERIAL_IDS.kitMystic },
+    silver: { price: 60, charges: 1, itemId: MATERIAL_IDS.kitSilver },
   };
 
   // Calculadora: comparar (polvo * 1.85) a 90% vs ecto (precio mercado)
@@ -128,9 +138,11 @@ export default function EctoplasmSalvagePage() {
   
   // Coste del reciclaje (Kits completos para consumibles, por uso para permanente)
   const kit = KITS_INFO[selectedKit as keyof typeof KITS_INFO];
-  const totalKitCost = selectedKit === 'silver' 
-    ? ectoCount * kit.price 
-    : Math.ceil(ectoCount / kit.charges) * kit.price;
+  const totalKitCost = Math.ceil(ectoCount / kit.charges) * kit.price;
+  const kitCostLabel = (info: { price: number; charges: number }) =>
+    info.charges === 1
+      ? `${formatGSC(info.price)} ${t('ectoplasm.kits.perUse')}`
+      : `${formatGSC(info.price)} / ${info.charges} ${t('ectoplasm.kits.uses')}`;
 
   // Inversión y Retornos Totales (aplicando 90% a ambos para comparar "vender vs reciclar")
   const totalInvestment = Math.floor(ectoCount * ectoPrice * COMMON_FACTOR);
@@ -236,24 +248,24 @@ export default function EctoplasmSalvagePage() {
 
               <div className="flex flex-col items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('ectoplasm.calc.selectKit')}</span>
-                <select
-                  value={selectedKit}
-                  onChange={(e) => setSelectedKit(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700/40 rounded-md px-3 py-2 text-white font-bold appearance-none cursor-pointer text-center"
-                >
-                  <option value="master">{t('ectoplasm.kits.master.name')}</option>
-                  <option value="mystic">{t('ectoplasm.kits.mystic.name')}</option>
-                  <option value="silver">{t('ectoplasm.kits.silver.name')}</option>
-                </select>
-                <div className="text-xs text-gray-400 font-mono flex items-center justify-center gap-1">
-                  {selectedKit === 'silver' ? (
-                    '60c / uso'
+                <div className="w-full flex items-center gap-2">
+                  {materialIcons[kit.itemId] ? (
+                    <Image src={materialIcons[kit.itemId]} alt="" width={32} height={32} />
                   ) : (
-                    <>
-                      {formatPrice(KITS_INFO[selectedKit as keyof typeof KITS_INFO].price)}
-                      <span> / {KITS_INFO[selectedKit as keyof typeof KITS_INFO].charges} usos</span>
-                    </>
+                    <span className="w-8 h-8 rounded bg-slate-700 shrink-0" />
                   )}
+                  <select
+                    value={selectedKit}
+                    onChange={(e) => setSelectedKit(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700/40 rounded-md px-3 py-2 text-white font-bold appearance-none cursor-pointer text-center"
+                  >
+                    <option value="master">{t('ectoplasm.kits.master.name')}</option>
+                    <option value="mystic">{t('ectoplasm.kits.mystic.name')}</option>
+                    <option value="silver">{t('ectoplasm.kits.silver.name')}</option>
+                  </select>
+                </div>
+                <div className="text-xs text-gray-400 font-mono text-center">
+                  {kitCostLabel(kit)}
                 </div>
               </div>
 
@@ -360,9 +372,11 @@ export default function EctoplasmSalvagePage() {
               { id: 'master', itemId: MATERIAL_IDS.kitMaster, color: 'yellow' },
               { id: 'mystic', itemId: MATERIAL_IDS.kitMystic, color: 'purple' },
               { id: 'silver', itemId: MATERIAL_IDS.kitSilver, color: 'slate' },
-            ].map((kit, i) => (
+            ].map((card, i) => {
+              const info = KITS_INFO[card.id as keyof typeof KITS_INFO];
+              return (
               <Motion
-                key={kit.id}
+                key={card.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * i + 0.3 }}
@@ -370,29 +384,30 @@ export default function EctoplasmSalvagePage() {
               >
                 <div className="flex items-center gap-4 mb-4">
                   <div className="p-3 bg-slate-900/50 rounded-xl">
-                    {materialIcons[kit.itemId] && <Image src={materialIcons[kit.itemId]} alt="" width={40} height={40} />}
+                    {materialIcons[card.itemId] && <Image src={materialIcons[card.itemId]} alt="" width={40} height={40} />}
                   </div>
                   <div>
-                    <h4 className="text-white font-bold">{t(`ectoplasm.kits.${kit.id}.name`)}</h4>
-                    <p className="text-xs text-gray-500 font-medium uppercase">{t(`ectoplasm.kits.${kit.id}.desc`)}</p>
+                    <h4 className="text-white font-bold">{t(`ectoplasm.kits.${card.id}.name`)}</h4>
+                    <p className="text-xs text-gray-500 font-medium uppercase">{t(`ectoplasm.kits.${card.id}.desc`)}</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-slate-900/30 rounded-lg border border-slate-700/30">
                     <span className="text-gray-400 text-sm">{t('salvage.label.costPerUse')}</span>
-                    <span className={`font-black ${kit.color === 'yellow' ? 'text-yellow-400' : kit.color === 'purple' ? 'text-purple-400' : 'text-gray-300'}`}>
-                      {t(`ectoplasm.kits.${kit.id}.cost`)}
+                    <span className={`font-black ${card.color === 'yellow' ? 'text-yellow-400' : card.color === 'purple' ? 'text-purple-400' : 'text-gray-300'}`}>
+                      {kitCostLabel(info)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-blue-500/5 rounded-lg border border-blue-500/10">
                     <span className="text-blue-400/80 text-xs font-bold uppercase">{t('ectoplasm.kits.totalCost100k')}</span>
                     <span className="font-black text-white italic">
-                      {t(`ectoplasm.kits.${kit.id}.total`)}
+                      {formatGSC(Math.ceil(100000 / info.charges) * info.price)}
                     </span>
                   </div>
                 </div>
                 </Motion>
-            ))}
+            );
+            })}
           </div>
         </div>
 
