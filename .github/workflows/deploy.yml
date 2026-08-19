@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, QA]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SITE_URL: ${{ github.ref_name == 'QA' && 'https://qa.true-farming.com' || 'https://www.true-farming.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          PUBLIC_SITE_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ env.SITE_URL }}
+          PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
+          NEXT_PUBLIC_PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
+          NEXT_PUBLIC_DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: ${{ github.ref_name == 'QA' && 'deploy --env qa' || 'deploy' }}

@@ -59,6 +59,7 @@ export const SECURITY_CONFIG = {
     ALLOWED_ORIGINS: [
       'https://true-farming.com',
       'https://www.true-farming.com',
+      'https://qa.true-farming.com',
       'https://true-farming.kunjohn24.workers.dev',
       ...(process.env.NODE_ENV === 'development' ? [
         'http://localhost:3000',

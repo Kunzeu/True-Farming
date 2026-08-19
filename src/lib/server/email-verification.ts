@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { pool } from '@/lib/postgres-db';
+import { getWorkerEnvSync } from '@/lib/cf-env';
 
 const TOKEN_BYTES = 32;
 const TOKEN_TTL_HOURS = 24;
@@ -81,9 +82,13 @@ export async function verifyEmailToken(token: string): Promise<{ userId: string;
 }
 
 export function getAppBaseUrl(): string {
+  const w = getWorkerEnvSync();
   return (
+    w?.NEXT_PUBLIC_APP_URL ||
+    w?.PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
+    process.env.PUBLIC_SITE_URL ||
     'https://www.true-farming.com'
   ).replace(/\/$/, '');
 }
