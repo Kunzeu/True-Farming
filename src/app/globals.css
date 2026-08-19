@@ -83,9 +83,9 @@ footer + div:not([class*="scroll"]):not([id*="scroll"]) {
   border-bottom: none !important;
 }
 
-/* Padding-top para compensar el header fijo */
+/* Padding-top para compensar el header fijo (ajustado a header slim) */
 .main-content {
-  padding-top: 4rem; /* 64px - altura del header */
+  padding-top: 3rem; /* 48px - altura del header slim */
 }
 
 /* Excluir padding-top de la página de inicio usando :has() */
