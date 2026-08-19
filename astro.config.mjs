@@ -34,6 +34,7 @@ export default defineConfig({
     allowedDomains: [
       { hostname: 'www.true-farming.com', protocol: 'https' },
       { hostname: 'true-farming.com', protocol: 'https' },
+      { hostname: 'qa.true-farming.com', protocol: 'https' },
       { hostname: 'true-farming.kunjohn24.workers.dev', protocol: 'https' },
       { hostname: 'localhost', protocol: 'http' },
     ],
