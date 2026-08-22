@@ -54,9 +54,11 @@ export default function SalvageSummaryCards({
     },
     {
       label: costGearLabel.replace('{quantity}', quantity.toString()),
-      value: unidentifiedGearPrice ? totalCost : null,
-      sub: unidentifiedGearPrice
-        ? `${t('salvagePages.eachTP', 'each (TP)')}`
+      value: unidentifiedGearPrice != null ? totalCost : null,
+      sub: unidentifiedGearPrice != null
+        ? unidentifiedGearPrice > 0
+          ? `${t('salvagePages.eachTP', 'each (TP)')}`
+          : t('salvagePages.noBuyOrders', 'Sin buy en el TP')
         : t('salvageCommon.loadingPrice', 'Loading price...'),
       icon: Minus,
       tone: 'text-rose-400/80',

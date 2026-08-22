@@ -158,7 +158,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       totalCost={quantity * gearBuy}
       totalKitCost={quantity * kitCost}
       totalProfit={active?.profit || 0}
-      unidentifiedGearPrice={gearBuy || null}
+      unidentifiedGearPrice={gearBuy}
       results={results}
       rois={rois}
       luckMode={active?.mode || 'none'}

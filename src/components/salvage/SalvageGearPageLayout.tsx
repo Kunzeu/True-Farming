@@ -258,7 +258,7 @@ export default function SalvageGearPageLayout({
                       <Minus className="h-3 w-3 text-rose-500/60" />
                       {t('salvage.summary.gear', 'Gear cost')}
                     </span>
-                    {unidentifiedGearPrice ? (
+                    {unidentifiedGearPrice != null ? (
                       <SalvageCurrency copper={totalCost} size="sm" className="!text-sm" />
                     ) : (
                       <span className="text-xs text-zinc-600">…</span>

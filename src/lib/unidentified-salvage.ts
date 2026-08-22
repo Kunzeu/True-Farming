@@ -205,15 +205,8 @@ export async function loadSalvageTier(
   const matIds = tier.drops.filter((d) => d.kind === 'mat' && d.id != null).map((d) => d.id as number);
   const kitIds: Record<SalvageTierKey, number> = { low: 44602, mid: 89409, high: 67027 };
   const luckDropRate = LUCK_DROP[tierKey];
-  const luckPriceIds = [
-    LUCK_CRAFT.outputId,
-    LUCK_CRAFT.motaId,
-    LUCK_CRAFT.skillId,
-    LUCK_CRAFT.ectoId,
-    ...RED_BAG.map((r) => r.id).filter((id): id is number => id != null),
-  ];
 
-  const [items, prices, exoticAvg, kitItem, luckPrices] = await Promise.all([
+  const [items, prices, exoticAvg, kitItem] = await Promise.all([
     fetchJson<{ id: number; name: string; icon?: string }[]>(
       `https://api.guildwars2.com/v2/items?ids=${[...matIds, tier.gearId].join(',')}&lang=${apiLang}`
     ),
@@ -224,12 +217,11 @@ export async function loadSalvageTier(
     fetchJson<{ name: string; icon?: string }>(
       `https://api.guildwars2.com/v2/items/${kitIds[tierKey]}?lang=${apiLang}`
     ),
-    fetchPrices(luckPriceIds),
   ]);
 
   const priceMap = new Map(prices.map((p) => [p.id, p]));
   const gearItem = items.find((i) => i.id === tier.gearId);
-  const gearPrice = priceMap.get(tier.gearId);
+  const gearBuy = priceMap.get(tier.gearId)?.buys?.unit_price || 0;
 
   const materials: SalvageMaterialRow[] = tier.drops
     .filter((d) => d.dropRate > 0)
@@ -260,7 +252,17 @@ export async function loadSalvageTier(
       };
     });
 
-  if (luckDropRate > 0) {
+  // Suerte escala con qty de unids: sin buy en el TP no hay proceso comprable → no valorar suerte
+  const applyLuck = luckDropRate > 0 && gearBuy > 0;
+  if (applyLuck) {
+    const luckPriceIds = [
+      LUCK_CRAFT.outputId,
+      LUCK_CRAFT.motaId,
+      LUCK_CRAFT.skillId,
+      LUCK_CRAFT.ectoId,
+      ...RED_BAG.map((r) => r.id).filter((id): id is number => id != null),
+    ];
+    const luckPrices = await fetchPrices(luckPriceIds);
     const perLuck = copperPerLuck(luckPrices);
     const perFast = copperPerLuckFast(luckPrices);
     const luckIcon =
@@ -295,10 +297,10 @@ export async function loadSalvageTier(
   return {
     gearId: tier.gearId,
     gearName: gearItem?.name || tier.label,
-    gearBuy: gearPrice?.buys?.unit_price || 0,
+    gearBuy,
     kitCost: tier.kitCost,
     kitName: kitItem?.name || '',
     materials,
-    luckDropRate,
+    luckDropRate: applyLuck ? luckDropRate : 0,
   };
 }
