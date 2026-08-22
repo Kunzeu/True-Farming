@@ -131,7 +131,5 @@ export function getMaterialRowClass(materialId: number): string {
   if (runes.includes(materialId)) return 'border-l-cyan-500/50';
   if (materialId === -1) return 'border-l-amber-400/70'; // Exóticos
   if (materialId === -2) return 'border-l-rose-400/50'; // Placas
-  if (materialId === -3) return 'border-l-fuchsia-400/60'; // Suerte
-  if (materialId === -4) return 'border-l-pink-400/50'; // Suerte Rápida
   return 'border-l-transparent';
 }

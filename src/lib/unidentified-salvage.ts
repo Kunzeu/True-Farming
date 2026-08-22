@@ -6,7 +6,7 @@
 import model from '@/data/unidentified-salvage-from-excel.json';
 
 export type SalvageTierKey = 'low' | 'mid' | 'high';
-export type LuckMode = 'none' | 'luck' | 'fast';
+export type LuckMode = 'none' | 'bags';
 
 export type SalvageMaterialRow = {
   id: number;
@@ -27,9 +27,8 @@ export type SalvageRoi = {
 
 const EXOTIC_SYNTH_ID = -1;
 const PLACA_SYNTH_ID = -2;
-const LUCK_SYNTH_ID = -3;
-const LUCK_FAST_SYNTH_ID = -4;
-const PLACA_UNIT = 198; // Excel E26 = G26*198
+const PLACA_ITEM_ID = 74356; // Reclaimed Metal Plate — vendor 198c
+const PLACA_UNIT = 198; // 01s 98c — Excel E26 = G26 × 198
 
 
 const PLACA_DROP: Record<SalvageTierKey, number> = {
@@ -44,17 +43,6 @@ const LUCK_DROP: Record<SalvageTierKey, number> = {
   mid: 29.6494,
   high: 0,
 };
-
-/** Excel AI6 craft for Relic of Fireworks */
-const LUCK_CRAFT = {
-  outputId: 100947,
-  motaId: 89140,
-  motaQty: 480,
-  skillId: 89216,
-  skillQty: 3,
-  ectoId: 19721,
-  ectoQty: 15,
-} as const;
 
 /** Excel Calculos Bolsas Rojas sample */
 const RED_BAG_SAMPLE = 1_041_467;
@@ -126,22 +114,8 @@ async function avgExoticSell85(exoticIds: number[]): Promise<{ avg85: number; av
   };
 }
 
-/** Excel: AI6 = sell85(relic) - buy(mota)*480 - buy(skill)*3 - sell90(ecto)*15 */
-function copperPerLuck(prices: Map<number, PriceRow>): number {
-  const relicSell = prices.get(LUCK_CRAFT.outputId)?.sells?.unit_price || 0;
-  const motaBuy = prices.get(LUCK_CRAFT.motaId)?.buys?.unit_price || 0;
-  const skillBuy = prices.get(LUCK_CRAFT.skillId)?.buys?.unit_price || 0;
-  const ectoSell = prices.get(LUCK_CRAFT.ectoId)?.sells?.unit_price || 0;
-  const net =
-    relicSell * 0.85 -
-    motaBuy * LUCK_CRAFT.motaQty -
-    skillBuy * LUCK_CRAFT.skillQty -
-    ectoSell * 0.9 * LUCK_CRAFT.ectoQty;
-  return net / 1000;
-}
-
-/** Excel: F4 oro/bolsa → /200 por punto de suerte */
-function copperPerLuckFast(prices: Map<number, PriceRow>): number {
+/** Excel: F4 oro/bolsa → /200 por punto de suerte (bolsas rojas) */
+function copperPerLuckBags(prices: Map<number, PriceRow>): number {
   let goldPerBag = 0;
   for (const row of RED_BAG) {
     const rate = row.num / RED_BAG_SAMPLE;
@@ -263,9 +237,10 @@ export function computeProcesoLargo(
 }
 
 /**
- * Profit sin suerte = Excel H6:
- * (E11+…+E28+P12+P13+P21+P20+P22+P14) - (D7+L14+L22+(kit*D6))
- * ROI base = H6/D7  (solo coste de unids, no kit ni craft)
+ * Beneficio neto = Excel H6 (ingresos − D7 − L14 − L22 − kit×qty).
+ * ROI = beneficio / D7.
+ * Modos: sin suerte | usando la suerte (bolsas rojas = E29).
+ * La valoración mística (Relic of Fireworks) se queda solo en el Excel: no es realista.
  */
 export function computeSalvageRois(
   materials: SalvageMaterialRow[],
@@ -273,7 +248,8 @@ export function computeSalvageRois(
   gearBuy: number,
   kitCost: number,
   craftBuy?: CraftBuyPrices | null,
-  tierKey: SalvageTierKey = 'mid'
+  tierKey: SalvageTierKey = 'mid',
+  redBagLuck?: { dropRate: number; copperPerLuck: number } | null
 ): {
   baseIncome: number;
   cost: number;
@@ -281,10 +257,6 @@ export function computeSalvageRois(
   defaultMode: LuckMode;
   craft: ProcesoLargoCraft | null;
 } {
-  const byId = new Map(materials.map((m) => [m.id, m]));
-  const luck = byId.get(LUCK_SYNTH_ID);
-  const fast = byId.get(LUCK_FAST_SYNTH_ID);
-
   // E11+E13+E15+E17+E18+E19+E20+E21+E22+E23+E24+E25+E26+E28
   const eSum = materials
     .filter((m) => EXCEL_H6_MAT_IDS.has(m.id))
@@ -294,8 +266,10 @@ export function computeSalvageRois(
   const pSum = craft?.outputValue || 0;
   const baseIncome = eSum + pSum;
 
-  const luckIncome = luck ? luck.dropRate * quantity * luck.processedPrice : 0;
-  const fastIncome = fast ? fast.dropRate * quantity * fast.processedPrice : 0;
+  const bagsIncome =
+    redBagLuck && redBagLuck.dropRate > 0
+      ? redBagLuck.dropRate * quantity * redBagLuck.copperPerLuck
+      : 0;
 
   // Excel kit in H6: Low 4*D6, Mid 30*D6, High 60*D6
   const excelKitPerUnit = tierKey === 'low' ? 4 : kitCost;
@@ -305,19 +279,18 @@ export function computeSalvageRois(
   const cost = d7 + l14l22 + kitTotal;
 
   const mk = (mode: LuckMode, income: number): SalvageRoi => {
-    const profit = income - cost;
-    // Excel J6/J7/J8 = profit / D7 (coste unids only)
+    const profit = income - cost; // beneficio neto
     return { mode, income, profit, roi: d7 > 0 ? profit / d7 : 0 };
   };
-  const hasLuck = (luck?.dropRate || 0) > 0;
+
   return {
     baseIncome,
     cost,
     rois: [
       mk('none', baseIncome),
-      ...(hasLuck ? [mk('luck', baseIncome + luckIncome), mk('fast', baseIncome + fastIncome)] : []),
+      ...(bagsIncome > 0 ? [mk('bags', baseIncome + bagsIncome)] : []),
     ],
-    defaultMode: hasLuck ? 'luck' : 'none',
+    defaultMode: 'none',
     craft,
   };
 }
@@ -333,6 +306,7 @@ export async function loadSalvageTier(
   kitName: string;
   materials: SalvageMaterialRow[];
   luckDropRate: number;
+  redBagCopperPerLuck: number;
   craftBuy: CraftBuyPrices;
 }> {
   const tier = SALVAGE_TIERS[tierKey];
@@ -396,60 +370,38 @@ export async function loadSalvageTier(
       };
     });
 
-  // Excel E26 Placas
+  // Excel E26 Placas = cantidad × 198c (01s 98c), no TP
   const placaRate = PLACA_DROP[tierKey];
   if (placaRate > 0) {
+    let placaName = 'Placas';
+    let placaIcon = '';
+    try {
+      const placaItem = await fetchJson<{ name?: string; icon?: string }>(
+        `https://api.guildwars2.com/v2/items/${PLACA_ITEM_ID}?lang=${apiLang}`
+      );
+      placaName = placaItem.name || placaName;
+      placaIcon = placaItem.icon || '';
+    } catch {
+      /* keep defaults */
+    }
     materials.push({
       id: PLACA_SYNTH_ID,
-      name: 'Placas',
-      icon: '',
+      name: placaName,
+      icon: placaIcon,
       dropRate: placaRate,
       sellPrice: PLACA_UNIT,
-      processedPrice: PLACA_UNIT,
+      processedPrice: PLACA_UNIT, // total = qty × 198c
       category: 'fine',
     });
   }
 
-  // Suerte escala con qty de unids: sin buy en el TP no hay proceso comprable → no valorar suerte
-  const applyLuck = luckDropRate > 0 && gearBuy > 0;
-  if (applyLuck) {
-    const luckPriceIds = [
-      LUCK_CRAFT.outputId,
-      LUCK_CRAFT.motaId,
-      LUCK_CRAFT.skillId,
-      LUCK_CRAFT.ectoId,
-      ...RED_BAG.map((r) => r.id).filter((id): id is number => id != null),
-    ];
-    const luckPrices = await fetchPrices(luckPriceIds);
-    const perLuck = copperPerLuck(luckPrices);
-    const perFast = copperPerLuckFast(luckPrices);
-    const luckIcon =
-      (
-        await fetchJson<{ icon?: string }>(
-          `https://api.guildwars2.com/v2/items/45175`
-        ).catch(() => ({ icon: '' }))
-      ).icon || '';
-
-    materials.push(
-      {
-        id: LUCK_SYNTH_ID,
-        name: 'Suerte',
-        icon: luckIcon,
-        dropRate: luckDropRate,
-        sellPrice: Math.round(perLuck),
-        processedPrice: Math.round(perLuck),
-        category: 'fine',
-      },
-      {
-        id: LUCK_FAST_SYNTH_ID,
-        name: 'Suerte Rápida',
-        icon: luckIcon,
-        dropRate: luckDropRate,
-        sellPrice: Math.round(perFast),
-        processedPrice: Math.round(perFast),
-        category: 'fine',
-      }
-    );
+  // Bolsas rojas solo si hay buy de unids (proceso comprable). Mística = no UI.
+  let redBagCopperPerLuck = 0;
+  const applyBags = luckDropRate > 0 && gearBuy > 0;
+  if (applyBags) {
+    const bagIds = RED_BAG.map((r) => r.id).filter((id): id is number => id != null);
+    const luckPrices = await fetchPrices(bagIds);
+    redBagCopperPerLuck = copperPerLuckBags(luckPrices);
   }
 
   return {
@@ -459,7 +411,8 @@ export async function loadSalvageTier(
     kitCost: tier.kitCost,
     kitName: kitItem?.name || '',
     materials,
-    luckDropRate: applyLuck ? luckDropRate : 0,
+    luckDropRate: applyBags ? luckDropRate : 0,
+    redBagCopperPerLuck: applyBags ? redBagCopperPerLuck : 0,
     craftBuy,
   };
 }

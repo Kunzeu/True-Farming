@@ -1,6 +1,7 @@
 'use client';
 
-import { Minus, Package, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { ExternalLink, Minus, Package, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
 import { getTierTheme, type UnidentifiedGearTier } from '@/components/salvage/salvage-config';
@@ -22,9 +23,10 @@ interface SalvageSummaryCardsProps {
 
 const MODE_LABEL: Record<LuckMode, { key: string; fallback: string }> = {
   none: { key: 'salvage.roi.none', fallback: 'Sin suerte' },
-  luck: { key: 'salvage.roi.luck', fallback: 'Con suerte' },
-  fast: { key: 'salvage.roi.fast', fallback: 'Suerte rápida' },
+  bags: { key: 'salvage.roi.bags', fallback: 'Usando la suerte' },
 };
+
+const RED_BAGS_HREF = '/festivals/lunar-new-year#Box-Opening';
 
 export default function SalvageSummaryCards({
   tier,
@@ -77,7 +79,7 @@ export default function SalvageSummaryCards({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-              {t('salvagePages.totalProfit', 'Total Profit')}
+              {t('salvagePages.totalProfit', 'Beneficio')}
               {activeRoi && (
                 <span className="ml-2 font-semibold normal-case tracking-normal text-zinc-400">
                   · {t(MODE_LABEL[luckMode].key, MODE_LABEL[luckMode].fallback)}
@@ -102,7 +104,7 @@ export default function SalvageSummaryCards({
         </div>
 
         {rois.length > 1 && onLuckModeChange && (
-          <div className="mt-6 grid gap-2 sm:grid-cols-3">
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
             {rois.map((roi) => {
               const active = roi.mode === luckMode;
               const label = MODE_LABEL[roi.mode];
@@ -118,7 +120,19 @@ export default function SalvageSummaryCards({
                   }`}
                 >
                   <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${active ? theme.accent : 'text-zinc-500'}`}>
-                    {t(label.key, label.fallback)}
+                    {roi.mode === 'bags' ? (
+                      <Link
+                        href={RED_BAGS_HREF}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 hover:underline"
+                        title={t('salvage.roi.bagsWiki', 'Bolsas rojas')}
+                      >
+                        {t(label.key, label.fallback)}
+                        <ExternalLink className="h-3 w-3 opacity-70" />
+                      </Link>
+                    ) : (
+                      t(label.key, label.fallback)
+                    )}
                   </p>
                   <div className="mt-1">
                     <SalvageCurrency

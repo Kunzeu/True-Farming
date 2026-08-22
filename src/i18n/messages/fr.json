@@ -596,6 +596,7 @@
   "lunarNewYear.envelopeOpening.uniqueItems": "Objets Uniques",
   "lunarNewYear.envelopeOpening.totalItems": "Total d'Objets",
   "lunarNewYear.envelopeOpening.totalValue": "Valeur Totale",
+  "lunarNewYear.envelopeOpening.valuePerEnvelope": "Valeur par Enveloppe",
   "lunarNewYear.envelopeOpening.obtainedItems": "Objets Obtenus",
   "lunarNewYear.envelopeOpening.waiting": "En attente des données d'ouverture...",
   "lunarNewYear.envelopeOpening.sendIds": "Les données se chargeront automatiquement quand disponibles.",

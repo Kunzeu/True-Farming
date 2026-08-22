@@ -100,6 +100,8 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
   const [wikiUrl, setWikiUrl] = useState('');
   const [luckMode, setLuckMode] = useState<LuckMode>('none');
   const [craftBuy, setCraftBuy] = useState<CraftBuyPrices | null>(null);
+  const [luckDropRate, setLuckDropRate] = useState(0);
+  const [redBagCopperPerLuck, setRedBagCopperPerLuck] = useState(0);
 
   const fetchPrices = useCallback(async () => {
     try {
@@ -111,8 +113,15 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       setKitName(data.kitName);
       setKitCost(data.kitCost);
       setCraftBuy(data.craftBuy);
-      setLuckMode(data.luckDropRate > 0 ? 'luck' : 'none');
-      setWikiUrl(gw2WikiUrl(meta.wikiEn, lang === 'es' ? 'es' : lang));
+      setLuckDropRate(data.luckDropRate);
+      setRedBagCopperPerLuck(data.redBagCopperPerLuck);
+      setLuckMode('none');
+      setWikiUrl(
+        gw2WikiUrl(meta.wikiEn, lang === 'es' ? 'es' : lang, {
+          englishName: meta.wikiEn,
+          itemId: data.gearId,
+        })
+      );
       setLastUpdated(new Date());
     } catch (e) {
       console.error(e);
@@ -134,7 +143,10 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
     gearBuy,
     kitCost,
     craftBuy,
-    tierKey
+    tierKey,
+    luckDropRate > 0 && redBagCopperPerLuck > 0
+      ? { dropRate: luckDropRate, copperPerLuck: redBagCopperPerLuck }
+      : null
   );
   const active = rois.find((r) => r.mode === luckMode) || rois.find((r) => r.mode === defaultMode) || rois[0];
   const results = materials.map((material) => {

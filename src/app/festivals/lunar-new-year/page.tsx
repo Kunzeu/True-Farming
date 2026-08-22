@@ -6,6 +6,7 @@ import { Info, Calculator, TrendingUp, ArrowLeft, Package, RefreshCw, ArrowUp, A
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useI18n } from "@/contexts/I18nContext";
 import Image from "next/image";
+import { gw2WikiUrl } from "@/lib/gw2-wiki";
 
 // Interfaces para la tabla de apertura de cajas
 interface Gw2Item {
@@ -33,6 +34,13 @@ interface BoxOpeningItem {
   pricePerUnit?: number;
   priceBuyPerUnit?: number;
 }
+
+/** Lucky Red Bag — contenedor de Box-Opening */
+const LUCKY_RED_BAG_ID = 94653;
+const LUCKY_RED_BAG_EN = "Lucky Red Bag";
+/** Divine Lucky Envelope — calculadora / Envelope-Opening */
+const DIVINE_ENVELOPE_ID = 68646;
+const DIVINE_ENVELOPE_EN = "Divine Lucky Envelope";
 
 // IDs de items que se pueden obtener de Red Bags (Lucky Red Bag - ID 94653)
 const RED_BAG_ITEM_IDS: number[] = [
@@ -66,6 +74,8 @@ const LunarNewYearPage = () => {
   >("overview");
   const [divineEnvelopeName, setDivineEnvelopeName] = useState<string>("");
   const [rewardsItemName, setRewardsItemName] = useState<string>("");
+  const [luckyRedBag, setLuckyRedBag] = useState<{ name: string; icon: string } | null>(null);
+  const [divineEnvelope, setDivineEnvelope] = useState<{ name: string; icon: string } | null>(null);
 
   // Estados para la tabla de apertura de Red Bags
   const [redBagItems, setRedBagItems] = useState<BoxOpeningItem[]>([]);
@@ -204,6 +214,19 @@ const LunarNewYearPage = () => {
   }, [lang]);
 
   // Función para obtener datos de Divine Envelopes
+  const fetchEnvelopeMarketPrice = useCallback(async () => {
+    try {
+      const priceRes = await fetch(
+        `https://api.guildwars2.com/v2/commerce/prices/${DIVINE_ENVELOPE_ID}`
+      );
+      if (!priceRes.ok) return;
+      const priceData = await priceRes.json();
+      setEnvelopeMarketPrice(priceData.sells?.unit_price || 0);
+    } catch (priceErr) {
+      console.error('Error fetching envelope market price:', priceErr);
+    }
+  }, []);
+
   const fetchEnvelopeData = useCallback(async (force = false) => {
     const cacheKey = `gw2_lny_envelopes_${lang}`;
 
@@ -216,6 +239,7 @@ const LunarNewYearPage = () => {
           // Caché válido por 5 minutos
           if (Date.now() - timestamp < 5 * 60 * 1000) {
             setEnvelopeItems(data);
+            await fetchEnvelopeMarketPrice();
             return;
           }
         }
@@ -268,17 +292,7 @@ const LunarNewYearPage = () => {
         priceBuyPerUnit: d.id === 104154 ? 8888 : d.id === 68640 ? 88888 : (pricesMap[d.id]?.buys?.unit_price ?? 0),
       }));
       setEnvelopeItems(mapped);
-
-      // Fetch market price for Divine Lucky Envelope (68646) for the calculator
-      try {
-        const priceRes = await fetch('https://api.guildwars2.com/v2/commerce/prices/68646');
-        if (priceRes.ok) {
-          const priceData = await priceRes.json();
-          setEnvelopeMarketPrice(priceData.sells.unit_price);
-        }
-      } catch (priceErr) {
-        console.error('Error fetching envelope market price:', priceErr);
-      }
+      await fetchEnvelopeMarketPrice();
 
       // Guardar en caché
       try {
@@ -305,7 +319,7 @@ const LunarNewYearPage = () => {
     } finally {
       setEnvelopeLoading(false);
     }
-  }, [lang]);
+  }, [lang, fetchEnvelopeMarketPrice]);
 
 
   // Función para manejar el ordenamiento
@@ -442,21 +456,30 @@ const LunarNewYearPage = () => {
     const fetchItemNames = async () => {
       try {
         // Obtener ambos items en una sola llamada
-        const response = await fetch(`https://api.guildwars2.com/v2/items?ids=94653,68646&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
+        const response = await fetch(
+          `https://api.guildwars2.com/v2/items?ids=${LUCKY_RED_BAG_ID},${DIVINE_ENVELOPE_ID}&lang=${lang}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              'Accept-Encoding': 'gzip, deflate, br',
+            },
           }
-        });
+        );
 
         if (response.ok) {
-          const data = await response.json();
-          if (data.length >= 2) {
-            // 94653 es para actividades, 68646 es para recompensas
-            setDivineEnvelopeName(data[0].name || t("lunarNewYear.cards.activities.title"));
-            setRewardsItemName(data[1].name || t("lunarNewYear.cards.rewards.title"));
+          const data = (await response.json()) as Gw2Item[];
+          const redBag = data.find((i) => i.id === LUCKY_RED_BAG_ID);
+          const envelope = data.find((i) => i.id === DIVINE_ENVELOPE_ID);
+          if (redBag) {
+            setLuckyRedBag({ name: redBag.name, icon: redBag.icon });
+            setDivineEnvelopeName(redBag.name || t("lunarNewYear.cards.activities.title"));
           } else {
             setDivineEnvelopeName(t("lunarNewYear.cards.activities.title"));
+          }
+          if (envelope) {
+            setDivineEnvelope({ name: envelope.name, icon: envelope.icon });
+            setRewardsItemName(envelope.name || t("lunarNewYear.cards.rewards.title"));
+          } else {
             setRewardsItemName(t("lunarNewYear.cards.rewards.title"));
           }
         } else {
@@ -472,6 +495,14 @@ const LunarNewYearPage = () => {
 
     fetchItemNames();
   }, [lang, t]);
+
+  // Precio TP + valor de apertura para la calculadora
+  useEffect(() => {
+    if (selectedSection === 'calculators') {
+      fetchEnvelopeMarketPrice();
+      fetchEnvelopeData();
+    }
+  }, [selectedSection, fetchEnvelopeMarketPrice, fetchEnvelopeData]);
 
   // Cargar datos cuando se selecciona la sección de box-opening
   useEffect(() => {
@@ -673,14 +704,16 @@ const LunarNewYearPage = () => {
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-                    {/* Tarjeta: Valor Estimado de Apertura */}
+                    {/* Tarjeta: Valor Estimado de Apertura (= Valor por Sobre) */}
                     <div className="bg-gray-800/60 p-5 rounded-xl border border-red-500/20 shadow-lg group hover:border-red-500/40 transition-all duration-300">
                       <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 flex justify-between">
                         {t("lunarNewYear.calculator.expectedValue")}
                         <Info className="w-4 h-4 text-red-400/50 group-hover:text-red-400 transition-colors" />
                       </div>
                       <div className="text-2xl font-extrabold text-yellow-400 mb-1">
-                        {formatGoldSilverCopper(16400)}
+                        {envelopeValuePerEnvelope
+                          ? formatGoldSilverCopper(envelopeValuePerEnvelope)
+                          : '...'}
                       </div>
                       <div className="text-gray-500 text-[10px] italic">
                         {t("lunarNewYear.calculator.mfNote")}
@@ -700,25 +733,40 @@ const LunarNewYearPage = () => {
                       </div>
                     </div>
 
-                    {/* Tarjeta: Beneficio Resultante */}
+                    {/* Tarjeta: Beneficio Resultante = apertura − venta neta */}
+                    {(() => {
+                      const sellNet = Math.floor(envelopeMarketPrice * 0.85);
+                      const openValue = envelopeValuePerEnvelope;
+                      const ready = openValue > 0 && envelopeMarketPrice > 0;
+                      const profit = openValue - sellNet;
+                      const preferOpen = profit > 0;
+                      return (
                     <div className="bg-gray-800/60 p-5 rounded-xl border border-red-500/20 shadow-lg group hover:border-red-500/40 transition-all duration-300 flex flex-col justify-between">
                       <div>
                         <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
                           {t("lunarNewYear.calculator.profitPerEnvelope")}
                         </div>
-                        <div className={`text-2xl font-extrabold mb-1 ${16400 - (envelopeMarketPrice * 0.85) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {envelopeMarketPrice ? (16400 - (envelopeMarketPrice * 0.85) > 0 ? '+' : '') : ''}
-                          {envelopeMarketPrice ? formatGoldSilverCopper(Math.floor(16400 - (envelopeMarketPrice * 0.85))) : '...'}
+                        <div className={`text-2xl font-extrabold mb-1 ${!ready ? 'text-gray-500' : preferOpen ? 'text-green-400' : 'text-red-400'}`}>
+                          {ready ? (preferOpen ? '+' : '') : ''}
+                          {ready ? formatGoldSilverCopper(profit) : '...'}
                         </div>
                       </div>
 
                       <div className="mt-4 pt-4 border-t border-gray-700 flex items-center justify-between">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">{t("lunarNewYear.calculator.recommendation")}:</span>
-                        <span className={`px-4 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${16400 - (envelopeMarketPrice * 0.85) > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                          {16400 - (envelopeMarketPrice * 0.85) > 0 ? t("lunarNewYear.calculator.open") : t("lunarNewYear.calculator.sell")}
-                        </span>
+                        {ready ? (
+                          <span className={`px-4 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${preferOpen ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                            {preferOpen ? t("lunarNewYear.calculator.open") : t("lunarNewYear.calculator.sell")}
+                          </span>
+                        ) : (
+                          <span className="px-4 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                            ...
+                          </span>
+                        )}
                       </div>
                     </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Notas y Advertencias */}
@@ -767,8 +815,30 @@ const LunarNewYearPage = () => {
                       <div className="text-lg sm:text-xl font-bold text-red-400 mb-2">
                         {t("lunarNewYear.boxOpening.stats")}
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-white">
-                        {TOTAL_OPENED_RED_BAGS.toLocaleString()} {t("lunarNewYear.boxOpening.boxesOpened")}
+                      <div className="text-xl sm:text-2xl font-bold text-white inline-flex items-center justify-center gap-3 flex-wrap">
+                        <span>{TOTAL_OPENED_RED_BAGS.toLocaleString()}</span>
+                        {luckyRedBag?.icon ? (
+                          <a
+                            href={gw2WikiUrl(luckyRedBag.name || LUCKY_RED_BAG_EN, lang, {
+                              itemId: LUCKY_RED_BAG_ID,
+                              englishName: LUCKY_RED_BAG_EN,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={luckyRedBag.name || LUCKY_RED_BAG_EN}
+                            className="inline-flex hover:opacity-80 transition-opacity"
+                          >
+                            <Image
+                              src={luckyRedBag.icon}
+                              alt={luckyRedBag.name || LUCKY_RED_BAG_EN}
+                              width={40}
+                              height={40}
+                              className="rounded border border-red-500/40"
+                            />
+                          </a>
+                        ) : (
+                          <span>{t("lunarNewYear.boxOpening.boxesOpened")}</span>
+                        )}
                       </div>
                       <div className="text-gray-300 text-xs mt-2">
                         <div className="font-semibold mb-1">{t("lunarNewYear.boxOpening.dataSource")}</div>
@@ -908,10 +978,17 @@ const LunarNewYearPage = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {sortedRedBagItems.map((item) => (
+                                {sortedRedBagItems.map((item) => {
+                                  const wikiHref = gw2WikiUrl(item.name, lang, { itemId: item.id });
+                                  return (
                                   <tr key={item.id} className="border-b border-gray-700">
                                     <td className="py-2 text-white">
-                                      <div className="flex items-center gap-2">
+                                      <a
+                                        href={wikiHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                      >
                                         {item.icon && (
                                           <Image
                                             src={item.icon}
@@ -922,8 +999,8 @@ const LunarNewYearPage = () => {
                                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                                           />
                                         )}
-                                        <span className="text-sm">{item.name}</span>
-                                      </div>
+                                        <span className="text-sm hover:underline">{item.name}</span>
+                                      </a>
                                     </td>
                                     <td className="py-2 text-center text-gray-300">
                                       {item.quantity.toLocaleString()}
@@ -938,7 +1015,8 @@ const LunarNewYearPage = () => {
                                       {formatGoldSilverCopper(Math.floor(item.quantity * (item.pricePerUnit || 0)))}
                                     </td>
                                   </tr>
-                                ))}
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
@@ -971,8 +1049,30 @@ const LunarNewYearPage = () => {
                       <div className="text-lg sm:text-xl font-bold text-red-400 mb-2">
                         {t("lunarNewYear.envelopeOpening.stats")}
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-white">
-                        {TOTAL_OPENED_DIVINE_ENVELOPES.toLocaleString()} {t("lunarNewYear.envelopeOpening.envelopesOpened")}
+                      <div className="text-xl sm:text-2xl font-bold text-white inline-flex items-center justify-center gap-3 flex-wrap">
+                        <span>{TOTAL_OPENED_DIVINE_ENVELOPES.toLocaleString()}</span>
+                        {divineEnvelope?.icon ? (
+                          <a
+                            href={gw2WikiUrl(divineEnvelope.name || DIVINE_ENVELOPE_EN, lang, {
+                              itemId: DIVINE_ENVELOPE_ID,
+                              englishName: DIVINE_ENVELOPE_EN,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={divineEnvelope.name || DIVINE_ENVELOPE_EN}
+                            className="inline-flex hover:opacity-80 transition-opacity"
+                          >
+                            <Image
+                              src={divineEnvelope.icon}
+                              alt={divineEnvelope.name || DIVINE_ENVELOPE_EN}
+                              width={40}
+                              height={40}
+                              className="rounded border border-red-500/40"
+                            />
+                          </a>
+                        ) : (
+                          <span>{t("lunarNewYear.envelopeOpening.envelopesOpened")}</span>
+                        )}
                       </div>
                       <div className="text-gray-300 text-xs mt-2">
                         <div className="font-semibold mb-1">{t("lunarNewYear.envelopeOpening.dataSource")}</div>
@@ -1031,7 +1131,7 @@ const LunarNewYearPage = () => {
                         <div className="text-2xl font-bold text-yellow-400">
                           {formatGoldSilverCopper(envelopeValuePerEnvelope)}
                         </div>
-                        <div className="text-gray-200 text-sm">{t("lunarNewYear.envelopeOpening.valuePerEnvelope", "Valor por sobre")}</div>
+                        <div className="text-gray-200 text-sm">{t("lunarNewYear.envelopeOpening.valuePerEnvelope")}</div>
                       </div>
                     </div>
 
@@ -1121,10 +1221,17 @@ const LunarNewYearPage = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {sortedEnvelopeItems.map((item) => (
+                                {sortedEnvelopeItems.map((item) => {
+                                  const wikiHref = gw2WikiUrl(item.name, lang, { itemId: item.id });
+                                  return (
                                   <tr key={item.id} className="border-b border-gray-700">
                                     <td className="py-2 text-white">
-                                      <div className="flex items-center gap-2">
+                                      <a
+                                        href={wikiHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                      >
                                         {item.icon && (
                                           <Image
                                             src={item.icon}
@@ -1135,8 +1242,8 @@ const LunarNewYearPage = () => {
                                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                                           />
                                         )}
-                                        <span className="text-sm">{item.name}</span>
-                                      </div>
+                                        <span className="text-sm hover:underline">{item.name}</span>
+                                      </a>
                                     </td>
                                     <td className="py-2 text-center text-gray-300">
                                       {item.quantity.toLocaleString()}
@@ -1151,7 +1258,8 @@ const LunarNewYearPage = () => {
                                       {formatGoldSilverCopper(Math.floor(item.quantity * (item.pricePerUnit || 0)))}
                                     </td>
                                   </tr>
-                                ))}
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
