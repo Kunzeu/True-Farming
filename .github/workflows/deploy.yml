@@ -27,14 +27,8 @@ jobs:
           NEXT_PUBLIC_PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
           NEXT_PUBLIC_DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback
       - name: Deploy to Cloudflare
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: ${{ github.ref_name == 'QA' && 'deploy --env qa' || 'deploy' }}
-
-      - name: Skip Cloudflare deploy
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' || secrets.CLOUDFLARE_ACCOUNT_ID == '' }}
-        run: |
-          echo "Skipping Cloudflare deploy: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets."
