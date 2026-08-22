@@ -28,6 +28,7 @@ interface SalvageMaterialsTableProps {
 
 const SYNTH_WIKI: Record<number, string> = {
   [-1]: 'Exotic',
+  [-2]: 'Stabilizing Matrix',
   [-3]: 'Fine Essence of Luck',
   [-4]: 'Fine Essence of Luck',
 };

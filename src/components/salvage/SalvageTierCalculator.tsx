@@ -10,6 +10,7 @@ import type { UnidentifiedGearTier } from '@/components/salvage/salvage-config';
 import {
   loadSalvageTier,
   computeSalvageRois,
+  type CraftBuyPrices,
   type LuckMode,
   type SalvageMaterialRow,
   type SalvageTierKey,
@@ -98,6 +99,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
   const [kitCost, setKitCost] = useState(0);
   const [wikiUrl, setWikiUrl] = useState('');
   const [luckMode, setLuckMode] = useState<LuckMode>('none');
+  const [craftBuy, setCraftBuy] = useState<CraftBuyPrices | null>(null);
 
   const fetchPrices = useCallback(async () => {
     try {
@@ -108,6 +110,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       setGearName(data.gearName);
       setKitName(data.kitName);
       setKitCost(data.kitCost);
+      setCraftBuy(data.craftBuy);
       setLuckMode(data.luckDropRate > 0 ? 'luck' : 'none');
       setWikiUrl(gw2WikiUrl(meta.wikiEn, lang === 'es' ? 'es' : lang));
       setLastUpdated(new Date());
@@ -124,7 +127,15 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
     return () => clearInterval(id);
   }, [fetchPrices]);
 
-  const { rois, defaultMode } = computeSalvageRois(materials, quantity, gearBuy, kitCost);
+  const excelKitPerUnit = tierKey === 'low' ? 3 : kitCost;
+  const { rois, defaultMode } = computeSalvageRois(
+    materials,
+    quantity,
+    gearBuy,
+    kitCost,
+    craftBuy,
+    tierKey
+  );
   const active = rois.find((r) => r.mode === luckMode) || rois.find((r) => r.mode === defaultMode) || rois[0];
   const results = materials.map((material) => {
     const qty = material.dropRate * quantity;
@@ -149,14 +160,14 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       profitabilityClassName={meta.profitClass}
       quantityLabel={t(meta.qtyKey, 'Quantity')}
       costGearLabel={t(meta.costKey, 'Buy gear ×{quantity}')}
-      kitCost={kitCost}
+      kitCost={excelKitPerUnit}
       quantity={quantity}
       onQuantityChange={setQuantity}
       onRefreshPrices={fetchPrices}
       lastUpdated={lastUpdated}
       totalMaterialsValue={active?.income || 0}
       totalCost={quantity * gearBuy}
-      totalKitCost={quantity * kitCost}
+      totalKitCost={quantity * excelKitPerUnit}
       totalProfit={active?.profit || 0}
       unidentifiedGearPrice={gearBuy}
       results={results}

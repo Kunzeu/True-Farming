@@ -1,10 +1,7 @@
 /**
- * Replica de 2.xlsx (Low/Mid/High Tier + Proceso largo):
- * - Costo equipo: buy_price
- * - Materiales: sell * 0.85 (runes/ecto * 0.9)
- * - Exóticos: avg(sell*0.85) * dropRate
- * - Suerte: (luck/200) * (neto Relic of Fireworks / 5)  == luck * neto / 1000
- * - Suerte Rápida: (luck/200) * oro_por_bolsa_roja
+ * Replica de 2.xlsx Proceso largo — profit sin suerte = H6:
+ * (E11+E13+E15+E17+E18+E19+E20+E21+E22+E23+E24+E25+E26+E28+P12+P13+P21+P20+P22+P14)
+ *  - (D7+L14+L22+(kit*D6))
  */
 import model from '@/data/unidentified-salvage-from-excel.json';
 
@@ -29,8 +26,17 @@ export type SalvageRoi = {
 };
 
 const EXOTIC_SYNTH_ID = -1;
+const PLACA_SYNTH_ID = -2;
 const LUCK_SYNTH_ID = -3;
 const LUCK_FAST_SYNTH_ID = -4;
+const PLACA_UNIT = 198; // Excel E26 = G26*198
+
+
+const PLACA_DROP: Record<SalvageTierKey, number> = {
+  low: 0.00112,
+  mid: 0.00174,
+  high: 0,
+};
 
 /** Excel Low/Mid/High Tier C24 / Unids */
 const LUCK_DROP: Record<SalvageTierKey, number> = {
@@ -157,24 +163,151 @@ function categoryFor(id: number, kind: string): SalvageMaterialRow['category'] {
   return 'common';
 }
 
+/** IDs consumed by Yelmos Medios / Escudo de Krait (Proceso largo Excel) */
+const SILK_ID = 19748;
+const LEATHER_T5_ID = 19729;
+const WOOD_T5_ID = 19722;
+const MITHRIL_ID = 19700;
+const ECTO_ID = 19721;
+const SILK_THREAD_ID = 19791; // Carrete de hilo de seda
+const VESICLE_T5_ID = 24282; // Vesícula de veneno potente (Excel I28)
+
+/**
+ * Excel H6 income side — only these E-rows (NOT seda/maderaT5/cueroT5/mithril/suerte):
+ * E11+E13+E15+E17+E18+E19+E20+E21+E22+E23+E24+E25+E26+E28
+ */
+const EXCEL_H6_MAT_IDS = new Set([
+  19745, // E11 Gasa
+  19725, // E13 Madera T6
+  19732, // E15 Cuero T6
+  19701, // E17 Oricalco
+  89140, // E18 Mota
+  89182, // E19 Pain
+  89141, // E20 Mejora
+  89098, // E21 Control
+  89103, // E22 Brillantez
+  89258, // E23 Potencia
+  89216, // E24 Habilidad
+  19721, // E25 Ectos
+  PLACA_SYNTH_ID, // E26 Placas
+  EXOTIC_SYNTH_ID, // E28 Exóticos
+]);
+
+export type ProcesoLargoCraft = {
+  yelmos: number;
+  escudos: number;
+  ectosFromCraft: number;
+  /** P12+P13+P14+P20+P21+P22 */
+  outputValue: number;
+  /** L14+L22 */
+  remainingCost: number;
+};
+
+export type CraftBuyPrices = {
+  leather: number;
+  silk: number;
+  thread: number;
+  vesicle: number;
+};
+
+/**
+ * Excel Proceso largo: craft Yelmos Medios + Escudo de Krait from salvage mats.
+ * Returns P* output gold and L14+L22 remaining craft cost.
+ */
+export function computeProcesoLargo(
+  quantity: number,
+  materials: SalvageMaterialRow[],
+  buy: CraftBuyPrices,
+  tierKey: SalvageTierKey = 'mid'
+): ProcesoLargoCraft {
+  const mat = (id: number) => materials.find((m) => m.id === id);
+  const qtyOf = (id: number) => (mat(id)?.dropRate || 0) * quantity;
+  const sell = (id: number) => mat(id)?.sellPrice || 0;
+
+  const silk = qtyOf(SILK_ID);
+  const leather = qtyOf(LEATHER_T5_ID);
+  const wood = qtyOf(WOOD_T5_ID);
+  const mithril = qtyOf(MITHRIL_ID);
+
+  const yelmosSeda = silk / 10.8;
+  const yelmosCuero = leather / 20;
+  const yelmos = Math.min(yelmosSeda, yelmosCuero);
+
+  const escudosMadera = wood / 12;
+  const escudosMithril = mithril / 20;
+  const escudos = Math.min(escudosMadera, escudosMithril);
+
+  const ectoSell = sell(ECTO_ID);
+  const p12 = yelmos * 1.7692 * buy.leather * 0.9;
+  const p13 = yelmos * 0.9 * ectoSell * 0.9;
+  const p14 = Math.max(0, yelmosSeda - yelmosCuero) * 10.8 * buy.silk;
+  // Low: (L17*0.874)+((L20-L21)*3) · Mid/High: L17*0.874
+  const p20 =
+    tierKey === 'low'
+      ? (escudos * 0.874 + Math.max(0, escudosMadera - escudosMithril) * 3) * sell(WOOD_T5_ID)
+      : escudos * 0.874 * sell(WOOD_T5_ID);
+  const p21 = escudos * 0.9 * ectoSell;
+  const p22 = escudos * 0.874 * sell(MITHRIL_ID);
+
+  // L14 = (thread*11 + vesicle*15) * yelmos; L22 = vesicle*15 * escudos
+  const remainingCost =
+    yelmos * (buy.thread * 11 + buy.vesicle * 15) + escudos * (buy.vesicle * 15);
+
+  return {
+    yelmos,
+    escudos,
+    ectosFromCraft: yelmos * 0.9 + escudos * 0.9,
+    outputValue: p12 + p13 + p14 + p20 + p21 + p22,
+    remainingCost,
+  };
+}
+
+/**
+ * Profit sin suerte = Excel H6:
+ * (E11+…+E28+P12+P13+P21+P20+P22+P14) - (D7+L14+L22+(kit*D6))
+ * ROI base = H6/D7  (solo coste de unids, no kit ni craft)
+ */
 export function computeSalvageRois(
   materials: SalvageMaterialRow[],
   quantity: number,
   gearBuy: number,
-  kitCost: number
-): { baseIncome: number; cost: number; rois: SalvageRoi[]; defaultMode: LuckMode } {
+  kitCost: number,
+  craftBuy?: CraftBuyPrices | null,
+  tierKey: SalvageTierKey = 'mid'
+): {
+  baseIncome: number;
+  cost: number;
+  rois: SalvageRoi[];
+  defaultMode: LuckMode;
+  craft: ProcesoLargoCraft | null;
+} {
   const byId = new Map(materials.map((m) => [m.id, m]));
   const luck = byId.get(LUCK_SYNTH_ID);
   const fast = byId.get(LUCK_FAST_SYNTH_ID);
-  const baseIncome = materials
-    .filter((m) => m.id !== LUCK_SYNTH_ID && m.id !== LUCK_FAST_SYNTH_ID)
+
+  // E11+E13+E15+E17+E18+E19+E20+E21+E22+E23+E24+E25+E26+E28
+  const eSum = materials
+    .filter((m) => EXCEL_H6_MAT_IDS.has(m.id))
     .reduce((s, m) => s + m.dropRate * quantity * m.processedPrice, 0);
+
+  const craft = craftBuy ? computeProcesoLargo(quantity, materials, craftBuy, tierKey) : null;
+  const pSum = craft?.outputValue || 0;
+  const baseIncome = eSum + pSum;
+
   const luckIncome = luck ? luck.dropRate * quantity * luck.processedPrice : 0;
   const fastIncome = fast ? fast.dropRate * quantity * fast.processedPrice : 0;
-  const cost = quantity * gearBuy + quantity * kitCost;
+
+  // Excel kit in H6: Low 4*D6, Mid 30*D6, High 60*D6
+  const excelKitPerUnit = tierKey === 'low' ? 4 : kitCost;
+  const d7 = quantity * gearBuy;
+  const kitTotal = quantity * excelKitPerUnit;
+  const l14l22 = craft?.remainingCost || 0;
+  const cost = d7 + l14l22 + kitTotal;
+
   const mk = (mode: LuckMode, income: number): SalvageRoi => {
     const profit = income - cost;
-    return { mode, income, profit, roi: cost > 0 ? profit / cost : 0 };
+    // Excel J6/J7/J8 = profit / D7 (coste unids only)
+    return { mode, income, profit, roi: d7 > 0 ? profit / d7 : 0 };
   };
   const hasLuck = (luck?.dropRate || 0) > 0;
   return {
@@ -185,6 +318,7 @@ export function computeSalvageRois(
       ...(hasLuck ? [mk('luck', baseIncome + luckIncome), mk('fast', baseIncome + fastIncome)] : []),
     ],
     defaultMode: hasLuck ? 'luck' : 'none',
+    craft,
   };
 }
 
@@ -199,19 +333,21 @@ export async function loadSalvageTier(
   kitName: string;
   materials: SalvageMaterialRow[];
   luckDropRate: number;
+  craftBuy: CraftBuyPrices;
 }> {
   const tier = SALVAGE_TIERS[tierKey];
   const apiLang = lang === 'es' || lang === 'de' || lang === 'fr' ? lang : 'en';
   const matIds = tier.drops.filter((d) => d.kind === 'mat' && d.id != null).map((d) => d.id as number);
   const kitIds: Record<SalvageTierKey, number> = { low: 44602, mid: 89409, high: 67027 };
   const luckDropRate = LUCK_DROP[tierKey];
+  const craftExtraIds = [SILK_THREAD_ID, VESICLE_T5_ID];
 
   const [items, prices, exoticAvg, kitItem] = await Promise.all([
     fetchJson<{ id: number; name: string; icon?: string }[]>(
       `https://api.guildwars2.com/v2/items?ids=${[...matIds, tier.gearId].join(',')}&lang=${apiLang}`
     ),
     fetchJson<PriceRow[]>(
-      `https://api.guildwars2.com/v2/commerce/prices?ids=${[...matIds, tier.gearId].join(',')}`
+      `https://api.guildwars2.com/v2/commerce/prices?ids=${[...matIds, tier.gearId, ...craftExtraIds].join(',')}`
     ),
     avgExoticSell85(tier.exoticIds),
     fetchJson<{ name: string; icon?: string }>(
@@ -222,6 +358,14 @@ export async function loadSalvageTier(
   const priceMap = new Map(prices.map((p) => [p.id, p]));
   const gearItem = items.find((i) => i.id === tier.gearId);
   const gearBuy = priceMap.get(tier.gearId)?.buys?.unit_price || 0;
+  const buyOf = (id: number) => priceMap.get(id)?.buys?.unit_price || 0;
+
+  const craftBuy: CraftBuyPrices = {
+    leather: buyOf(LEATHER_T5_ID),
+    silk: buyOf(SILK_ID),
+    thread: buyOf(SILK_THREAD_ID),
+    vesicle: buyOf(VESICLE_T5_ID),
+  };
 
   const materials: SalvageMaterialRow[] = tier.drops
     .filter((d) => d.dropRate > 0)
@@ -251,6 +395,20 @@ export async function loadSalvageTier(
         category: categoryFor(id, d.kind),
       };
     });
+
+  // Excel E26 Placas
+  const placaRate = PLACA_DROP[tierKey];
+  if (placaRate > 0) {
+    materials.push({
+      id: PLACA_SYNTH_ID,
+      name: 'Placas',
+      icon: '',
+      dropRate: placaRate,
+      sellPrice: PLACA_UNIT,
+      processedPrice: PLACA_UNIT,
+      category: 'fine',
+    });
+  }
 
   // Suerte escala con qty de unids: sin buy en el TP no hay proceso comprable → no valorar suerte
   const applyLuck = luckDropRate > 0 && gearBuy > 0;
@@ -302,5 +460,6 @@ export async function loadSalvageTier(
     kitName: kitItem?.name || '',
     materials,
     luckDropRate: applyLuck ? luckDropRate : 0,
+    craftBuy,
   };
 }
