@@ -36,4 +36,5 @@ jobs:
 
       - name: Skip Cloudflare deploy
         if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' || secrets.CLOUDFLARE_ACCOUNT_ID == '' }}
-        run: echo "Skipping Cloudflare deploy: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets."
+        run: |
+          echo "Skipping Cloudflare deploy: set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets."
