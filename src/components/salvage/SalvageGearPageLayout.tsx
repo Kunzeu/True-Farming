@@ -17,6 +17,7 @@ import {
   getTierTheme,
   type UnidentifiedGearTier,
 } from '@/components/salvage/salvage-config';
+import type { LuckMode, SalvageRoi } from '@/lib/unidentified-salvage';
 
 interface SalvageGearPageLayoutProps {
   tier: UnidentifiedGearTier;
@@ -45,6 +46,9 @@ interface SalvageGearPageLayoutProps {
   unidentifiedGearPrice: number | null;
   results: SalvageTableResult[];
   refreshButtonClass?: string;
+  rois?: SalvageRoi[];
+  luckMode?: LuckMode;
+  onLuckModeChange?: (mode: LuckMode) => void;
 }
 
 export default function SalvageGearPageLayout({
@@ -72,6 +76,9 @@ export default function SalvageGearPageLayout({
   totalProfit,
   unidentifiedGearPrice,
   results,
+  rois,
+  luckMode,
+  onLuckModeChange,
 }: SalvageGearPageLayoutProps) {
   const { t } = useI18n();
   const tierConfig = UNIDENTIFIED_GEAR_TIERS.find((item) => item.id === tier)!;
@@ -151,6 +158,9 @@ export default function SalvageGearPageLayout({
                 quantity={quantity}
                 costGearLabel={costGearLabel}
                 unidentifiedGearPrice={unidentifiedGearPrice}
+                rois={rois}
+                luckMode={luckMode}
+                onLuckModeChange={onLuckModeChange}
               />
 
               <SalvageMaterialsTable results={results} quantity={quantity} />

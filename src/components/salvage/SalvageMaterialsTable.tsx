@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
 import { getMaterialRowClass } from '@/components/salvage/salvage-config';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';
 
 export interface SalvageTableMaterial {
   id: number;
@@ -25,11 +26,17 @@ interface SalvageMaterialsTableProps {
   quantity: number;
 }
 
+const SYNTH_WIKI: Record<number, string> = {
+  [-1]: 'Exotic',
+  [-3]: 'Fine Essence of Luck',
+  [-4]: 'Fine Essence of Luck',
+};
+
 export default function SalvageMaterialsTable({
   results,
   quantity,
 }: SalvageMaterialsTableProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm">
@@ -59,17 +66,25 @@ export default function SalvageMaterialsTable({
             </tr>
           </thead>
           <tbody>
-            {results.map((result) => (
+            {results.map((result) => {
+              const { id, name, icon } = result.material;
+              const wikiName = id > 0 ? name : SYNTH_WIKI[id] || name;
+              const href = gw2WikiUrl(wikiName, lang, {
+                itemId: id > 0 ? id : undefined,
+                englishName: id > 0 ? undefined : wikiName,
+              });
+
+              return (
               <tr
-                key={result.material.id}
-                className={`group border-b border-slate-600/30 border-l-2 transition-colors hover:bg-slate-700/40 ${getMaterialRowClass(result.material.id)}`}
+                key={id}
+                className={`group border-b border-slate-600/30 border-l-2 transition-colors hover:bg-slate-700/40 ${getMaterialRowClass(id)}`}
               >
                 <td className="whitespace-nowrap px-5 py-3.5">
                   <div className="flex items-center gap-3">
-                    {result.material.icon ? (
+                    {icon ? (
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black/30 ring-1 ring-white/[0.06]">
                         <Image
-                          src={result.material.icon}
+                          src={icon}
                           alt=""
                           width={28}
                           height={28}
@@ -79,9 +94,14 @@ export default function SalvageMaterialsTable({
                     ) : (
                       <div className="h-9 w-9 rounded-lg bg-white/[0.04]" />
                     )}
-                      <span className="text-sm font-medium text-white">
-                        {result.material.name}
-                      </span>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-white underline-offset-2 transition-colors hover:text-sky-300 hover:underline"
+                    >
+                      {name}
+                    </a>
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5">
@@ -102,7 +122,8 @@ export default function SalvageMaterialsTable({
                   <SalvageCurrency copper={result.totalValue} size="sm" />
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
