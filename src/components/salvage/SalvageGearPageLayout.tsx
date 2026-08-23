@@ -44,6 +44,7 @@ interface SalvageGearPageLayoutProps {
   totalKitCost: number;
   totalProfit: number;
   unidentifiedGearPrice: number | null;
+  gearCostFromSell?: boolean;
   results: SalvageTableResult[];
   refreshButtonClass?: string;
   rois?: SalvageRoi[];
@@ -75,6 +76,7 @@ export default function SalvageGearPageLayout({
   totalKitCost,
   totalProfit,
   unidentifiedGearPrice,
+  gearCostFromSell = false,
   results,
   rois,
   luckMode,
@@ -171,6 +173,7 @@ export default function SalvageGearPageLayout({
                 quantity={quantity}
                 costGearLabel={costGearLabel}
                 unidentifiedGearPrice={unidentifiedGearPrice}
+                gearCostFromSell={gearCostFromSell}
                 rois={rois}
                 luckMode={luckMode}
                 onLuckModeChange={onLuckModeChange}

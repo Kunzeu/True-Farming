@@ -94,6 +94,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [gearBuy, setGearBuy] = useState(0);
+  const [gearCostFromSell, setGearCostFromSell] = useState(false);
   const [gearName, setGearName] = useState<string | null>(null);
   const [kitName, setKitName] = useState<string | null>(null);
   const [kitCost, setKitCost] = useState(0);
@@ -109,6 +110,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       const data = await loadSalvageTier(tierKey, lang);
       setMaterials(data.materials);
       setGearBuy(data.gearBuy || 0);
+      setGearCostFromSell(data.gearCostFromSell);
       setGearName(data.gearName);
       setKitName(data.kitName);
       setKitCost(data.kitCost);
@@ -182,6 +184,7 @@ export default function SalvageTierCalculator({ tierKey }: { tierKey: SalvageTie
       totalKitCost={quantity * excelKitPerUnit}
       totalProfit={active?.profit || 0}
       unidentifiedGearPrice={gearBuy}
+      gearCostFromSell={gearCostFromSell}
       results={results}
       rois={rois}
       luckMode={active?.mode || 'none'}

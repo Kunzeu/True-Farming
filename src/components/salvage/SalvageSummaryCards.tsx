@@ -16,6 +16,7 @@ interface SalvageSummaryCardsProps {
   quantity: number;
   costGearLabel: string;
   unidentifiedGearPrice: number | null;
+  gearCostFromSell?: boolean;
   rois?: SalvageRoi[];
   luckMode?: LuckMode;
   onLuckModeChange?: (mode: LuckMode) => void;
@@ -37,6 +38,7 @@ export default function SalvageSummaryCards({
   quantity,
   costGearLabel,
   unidentifiedGearPrice,
+  gearCostFromSell = false,
   rois = [],
   luckMode = 'none',
   onLuckModeChange,
@@ -46,6 +48,15 @@ export default function SalvageSummaryCards({
   const profitPositive = totalProfit >= 0;
   const ProfitIcon = profitPositive ? TrendingUp : TrendingDown;
   const activeRoi = rois.find((r) => r.mode === luckMode);
+
+  const gearSub =
+    unidentifiedGearPrice == null
+      ? t('salvageCommon.loadingPrice', 'Loading price...')
+      : unidentifiedGearPrice <= 0
+        ? t('salvagePages.noBuyOrders', 'Sin buy en el TP')
+        : gearCostFromSell
+          ? t('salvagePages.eachSellTP', 'cada uno (sell TP)')
+          : t('salvagePages.eachTP', 'each (TP)');
 
   const breakdown = [
     {
@@ -57,11 +68,7 @@ export default function SalvageSummaryCards({
     {
       label: costGearLabel.replace('{quantity}', quantity.toString()),
       value: unidentifiedGearPrice != null ? totalCost : null,
-      sub: unidentifiedGearPrice != null
-        ? unidentifiedGearPrice > 0
-          ? `${t('salvagePages.eachTP', 'each (TP)')}`
-          : t('salvagePages.noBuyOrders', 'Sin buy en el TP')
-        : t('salvageCommon.loadingPrice', 'Loading price...'),
+      sub: gearSub,
       icon: Minus,
       tone: 'text-rose-400/80',
     },

@@ -302,6 +302,8 @@ export async function loadSalvageTier(
   gearId: number;
   gearName: string;
   gearBuy: number;
+  /** true si el coste usa sell del TP porque buy = 0 */
+  gearCostFromSell: boolean;
   kitCost: number;
   kitName: string;
   materials: SalvageMaterialRow[];
@@ -331,7 +333,12 @@ export async function loadSalvageTier(
 
   const priceMap = new Map(prices.map((p) => [p.id, p]));
   const gearItem = items.find((i) => i.id === tier.gearId);
-  const gearBuy = priceMap.get(tier.gearId)?.buys?.unit_price || 0;
+  const gearRow = priceMap.get(tier.gearId);
+  const gearBuyOrder = gearRow?.buys?.unit_price || 0;
+  const gearSellOrder = gearRow?.sells?.unit_price || 0;
+  // TP: buy (izq) si hay; si es 00g00s00 usar sell (derecha)
+  const gearBuy = gearBuyOrder > 0 ? gearBuyOrder : gearSellOrder;
+  const gearCostFromSell = gearBuyOrder <= 0 && gearSellOrder > 0;
   const buyOf = (id: number) => priceMap.get(id)?.buys?.unit_price || 0;
 
   const craftBuy: CraftBuyPrices = {
@@ -395,7 +402,7 @@ export async function loadSalvageTier(
     });
   }
 
-  // Bolsas rojas solo si hay buy de unids (proceso comprable). Mística = no UI.
+  // Bolsas rojas si hay coste de unids (buy o sell fallback). Mística = no UI.
   let redBagCopperPerLuck = 0;
   const applyBags = luckDropRate > 0 && gearBuy > 0;
   if (applyBags) {
@@ -408,6 +415,7 @@ export async function loadSalvageTier(
     gearId: tier.gearId,
     gearName: gearItem?.name || tier.label,
     gearBuy,
+    gearCostFromSell,
     kitCost: tier.kitCost,
     kitName: kitItem?.name || '',
     materials,
