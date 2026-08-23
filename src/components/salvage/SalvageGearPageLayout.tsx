@@ -17,6 +17,7 @@ import {
   getTierTheme,
   type UnidentifiedGearTier,
 } from '@/components/salvage/salvage-config';
+import type { LuckMode, SalvageRoi } from '@/lib/unidentified-salvage';
 
 interface SalvageGearPageLayoutProps {
   tier: UnidentifiedGearTier;
@@ -43,8 +44,12 @@ interface SalvageGearPageLayoutProps {
   totalKitCost: number;
   totalProfit: number;
   unidentifiedGearPrice: number | null;
+  gearCostFromSell?: boolean;
   results: SalvageTableResult[];
   refreshButtonClass?: string;
+  rois?: SalvageRoi[];
+  luckMode?: LuckMode;
+  onLuckModeChange?: (mode: LuckMode) => void;
 }
 
 export default function SalvageGearPageLayout({
@@ -71,7 +76,11 @@ export default function SalvageGearPageLayout({
   totalKitCost,
   totalProfit,
   unidentifiedGearPrice,
+  gearCostFromSell = false,
   results,
+  rois,
+  luckMode,
+  onLuckModeChange,
 }: SalvageGearPageLayoutProps) {
   const { t } = useI18n();
   const tierConfig = UNIDENTIFIED_GEAR_TIERS.find((item) => item.id === tier)!;
@@ -119,7 +128,13 @@ export default function SalvageGearPageLayout({
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-6">
               <header className="flex items-start gap-4">
-                <div className={`relative shrink-0 rounded-2xl border p-3 ${theme.border} bg-white/[0.03]`}>
+                <a
+                  href={wikiUrl || wikiFallback}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`relative shrink-0 rounded-2xl border p-3 transition-opacity hover:opacity-80 ${theme.border} bg-white/[0.03]`}
+                  title={gearName || titleFallback}
+                >
                   <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br opacity-20 ${theme.gradient}`} />
                   <Image
                     src={tierConfig.headerIcon}
@@ -128,13 +143,20 @@ export default function SalvageGearPageLayout({
                     height={48}
                     className="relative h-12 w-12"
                   />
-                </div>
+                </a>
                 <div className="min-w-0 pt-1">
                   <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${theme.accentMuted}`}>
                     {t('salvage.nav.unidentifiedGear', 'Unidentified Gear')}
                   </p>
                   <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                    {gearName || titleFallback}
+                    <a
+                      href={wikiUrl || wikiFallback}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline decoration-white/30 underline-offset-4"
+                    >
+                      {gearName || titleFallback}
+                    </a>
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-500">
                     {description}
@@ -151,6 +173,10 @@ export default function SalvageGearPageLayout({
                 quantity={quantity}
                 costGearLabel={costGearLabel}
                 unidentifiedGearPrice={unidentifiedGearPrice}
+                gearCostFromSell={gearCostFromSell}
+                rois={rois}
+                luckMode={luckMode}
+                onLuckModeChange={onLuckModeChange}
               />
 
               <SalvageMaterialsTable results={results} quantity={quantity} />
@@ -248,7 +274,7 @@ export default function SalvageGearPageLayout({
                       <Minus className="h-3 w-3 text-rose-500/60" />
                       {t('salvage.summary.gear', 'Gear cost')}
                     </span>
-                    {unidentifiedGearPrice ? (
+                    {unidentifiedGearPrice != null ? (
                       <SalvageCurrency copper={totalCost} size="sm" className="!text-sm" />
                     ) : (
                       <span className="text-xs text-zinc-600">…</span>
@@ -264,7 +290,7 @@ export default function SalvageGearPageLayout({
                   <div className="border-t border-white/[0.06] pt-2">
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-zinc-300">
-                        {t('salvagePages.totalProfit', 'Profit')}
+                        {t('salvagePages.totalProfit', 'Beneficio')}
                       </span>
                       <SalvageCurrency
                         copper={totalProfit}

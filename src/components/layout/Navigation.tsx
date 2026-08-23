@@ -867,7 +867,7 @@ const Navigation = () => {
                       ) : (
                         <item.icon className="w-4 h-4" />
                       )}
-                      <span className="font-bold">{item.label}</span>
+                      <span className="sr-only">{item.label}</span>
                     </Link>
                   ))}
 

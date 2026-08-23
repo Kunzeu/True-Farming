@@ -603,6 +603,7 @@
   "lunarNewYear.envelopeOpening.uniqueItems": "Einzigartige Gegenstände",
   "lunarNewYear.envelopeOpening.totalItems": "Gesamtgegenstände",
   "lunarNewYear.envelopeOpening.totalValue": "Gesamtwert",
+  "lunarNewYear.envelopeOpening.valuePerEnvelope": "Wert pro Umschlag",
   "lunarNewYear.envelopeOpening.obtainedItems": "Erhaltene Gegenstände",
   "lunarNewYear.envelopeOpening.waiting": "Warten auf Öffnungsdaten...",
   "lunarNewYear.envelopeOpening.sendIds": "Daten werden automatisch geladen, wenn verfügbar.",

@@ -129,5 +129,7 @@ export function getMaterialRowClass(materialId: number): string {
   if (mota.includes(materialId)) return 'border-l-emerald-500/50';
   if (materialId === 19721) return 'border-l-violet-500/60';
   if (runes.includes(materialId)) return 'border-l-cyan-500/50';
+  if (materialId === -1) return 'border-l-amber-400/70'; // Exóticos
+  if (materialId === -2) return 'border-l-rose-400/50'; // Placas
   return 'border-l-transparent';
 }
