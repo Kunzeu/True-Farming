@@ -1,0 +1,28 @@
+# Categorías del botón "Generate release notes" y de --generate-notes
+# Las PRs se agrupan por labels. Sin label, caen en "Otros cambios".
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Novedades
+      labels:
+        - feat
+        - feature
+        - enhancement
+    - title: Correcciones
+      labels:
+        - fix
+        - bug
+    - title: Refactor y rendimiento
+      labels:
+        - refactor
+        - perf
+    - title: Infra y chores
+      labels:
+        - chore
+        - ci
+        - dependencies
+    - title: Otros cambios
+      labels:
+        - "*"

@@ -1,0 +1,37 @@
+name: 'PR and Workflow Notifications'
+
+on:
+  pull_request:
+    types: [opened, reopened]
+  workflow_run:
+    workflows: ['*']
+    types: [completed]
+
+jobs:
+  notify-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Send Discord notification
+        uses: stegzilla/discord-notify@v2
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: New PR opened
+          message: "**${{ github.event.pull_request.title }}**\n**Creator:** ${{ github.event.pull_request.user.login }}\n${{ github.event.pull_request.html_url }}"
+          include_image: true
+          avatar_url: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+          username: GitHub PR Notifier
+
+  notify-failure:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - name: Send Discord notification for workflow failure
+        uses: stegzilla/discord-notify@v2
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: ❌ Workflow Failed
+          message: "**Workflow:** ${{ github.event.workflow_run.name }}\n**Branch:** ${{ github.event.workflow_run.head_branch }}\n**Repository:** ${{ github.repository }}\n**URL:** ${{ github.event.workflow_run.html_url }}"
+          include_image: true
+          avatar_url: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
+          username: GitHub Workflow Notifier
