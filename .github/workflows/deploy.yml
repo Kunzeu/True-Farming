@@ -2,7 +2,9 @@ name: Deploy
 
 on:
   push:
-    branches: [main, QA]
+    branches: [QA]
+  release:
+    types: [published]
 
 jobs:
   deploy:
@@ -10,7 +12,9 @@ jobs:
     permissions:
       contents: read
     env:
-      SITE_URL: ${{ github.ref_name == 'QA' && 'https://qa.true-farming.com' || 'https://www.true-farming.com' }}
+      IS_PROD: ${{ github.event_name == 'release' }}
+      SITE_URL: ${{ github.event_name == 'release' && 'https://www.true-farming.com' || 'https://qa.true-farming.com' }}
+      ENV_LABEL: ${{ github.event_name == 'release' && 'Production' || 'QA' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +29,7 @@ jobs:
           NEXT_PUBLIC_BASE_URL: ${{ env.SITE_URL }}
           PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
           NEXT_PUBLIC_PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
+          DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback
           NEXT_PUBLIC_DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback
       - name: Deploy to Cloudflare
         env:
@@ -35,8 +40,18 @@ jobs:
             echo "::error::Falta el secret CLOUDFLARE_API_TOKEN en el repo (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-          if [ "${GITHUB_REF_NAME}" = "QA" ]; then
-            npm run cf:deploy:qa
-          else
+          if [ "${IS_PROD}" = "true" ]; then
             npm run cf:deploy
+          else
+            npm run cf:deploy:qa
           fi
+      - name: Notificar Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then exit 0; fi
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then COLOR=3066993; EMOJI="✅"; else COLOR=15158332; EMOJI="❌"; fi
+          curl -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" \
+            -d "{\"embeds\":[{\"title\":\"${EMOJI} Deploy ${ENV_LABEL} ${STATUS}\",\"color\":${COLOR},\"fields\":[{\"name\":\"Entorno\",\"value\":\"${ENV_LABEL}\",\"inline\":true},{\"name\":\"Ref\",\"value\":\"${{ github.ref_name }}\",\"inline\":true},{\"name\":\"Commit\",\"value\":\"${{ github.sha }}\",\"inline\":true},{\"name\":\"Autor\",\"value\":\"${{ github.actor }}\",\"inline\":true}]}]}"
