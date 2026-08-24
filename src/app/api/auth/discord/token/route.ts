@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getWorkerEnvSync } from '@/lib/cf-env';
+import { resolveServerOAuthRedirectUri } from '@/lib/oauth-redirect';
 
-export const runtime = 'edge';;
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json();
+    const body = await request.json();
+    const code = typeof body?.code === 'string' ? body.code : '';
+    const requestedRedirect =
+      typeof body?.redirect_uri === 'string' ? body.redirect_uri : null;
 
     if (!code) {
       console.error('No authorization code provided');
@@ -14,22 +19,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que las variables de entorno estén definidas
-    const clientId = process.env.DISCORD_CLIENT_ID;
-    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri = process.env.DISCORD_REDIRECT_URI;
+    const w = getWorkerEnvSync();
+    const clientId = (
+      w?.DISCORD_CLIENT_ID ||
+      process.env.DISCORD_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ||
+      '1399450681126944939'
+    ).trim();
+    const clientSecret = (w?.DISCORD_CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '').trim();
+    const redirectUri = resolveServerOAuthRedirectUri({
+      requested: requestedRedirect,
+      originHeader: request.headers.get('origin'),
+      envFallback:
+        w?.DISCORD_REDIRECT_URI ||
+        process.env.DISCORD_REDIRECT_URI ||
+        process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI,
+      callbackPath: '/auth/discord/callback',
+    });
 
     console.log('Discord OAuth Config:', {
       clientId: clientId ? `Set (${clientId.substring(0, 10)}...)` : 'Missing',
       clientSecret: clientSecret ? 'Set' : 'Missing',
-      redirectUri: redirectUri || 'Missing'
+      redirectUri: redirectUri || 'Missing',
     });
 
     if (!clientId || !clientSecret || !redirectUri) {
       console.error('Missing Discord OAuth environment variables:', {
         clientId: !!clientId,
         clientSecret: !!clientSecret,
-        redirectUri: !!redirectUri
+        redirectUri: !!redirectUri,
       });
       return NextResponse.json(
         { error: 'Configuración de Discord OAuth incompleta' },
@@ -37,7 +55,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Intercambiar el código por un token de acceso
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: {
@@ -68,7 +85,6 @@ export async function POST(request: NextRequest) {
       token_type: tokenData.token_type,
       expires_in: tokenData.expires_in,
     });
-
   } catch (error) {
     console.error('Error en Discord token API:', error);
     return NextResponse.json(
@@ -76,4 +92,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
