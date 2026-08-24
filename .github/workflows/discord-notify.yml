@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, reopened]
   workflow_run:
-    workflows: ['*']
+    workflows: ['PR Checks', 'Deploy', 'Draft release notes']
     types: [completed]
 
 jobs:
@@ -13,25 +13,92 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: Send Discord notification
-        uses: stegzilla/discord-notify@v2
-        with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: New PR opened
-          message: "**${{ github.event.pull_request.title }}**\n**Creator:** ${{ github.event.pull_request.user.login }}\n${{ github.event.pull_request.html_url }}"
-          include_image: true
-          avatar_url: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
-          username: GitHub PR Notifier
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_USER: ${{ github.event.pull_request.user.login }}
+        run: |
+          WEBHOOK="${DISCORD_WEBHOOK_URL:-$DISCORD_WEBHOOK}"
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::Sin DISCORD_WEBHOOK_URL ni DISCORD_WEBHOOK; se omite la notificación."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, urllib.request
+          payload = {
+            "username": "GitHub PR Notifier",
+            "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            "embeds": [{
+              "title": "New PR opened",
+              "description": f"**{os.environ['PR_TITLE']}**",
+              "url": os.environ["PR_URL"],
+              "color": 3447003,
+              "fields": [
+                {"name": "Creator", "value": os.environ["PR_USER"], "inline": True},
+                {"name": "URL", "value": os.environ["PR_URL"], "inline": False},
+              ],
+              "thumbnail": {
+                "url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"
+              },
+            }],
+          }
+          webhook = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("DISCORD_WEBHOOK")
+          req = urllib.request.Request(
+            webhook,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+          )
+          with urllib.request.urlopen(req) as res:
+            print(res.status)
+          PY
 
   notify-failure:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
     steps:
       - name: Send Discord notification for workflow failure
-        uses: stegzilla/discord-notify@v2
-        with:
-          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: ❌ Workflow Failed
-          message: "**Workflow:** ${{ github.event.workflow_run.name }}\n**Branch:** ${{ github.event.workflow_run.head_branch }}\n**Repository:** ${{ github.repository }}\n**URL:** ${{ github.event.workflow_run.html_url }}"
-          include_image: true
-          avatar_url: https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png
-          username: GitHub Workflow Notifier
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WF_URL: ${{ github.event.workflow_run.html_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          WEBHOOK="${DISCORD_WEBHOOK_URL:-$DISCORD_WEBHOOK}"
+          if [ -z "$WEBHOOK" ]; then
+            echo "::warning::Sin DISCORD_WEBHOOK_URL ni DISCORD_WEBHOOK; se omite la notificación."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, urllib.request
+          payload = {
+            "username": "GitHub Workflow Notifier",
+            "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            "embeds": [{
+              "title": "Workflow Failed",
+              "color": 15158332,
+              "fields": [
+                {"name": "Workflow", "value": os.environ["WF_NAME"], "inline": False},
+                {"name": "Branch", "value": os.environ["WF_BRANCH"], "inline": True},
+                {"name": "Repository", "value": os.environ["REPO"], "inline": True},
+                {"name": "URL", "value": os.environ["WF_URL"], "inline": False},
+              ],
+              "thumbnail": {
+                "url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"
+              },
+            }],
+          }
+          webhook = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("DISCORD_WEBHOOK")
+          req = urllib.request.Request(
+            webhook,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+          )
+          with urllib.request.urlopen(req) as res:
+            print(res.status)
+          PY
