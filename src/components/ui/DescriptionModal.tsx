@@ -176,7 +176,7 @@ export default function DescriptionModal({ isOpen, onClose, route }: Description
                       className="group relative overflow-hidden rounded-lg border border-gray-600 bg-gray-900/80 shadow-md ring-2 ring-transparent transition hover:border-emerald-500/60 hover:ring-emerald-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                       title={t('modal.locationImageZoom', 'Ver imagen ampliada')}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {/* img: remote asset URL */}
                       <img
                         src={locationImg}
                         alt=""
@@ -380,7 +380,7 @@ export default function DescriptionModal({ isOpen, onClose, route }: Description
                   >
                     <X className="h-8 w-8" />
                   </button>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {/* img: remote asset URL */}
                   <img
                     src={locationImg}
                     alt={t('modal.locationWhereToPlayAlt', 'Ubicación en el mapa')}

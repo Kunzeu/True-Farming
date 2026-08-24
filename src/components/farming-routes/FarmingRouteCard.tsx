@@ -102,7 +102,7 @@ export default function FarmingRouteCard({
     >
       {locationImage ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/* img: remote GW2 icon URL */}
           <img
             src={locationImage}
             alt=""

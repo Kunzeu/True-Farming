@@ -35,7 +35,11 @@ export default function AccountIndexPage() {
       }
       if ((!apiKey || apiKey.trim().length < 10) && !shownThisSession) {
         setShowNoKey(true);
-        try { ss && ss.setItem('gw2_shown_no_api_key', 'true'); } catch {}
+        try {
+          ss?.setItem('gw2_shown_no_api_key', 'true');
+        } catch {
+          /* ignore */
+        }
       }
     } catch {
       // Si localStorage falla, no forzar el modal
