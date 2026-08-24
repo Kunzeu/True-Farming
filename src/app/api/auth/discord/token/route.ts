@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getWorkerEnvSync } from '@/lib/cf-env';
 
 export const runtime = 'edge';;
 
@@ -14,10 +15,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que las variables de entorno estén definidas
-    const clientId = process.env.DISCORD_CLIENT_ID;
-    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri = process.env.DISCORD_REDIRECT_URI;
+    const w = getWorkerEnvSync();
+    const clientId = (w?.DISCORD_CLIENT_ID || process.env.DISCORD_CLIENT_ID || '').trim();
+    const clientSecret = (w?.DISCORD_CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '').trim();
+    const redirectUri = (
+      w?.DISCORD_REDIRECT_URI ||
+      process.env.DISCORD_REDIRECT_URI ||
+      process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI ||
+      'https://www.true-farming.com/auth/discord/callback'
+    ).trim();
 
     console.log('Discord OAuth Config:', {
       clientId: clientId ? `Set (${clientId.substring(0, 10)}...)` : 'Missing',

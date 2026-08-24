@@ -16,6 +16,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { validateEmailForLogin } from '@/utils/emailValidation';
+import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 
 export default function LoginForm() {
   const { login, isLoading, error, clearError } = useAuth();
@@ -88,22 +89,21 @@ export default function LoginForm() {
   };
 
   const handleDiscordLogin = () => {
-    // Redirigir a Discord OAuth
-    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 'https://www.true-farming.com/auth/discord/callback';
-    
+    const redirectUri = getClientOAuthRedirectUri(
+      process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI,
+      '/auth/discord/callback',
+    );
+
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20email`;
     window.location.href = discordAuthUrl;
   };
 
   const handlePatreonLogin = () => {
-    // Detectar el entorno actual y usar la URL de redirección apropiada
-    const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    const baseUrl = isDevelopment 
-      ? `${window.location.origin}` 
-      : 'https://www.true-farming.com';
-    
-    const redirectUri = process.env.NEXT_PUBLIC_PATREON_REDIRECT_URI || `${baseUrl}/auth/patreon/callback`;
-    
+    const redirectUri = getClientOAuthRedirectUri(
+      process.env.NEXT_PUBLIC_PATREON_REDIRECT_URI,
+      '/auth/patreon/callback',
+    );
+
     const patreonAuthUrl = `https://www.patreon.com/oauth2/authorize?response_type=code&client_id=${process.env.NEXT_PUBLIC_PATREON_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identity identity[email] identity.memberships`;
     window.location.href = patreonAuthUrl;
   };

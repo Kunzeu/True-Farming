@@ -18,6 +18,7 @@ import {
 import { validateEmailFormat, validateEmailUnique } from '@/utils/emailValidation';
 import { validatePasswordStrength } from '@/lib/password-utils';
 import Link from 'next/link';
+import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 
 export default function RegisterForm() {
   const { register, isLoading, error, clearError } = useAuth();
@@ -176,9 +177,11 @@ export default function RegisterForm() {
   };
 
   const handleDiscordRegister = () => {
-    // Redirigir a Discord OAuth
-    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 'https://www.true-farming.com/auth/discord/callback';
-    
+    const redirectUri = getClientOAuthRedirectUri(
+      process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI,
+      '/auth/discord/callback',
+    );
+
     const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20email`;
     window.location.href = discordAuthUrl;
   };

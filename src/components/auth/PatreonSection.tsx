@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { CheckCircle, AlertCircle, ExternalLink, Link, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 
 export default function PatreonSection() {
   const { user, unlinkPatreon } = useAuth();
@@ -16,13 +17,10 @@ export default function PatreonSection() {
 
 
   const handleLinkPatreon = () => {
-    // Detectar el entorno actual y usar la URL de redirección apropiada
-    const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    const baseUrl = isDevelopment 
-      ? `${window.location.origin}` 
-      : 'https://www.true-farming.com';
-    
-    const redirectUri = process.env.NEXT_PUBLIC_PATREON_REDIRECT_URI || `${baseUrl}/auth/patreon/callback`;
+    const redirectUri = getClientOAuthRedirectUri(
+      process.env.NEXT_PUBLIC_PATREON_REDIRECT_URI,
+      '/auth/patreon/callback',
+    );
     const clientId = process.env.NEXT_PUBLIC_PATREON_CLIENT_ID;
     // Debug: comparar con el log del servidor (prefijo del clientId y redirect)
     try {
