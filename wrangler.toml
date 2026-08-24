@@ -23,7 +23,6 @@ NEXT_PUBLIC_APP_URL = "https://www.true-farming.com"
 PATREON_CLIENT_ID = "PWrLYPmnp_Wm8B2xBDTeRUrXcJgh96VNUev0_goTzoeYSus_Zhnukdgh-yIhw5VC"
 PATREON_REDIRECT_URI = "https://www.true-farming.com/auth/patreon/callback"
 DISCORD_REDIRECT_URI = "https://www.true-farming.com/auth/discord/callback"
-DISCORD_REDIRECT_URI = "https://www.true-farming.com/auth/discord/callback"
 
 # QA worker: `wrangler deploy --env qa` → https://qa.true-farming.com
 # Copy secrets once: wrangler secret put JWT_SECRET --env qa  (same for the rest)
