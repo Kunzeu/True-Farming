@@ -1,0 +1,51 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - QA
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-ci:
+    name: Lint, Check and Build
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ github.base_ref == 'main' && 'https://www.true-farming.com' || 'https://qa.true-farming.com' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run Astro check
+        run: npm run check
+        env:
+          PUBLIC_SITE_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ env.SITE_URL }}
+
+      - name: Run build
+        run: npm run build
+        env:
+          PUBLIC_SITE_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ env.SITE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ env.SITE_URL }}
+          PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
+          NEXT_PUBLIC_PATREON_REDIRECT_URI: ${{ env.SITE_URL }}/auth/patreon/callback
+          DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback
+          NEXT_PUBLIC_DISCORD_REDIRECT_URI: ${{ env.SITE_URL }}/auth/discord/callback

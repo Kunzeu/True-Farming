@@ -57,7 +57,7 @@ function detectDelim(sample: string): string {
     ['\t', (sample.match(/\t/g) || []).length],
     [';', (sample.match(/;/g) || []).length],
   ] as const;
-  return counts.sort((a, b) => b[1] - a[1])[0][0];
+  return [...counts].sort((a, b) => b[1] - a[1])[0][0];
 }
 
 /** CSV: item_id,item_name,item_amount,... — negativos = cajas abiertas */

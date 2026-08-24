@@ -1,0 +1,35 @@
+name: Draft release notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag (ej. v1.0.0)'
+        required: true
+        type: string
+      target:
+        description: 'Rama o SHA del release (prod = main)'
+        required: true
+        default: 'main'
+        type: string
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Crear borrador con notas generadas
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ inputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --target "${{ inputs.target }}" \
+            --draft \
+            --generate-notes \
+            --title "${{ inputs.tag }}"
+          echo "Borrador: https://github.com/${{ github.repository }}/releases"

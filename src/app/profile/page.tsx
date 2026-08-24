@@ -257,20 +257,20 @@ export default function ProfilePage() {
   // API Key functions — validar en el browser (CF Workers reciben 429 de ArenaNet).
   const validateApiKey = async (key: string) => {
     const result = await validateGw2ApiKeyInBrowser(key);
-    if (result.ok) {
+    if (result.ok === false) {
       return {
-        ok: true as const,
-        apiKey: result.apiKey,
-        accountName: result.accountInfo?.name,
-        permissions: result.permissions,
+        ok: false as const,
+        error: result.error,
+        missingPermissions: result.missingPermissions,
+        gw2Status: result.gw2Status,
+        gw2Error: result.gw2Error,
       };
     }
     return {
-      ok: false as const,
-      error: result.error,
-      missingPermissions: result.missingPermissions,
-      gw2Status: result.gw2Status,
-      gw2Error: result.gw2Error,
+      ok: true as const,
+      apiKey: result.apiKey,
+      accountName: result.accountInfo?.name,
+      permissions: result.permissions,
     };
   };
 

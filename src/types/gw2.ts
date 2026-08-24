@@ -9,6 +9,7 @@ export interface GW2Item {
   level: number;
   vendor_value: number;
   icon?: string;
+  chat_link?: string;
   details?: {
     type?: string;
     weight_class?: string;

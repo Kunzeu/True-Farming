@@ -115,7 +115,7 @@ export default function RouteCardImageField({
       {value && (
         <div className="mt-3 overflow-hidden rounded-xl border border-purple-500/30">
           <div className="relative h-28 w-full overflow-hidden rounded-lg bg-[#080b16]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* img: remote route image URL */}
             <img
               src={value}
               alt=""

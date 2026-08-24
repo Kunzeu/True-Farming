@@ -1,8 +1,18 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main, QA]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Entorno a desplegar'
+        required: true
+        default: qa
+        type: choice
+        options:
+          - qa
+          - production
 
 jobs:
   deploy:
@@ -10,7 +20,10 @@ jobs:
     permissions:
       contents: read
     env:
-      SITE_URL: ${{ github.ref_name == 'QA' && 'https://qa.true-farming.com' || 'https://www.true-farming.com' }}
+      IS_PROD: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production') }}
+      SITE_URL: ${{ (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')) && 'https://www.true-farming.com' || 'https://qa.true-farming.com' }}
+      ENV_LABEL: ${{ (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')) && 'Production' || 'QA' }}
+      REF_LABEL: ${{ github.event_name == 'release' && github.ref_name || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,8 +49,8 @@ jobs:
             echo "::error::Falta el secret CLOUDFLARE_API_TOKEN en el repo (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-          if [ "${GITHUB_REF_NAME}" = "QA" ]; then
-            npm run cf:deploy:qa
-          else
+          if [ "${IS_PROD}" = "true" ]; then
             npm run cf:deploy
+          else
+            npm run cf:deploy:qa
           fi
