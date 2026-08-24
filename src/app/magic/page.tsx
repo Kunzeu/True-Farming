@@ -2458,7 +2458,7 @@ const CraftingPage = () => {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         .font-display {
           font-display: swap;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

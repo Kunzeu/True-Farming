@@ -541,9 +541,7 @@ export async function getItemInfo(itemId: number, lang: string = 'en'): Promise<
       const gw2Lang = gw2LangMap[lang] || 'en';
 
       // Obtener el nombre desde la API con caching
-      const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`, {
-        next: { revalidate: 3600 } // Cache for 1 hour
-      });
+      const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`);
       if (response.ok) {
         const item = await response.json();
         return {
@@ -564,9 +562,7 @@ export async function getItemInfo(itemId: number, lang: string = 'en'): Promise<
     const gw2Lang = gw2LangMap[lang] || 'en';
 
     // Hacer la petición con el parámetro de idioma y caching
-    const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`, {
-      next: { revalidate: 3600 } // Cache for 1 hour
-    });
+    const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
