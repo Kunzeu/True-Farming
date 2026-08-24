@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { validateEmailForLogin } from '@/utils/emailValidation';
 import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
+import { getDiscordConfig } from '@/lib/discord-config';
 
 export default function LoginForm() {
   const { login, isLoading, error, clearError } = useAuth();
@@ -89,12 +90,8 @@ export default function LoginForm() {
   };
 
   const handleDiscordLogin = () => {
-    const redirectUri = getClientOAuthRedirectUri(
-      process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI,
-      '/auth/discord/callback',
-    );
-
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20email`;
+    const { clientId, redirectUri } = getDiscordConfig();
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20email`;
     window.location.href = discordAuthUrl;
   };
 

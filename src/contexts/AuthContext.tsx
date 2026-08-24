@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AuthState, User, LoginCredentials, RegisterCredentials } from '@/types/auth';
 import type { User as DbUser } from '@/lib/database-client';
 import { isActivePatron } from '@/lib/patreon-benefits';
+import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 
 // Tipos para la API de Patreon
 interface PatreonResource {
@@ -875,7 +876,10 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
     dispatch({ type: 'AUTH_START' });
 
     try {
-
+      const redirect_uri = getClientOAuthRedirectUri(
+        undefined,
+        '/auth/discord/callback',
+      );
 
       // Intercambiar el código por un token de acceso
       const tokenResponse = await fetch('/api/auth/discord/token', {
@@ -883,7 +887,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, redirect_uri }),
       });
 
       if (!tokenResponse.ok) {
