@@ -751,10 +751,13 @@ const GiveawaysPage = () => {
     const itemInfo = items.find((item) => item.position === prize.position);
 
     if (itemInfo && itemInfo.itemName && itemInfo.itemIcon) {
-      // Si es una clave de traducción (empieza con 'giveaways.')
-      const displayName = itemInfo.itemName.startsWith("giveaways.")
+      const rawName = itemInfo.itemName.startsWith("giveaways.")
         ? t(itemInfo.itemName)
         : itemInfo.itemName;
+      const displayName =
+        /^Item \d+$/.test(rawName) && itemInfo.itemId
+          ? t(`giveaways.items.${itemInfo.itemId}`, rawName)
+          : rawName;
 
       return (
         <div className="flex items-center gap-2">
@@ -771,7 +774,7 @@ const GiveawaysPage = () => {
             }}
           />
           <span className="font-medium text-white">
-            {itemInfo.quantity} {displayName}
+            {itemInfo.quantity}x {displayName}
           </span>
         </div>
       );
