@@ -9,12 +9,18 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
+import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchBankFromBrowser, enrichBankWithPrices } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
+import { useAccountItemTooltip } from '@/hooks/useAccountItemTooltip';
+import AccountItemTooltip from '@/components/account/AccountItemTooltip';
+import { formatGoldParts, type AccountItemPrice } from '@/lib/account-item-tooltip';
+
+type ItemPrice = AccountItemPrice;
 
 interface BankItem {
   id: number;
@@ -37,30 +43,6 @@ interface BankSummary {
   totalSlots: number;
 }
 
-interface ItemPrice {
-  id: number;
-  whitelisted: boolean;
-  buys: {
-    unit_price: number;
-    quantity: number;
-  };
-  sells: {
-    unit_price: number;
-    quantity: number;
-  };
-}
-
-interface ItemDetails {
-  id: number;
-  name: string;
-  description?: string;
-  type?: string;
-  level?: number;
-  rarity?: string;
-  icon?: string;
-  vendor_value?: number;
-}
-
 const BankPage = () => {
   const { user } = useAuth();
   const { t, lang } = useI18n();
@@ -71,11 +53,9 @@ const BankPage = () => {
   const bankItemsRef = useRef(bankItems);
   bankItemsRef.current = bankItems;
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState<{ item: BankItem; details: ItemDetails; price?: ItemPrice } | null>(null);
-  const [isLoadingItemDetails, setIsLoadingItemDetails] = useState(false);
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-  const [itemCache, setItemCache] = useState<Map<number, { details: ItemDetails; price?: ItemPrice }>>(new Map());
+  const { hovered, position, handleHover, handleLeave, itemCache } = useAccountItemTooltip(lang);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
 
@@ -90,12 +70,7 @@ const BankPage = () => {
   const format = (template: string, params: Record<string, string | number>) =>
     template.replace(/\{(\w+)\}/g, (_match, key) => String(params[key] ?? _match));
 
-  const formatGold = (copper: number) => {
-    const gold = Math.floor(copper / 10000);
-    const silver = Math.floor((copper % 10000) / 100);
-    const copperRemaining = copper % 100;
-    return { gold, silver, copper: copperRemaining };
-  };
+  const formatGold = formatGoldParts;
 
   const getRarityBorderColor = (rarity?: string) => {
     switch (rarity?.toLowerCase()) {
@@ -109,79 +84,42 @@ const BankPage = () => {
     }
   };
 
-  const getRarityColor = (rarity?: string) => {
-    switch (rarity?.toLowerCase()) {
-      case 'legendary': return 'text-yellow-400';
-      case 'exotic': return 'text-orange-400';
-      case 'rare': return 'text-blue-400';
-      case 'masterwork': return 'text-green-400';
-      case 'fine': return 'text-blue-300';
-      case 'ascended': return 'text-purple-400';
-      default: return 'text-gray-300';
+  const getItemStackValueCopper = (item: BankItem): number => {
+    const sellUnit = item.price?.sells?.unit_price;
+    if (sellUnit && sellUnit > 0) {
+      return sellUnit * item.count;
     }
-  };
 
-  const handleItemHover = async (item: BankItem, event: React.MouseEvent) => {
-    // Set position immediately
-    const rect = event.currentTarget.getBoundingClientRect();
-    setHoverPosition({ x: rect.right + 10, y: rect.top });
-    
-    // Check if item is already cached
     const cached = itemCache.get(item.id);
-    if (cached) {
-      setSelectedItem({ item, details: cached.details, price: cached.price });
-      return;
+    if (cached?.price?.sells?.unit_price && cached.price.sells.unit_price > 0) {
+      return cached.price.sells.unit_price * item.count;
     }
-    
-    // Don't fetch if already loading or if same item is selected
-    if (isLoadingItemDetails || (selectedItem && selectedItem.item.id === item.id)) {
-      return;
+    if (cached?.details?.vendor_value) {
+      return cached.details.vendor_value * item.count;
     }
 
-    setIsLoadingItemDetails(true);
-    setSelectedItem(null);
-    
-    try {
-      // Fetch item details
-          const detailsResponse = await fetch(`https://api.guildwars2.com/v2/items/${item.id}?lang=${lang}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Accept-Encoding': 'gzip, deflate, br'
-        }
-      });
-      const details: ItemDetails = await detailsResponse.json();
-      
-      // Fetch item price
-      const priceResponse = await fetch(`https://api.guildwars2.com/v2/commerce/prices/${item.id}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Accept-Encoding': 'gzip, deflate, br'
-        }
-      });
-      const price: ItemPrice = await priceResponse.json();
-      
-      // Cache the result
-      setItemCache(prev => new Map(prev).set(item.id, { details, price }));
-      
-      setSelectedItem({ item, details, price });
-    } catch {
-      // If price fetch fails, still show item details
-      try {
-        const detailsResponse = await fetch(`https://api.guildwars2.com/v2/items/${item.id}?lang=${lang}`);
-        const details: ItemDetails = await detailsResponse.json();
-        
-        // Cache the result (without price)
-        setItemCache(prev => new Map(prev).set(item.id, { details }));
-        
-        setSelectedItem({ item, details });
-      } catch {}
-    } finally {
-      setIsLoadingItemDetails(false);
-    }
+    return 0;
   };
 
-  const handleItemLeave = () => {
-    setSelectedItem(null);
+  const renderSlotPrice = (item: BankItem) => {
+    const totalPrice = getItemStackValueCopper(item);
+    if (totalPrice <= 0) return null;
+
+    const { gold, silver, copper } = formatGold(totalPrice);
+    const label = gold > 0 ? `${gold}g` : silver > 0 ? `${silver}s` : `${copper}c`;
+    const coinSrc =
+      gold > 0
+        ? '/images/expansions/Gold.webp'
+        : silver > 0
+          ? '/images/expansions/Silver.webp'
+          : '/images/expansions/Copper.webp';
+
+    return (
+      <>
+        <span className="font-bold">{label}</span>
+        <Image src={coinSrc} alt="" width={12} height={12} className="ml-1" />
+      </>
+    );
   };
 
   const cacheKey = user?.id ? `gw2_bank_${user.id}_${lang}` : null;
@@ -200,17 +138,18 @@ const BankPage = () => {
 
     try {
       if (showSpinner) setIsLoading(true);
+      else setIsRefreshing(true);
       setApiError(null);
 
       const data = await fetchBankFromBrowser(user.id, lang, apiKey, { withPrices: false });
       if (!data) return;
 
-      setBankItems(data);
+      setBankItems(data as (BankItem | null)[]);
       setIsLoading(false);
       if (cacheKey) writeSessionCache(cacheKey, data, GW2_CACHE_TTL.accountPage);
 
       const enriched = await enrichBankWithPrices(data);
-      setBankItems(enriched);
+      setBankItems(enriched as (BankItem | null)[]);
       if (cacheKey) writeSessionCache(cacheKey, enriched, GW2_CACHE_TTL.accountPage);
     } catch (error) {
       console.error('Error fetching bank data:', error);
@@ -218,6 +157,7 @@ const BankPage = () => {
       setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [user?.id, apiKey, lang, t, cacheKey]);
 
@@ -294,6 +234,8 @@ const BankPage = () => {
             🔄 {t('common.refresh', 'Refresh')}
            </button>
          </div>
+
+         <AccountRefreshingIndicator visible={isRefreshing} />
 
                  {isLoading ? (
           <div className="text-center py-12">
@@ -427,8 +369,8 @@ const BankPage = () => {
                             ${getRarityBorderColor(item.rarity)} bg-gray-700 hover:bg-gray-600 transition-colors cursor-pointer group
                           `}
                           title={`${t('bank.slot')} ${bankItems.indexOf(item) + 1}`}
-                          onMouseEnter={(e) => handleItemHover(item, e)}
-                          onMouseLeave={handleItemLeave}
+                          onMouseEnter={(e) => handleHover(item, e)}
+                          onMouseLeave={handleLeave}
                         >
                           {item.icon && (
                             <Image 
@@ -440,7 +382,10 @@ const BankPage = () => {
                             />
                           )}
                           {item.count > 1 && (
-                            <span className="text-xl text-white font-bold absolute inset-0 flex items-center justify-center drop-shadow-lg">
+                            <span
+                              className="pointer-events-none absolute inset-0 flex items-center justify-center text-xl font-bold text-black"
+                              style={{ WebkitTextStroke: '1px white', paintOrder: 'stroke fill' }}
+                            >
                               {item.count}
                             </span>
                           )}
@@ -449,47 +394,8 @@ const BankPage = () => {
                               {t('bank.bound')}
                             </span>
                           )}
-                          <div className="absolute bottom-0 left-0 right-0 bg-black text-white text-sm py-1 flex items-center justify-center">
-                            <span className="font-bold">
-                              {(() => {
-                                const cached = itemCache.get(item.id);
-                                if (cached) {
-                                  let totalPrice = 0;
-                                  if (cached.price && cached.price.sells && cached.price.sells.unit_price > 0) {
-                                    totalPrice = cached.price.sells.unit_price * item.count;
-                                  } else if (cached.details && cached.details.vendor_value) {
-                                    totalPrice = cached.details.vendor_value * item.count;
-                                  }
-                                  if (totalPrice > 0) {
-                                    const { gold, silver, copper } = formatGold(totalPrice);
-                                    return gold > 0 ? `${gold}g` : silver > 0 ? `${silver}s` : `${copper}c`;
-                                  }
-                                }
-                                return '';
-                              })()}
-                            </span>
-                            {(() => {
-                              const cached = itemCache.get(item.id);
-                              if (cached) {
-                                let totalPrice = 0;
-                                if (cached.price && cached.price.sells && cached.price.sells.unit_price > 0) {
-                                  totalPrice = cached.price.sells.unit_price * item.count;
-                                } else if (cached.details && cached.details.vendor_value) {
-                                  totalPrice = cached.details.vendor_value * item.count;
-                                }
-                                if (totalPrice > 0) {
-                                  const { gold, silver } = formatGold(totalPrice);
-                                  if (gold > 0) {
-                                    return <Image src="/images/expansions/Gold.webp" alt="Gold" width={12} height={12} className="ml-1" />;
-                                  } else if (silver > 0) {
-                                    return <Image src="/images/expansions/Silver.webp" alt="Silver" width={12} height={12} className="ml-1" />;
-                                  } else {
-                                    return <Image src="/images/expansions/Copper.webp" alt="Copper" width={12} height={12} className="ml-1" />;
-                                  }
-                                }
-                              }
-                              return null;
-                            })()}
+                          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black py-1 text-sm text-white">
+                            {renderSlotPrice(item)}
                           </div>
                         </div>
                       ))}
@@ -528,8 +434,8 @@ const BankPage = () => {
                           }
                         `}
                               title={item ? `${t('bank.slot')} ${globalIndex + 1}` : `${t('bank.slot')} ${globalIndex + 1} ${t('bank.empty')}`}
-                              onMouseEnter={(e) => item && handleItemHover(item, e)}
-                              onMouseLeave={handleItemLeave}
+                              onMouseEnter={(e) => item && handleHover(item, e)}
+                              onMouseLeave={handleLeave}
                             >
                                                                                                {item ? (
                           <>
@@ -546,7 +452,10 @@ const BankPage = () => {
                              
                              {/* Quantity in center (large white number) */}
                              {item.count > 1 && (
-                                                               <span className="text-xl text-white font-bold absolute inset-0 flex items-center justify-center drop-shadow-lg">
+                               <span
+                                 className="pointer-events-none absolute inset-0 flex items-center justify-center text-xl font-bold text-black"
+                                 style={{ WebkitTextStroke: '1px white', paintOrder: 'stroke fill' }}
+                               >
                                  {item.count}
                                </span>
                              )}
@@ -558,55 +467,9 @@ const BankPage = () => {
                                         </span>
                                       )}
                              
-                                                           {/* Price display at bottom (black background) */}
-                                                             <div className="absolute bottom-0 left-0 right-0 bg-black text-white text-sm py-1 flex items-center justify-center">
-                               <span className="font-bold">
-                                 {(() => {
-                                   // Get price from cache or calculate
-                                   const cached = itemCache.get(item.id);
-                                   if (cached) {
-                                     let totalPrice = 0;
-                                     
-                                     // Prefer Trading Post sell price, fallback to vendor value
-                                     if (cached.price && cached.price.sells && cached.price.sells.unit_price > 0) {
-                                       totalPrice = cached.price.sells.unit_price * item.count;
-                                     } else if (cached.details && cached.details.vendor_value) {
-                                       totalPrice = cached.details.vendor_value * item.count;
-                                     }
-                                     
-                                     if (totalPrice > 0) {
-                                       const { gold, silver, copper } = formatGold(totalPrice);
-                                       return gold > 0 ? `${gold}g` : silver > 0 ? `${silver}s` : `${copper}c`;
-                                     }
-                                   }
-                                   return '';
-                                 })()}
-                               </span>
-                                 {(() => {
-                                  const cached = itemCache.get(item.id);
-                                  if (cached) {
-                                    let totalPrice = 0;
-                                    
-                                    if (cached.price && cached.price.sells && cached.price.sells.unit_price > 0) {
-                                      totalPrice = cached.price.sells.unit_price * item.count;
-                                    } else if (cached.details && cached.details.vendor_value) {
-                                      totalPrice = cached.details.vendor_value * item.count;
-                                    }
-                                    
-                                    if (totalPrice > 0) {
-                                      const { gold, silver } = formatGold(totalPrice);
-                                        if (gold > 0) {
-                                        return <Image src="/images/expansions/Gold.webp" alt="Gold" width={12} height={12} className="ml-1" />;
-                                       } else if (silver > 0) {
-                                         return <Image src="/images/expansions/Silver.webp" alt="Silver" width={12} height={12} className="ml-1" />;
-                                       } else {
-                                         return <Image src="/images/expansions/Copper.webp" alt="Copper" width={12} height={12} className="ml-1" />;
-                                      }
-                                    }
-                                  }
-                                  return null;
-                                })()}
-                             </div>
+                                                           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center bg-black py-1 text-sm text-white">
+                             {renderSlotPrice(item)}
+                           </div>
                           </>
                         ) : null}
                             </div>
@@ -624,159 +487,23 @@ const BankPage = () => {
 
         {/* Sin modal aquí; se muestra solo en /account */}
 
-        {!isLoading && filteredItems.length === 0 && (
+        {!isLoading && bankItems.filter(Boolean).length === 0 && (
           <div className="text-center py-12">
             <Database className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-300 mb-2">No items</h3>
-            <p className="text-gray-400">There are no items in your bank</p>
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">{t('bank.emptyTitle', 'No items')}</h3>
+            <p className="text-gray-400">{t('bank.emptyDesc', 'There are no items in your bank')}</p>
           </div>
-                 )}
+        )}
 
-         {/* Item Details Modal */}
-         {selectedItem && (
-           <div 
-             className="fixed z-50 pointer-events-none"
-             style={{ 
-               left: `${hoverPosition.x}px`, 
-               top: `${hoverPosition.y}px`,
-                               maxWidth: '300px',
-                maxHeight: '60vh'
-             }}
-           >
-                           <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-h-full overflow-y-auto shadow-2xl pointer-events-auto">
-                <div className="p-4">
-                                   {/* Header */}
-                                     <div className="flex items-center mb-3">
-                     <div className="flex items-center space-x-2">
-                       {selectedItem.details.icon && (
-                         <Image 
-                           src={selectedItem.details.icon} 
-                           alt={selectedItem.details.name}
-                           width={32}
-                           height={32}
-                           className="rounded"
-                         />
-                       )}
-                       <div>
-                         <h3 className={`text-sm font-bold ${getRarityColor(selectedItem.details.rarity)}`}>
-                           {selectedItem.item.count > 1 && `${selectedItem.item.count}x `}
-                           {selectedItem.details.name}
-                         </h3>
-                         <p className="text-xs text-gray-400">
-                           {selectedItem.details.type} {selectedItem.details.level && `• Level ${selectedItem.details.level}`}
-                         </p>
-                       </div>
-                     </div>
-                   </div>
+        {!isLoading && bankItems.filter(Boolean).length > 0 && filteredItems.length === 0 && (
+          <div className="text-center py-12">
+            <Database className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">{t('bank.noSearchResults', 'No matches')}</h3>
+            <p className="text-gray-400">{t('bank.noSearchResultsDesc', 'No items match your search')}</p>
+          </div>
+        )}
 
-                                   {/* Description */}
-                  {selectedItem.details.description && (
-                    <div className="mb-3">
-                      <p className="text-gray-300 text-xs leading-relaxed">
-                        {selectedItem.details.description}
-                      </p>
-                    </div>
-                  )}
-
-                                   {/* Prices */}
-                                     {(selectedItem.price || selectedItem.details.vendor_value) && (
-                     <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-gray-200">{t('bank.prices', 'Prices')}</h4>
-                      
-                      {/* Vendor Price - Always show if available */}
-                      {selectedItem.details.vendor_value && (
-                                                 <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-xs">{t('bank.vendorPrice', 'Vendor Price:')}</span>
-                           <div className="flex items-center space-x-1">
-                            {(() => {
-                              const { gold, silver, copper } = formatGold(selectedItem.details.vendor_value!);
-                              return (
-                                <>
-                                  <span>{gold}</span>
-                                  <Image src="/images/expansions/Gold.webp" alt="Gold" width={12} height={12} />
-                                  <span>{silver}</span>
-                                  <Image src="/images/expansions/Silver.webp" alt="Silver" width={12} height={12} />
-                                  <span>{copper}</span>
-                                  <Image src="/images/expansions/Copper.webp" alt="Copper" width={12} height={12} />
-                                </>
-                              );
-                            })()}
-                                                         <span className="text-gray-400 text-xs ml-2">
-                               ({(() => {
-                                 const { gold, silver, copper } = formatGold(selectedItem.details.vendor_value! * selectedItem.item.count);
-                                   return `${gold}g ${silver}s ${copper}c ${t('bank.perCount', 'per')} ${selectedItem.item.count}`;
-                               })()})
-                             </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Trading Post Prices - Only show if available */}
-                      {selectedItem.price && (
-                        <>
-                                                     {/* Buy Price - Only show if exists */}
-                           {selectedItem.price.buys && selectedItem.price.buys.unit_price > 0 && (
-                             <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{t('bank.buyPrice', 'Buy Price:')}</span>
-                              <div className="flex items-center space-x-1">
-                                {(() => {
-                                  const { gold, silver, copper } = formatGold(selectedItem.price.buys.unit_price);
-                                  return (
-                                    <>
-                                      <span>{gold}</span>
-                                      <Image src="/images/expansions/Gold.webp" alt="Gold" width={12} height={12} />
-                                      <span>{silver}</span>
-                                      <Image src="/images/expansions/Silver.webp" alt="Silver" width={12} height={12} />
-                                      <span>{copper}</span>
-                                      <Image src="/images/expansions/Copper.webp" alt="Copper" width={12} height={12} />
-                                    </>
-                                  );
-                                })()}
-                                                                 <span className="text-gray-400 text-xs ml-2">
-                                   ({(() => {
-                                     const { gold, silver, copper } = formatGold(selectedItem.price.buys.unit_price * selectedItem.item.count);
-                                     return `${gold}g ${silver}s ${copper}c ${t('bank.perCount', 'per')} ${selectedItem.item.count}`;
-                                   })()})
-                                 </span>
-                              </div>
-                            </div>
-                          )}
-
-                                                     {/* Sell Price - Only show if exists */}
-                           {selectedItem.price.sells && selectedItem.price.sells.unit_price > 0 && (
-                             <div className="flex justify-between items-center">
-                              <span className="text-gray-400 text-xs">{t('bank.sellPrice', 'Sell Price:')}</span>
-                              <div className="flex items-center space-x-1">
-                                {(() => {
-                                  const { gold, silver, copper } = formatGold(selectedItem.price.sells.unit_price);
-                                  return (
-                                    <>
-                                      <span>{gold}</span>
-                                      <Image src="/images/expansions/Gold.webp" alt="Gold" width={12} height={12} />
-                                      <span>{silver}</span>
-                                      <Image src="/images/expansions/Silver.webp" alt="Silver" width={12} height={12} />
-                                      <span>{copper}</span>
-                                      <Image src="/images/expansions/Copper.webp" alt="Copper" width={12} height={12} />
-                                    </>
-                                  );
-                                })()}
-                                                                 <span className="text-gray-400 text-xs ml-2">
-                                   ({(() => {
-                                     const { gold, silver, copper } = formatGold(selectedItem.price.sells.unit_price * selectedItem.item.count);
-                                     return `${gold}g ${silver}s ${copper}c ${t('bank.perCount', 'per')} ${selectedItem.item.count}`;
-                                   })()})
-                                 </span>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-               </div>
-             </div>
-           </div>
-         )}
+         <AccountItemTooltip data={hovered} position={position} />
 
          <ServiceUnavailableModal
            isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
@@ -790,4 +517,4 @@ const BankPage = () => {
    );
  };
 
-export default withAccountPage(BankPage); 
+export default BankPage; 

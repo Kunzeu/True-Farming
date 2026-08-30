@@ -5,6 +5,7 @@ import {
   gw2PublicGet,
 } from '@/lib/gw2-client-api';
 import { GW2_CACHE_TTL, readSessionCache, writeSessionCache } from '@/lib/gw2-client-cache';
+import type { MaterialCategoryDef, StorageMaterial } from '@/lib/gw2-material-storage';
 
 async function resolveApiKey(userId: string, apiKey?: string | null): Promise<string | null> {
   if (apiKey) return apiKey;
@@ -49,8 +50,6 @@ export async function fetchWalletFromBrowser(
   const currencies = await fetchGw2ByIds<Currency>('currencies', currencyIds, `&lang=${lang}`);
   return { wallet: filtered, currencies };
 }
-
-import type { MaterialCategoryDef, StorageMaterial } from '@/lib/gw2-material-storage';
 
 export type MaterialStorageData = {
   categories: MaterialCategoryDef[];
@@ -356,4 +355,166 @@ export async function fetchGw2AccountName(userId: string, apiKey?: string | null
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
   return typeof data?.name === 'string' ? data.name : null;
+}
+
+export type Gw2AccountProfile = {
+  id: string;
+  name: string;
+  age: number;
+  access: string[];
+  commander?: boolean;
+  created: string;
+  fractal_level?: number;
+  daily_ap?: number;
+  monthly_ap?: number;
+  wvw_rank?: number;
+  pvp_rank?: number;
+  guild_leader?: string[];
+  guilds?: string[];
+};
+
+export async function fetchGw2AccountProfile(
+  userId: string,
+  apiKey?: string | null,
+): Promise<Gw2AccountProfile | null> {
+  const key = await resolveApiKey(userId, apiKey);
+  if (!key) return null;
+  const res = await gw2AuthedGet('/account', key);
+  if (!res.ok) return null;
+  return res.json().catch(() => null);
+}
+
+type InventoryItemSlot = {
+  id: number;
+  count: number;
+  name?: string;
+  icon?: string;
+  rarity?: string;
+  vendor_value?: number;
+};
+
+export async function enrichCharactersWithItems<T extends {
+  inventory?: { bags?: Array<{ inventory?: Array<InventoryItemSlot | null> }> } | null;
+}>(characters: T[], lang: string): Promise<T[]> {
+  const itemIds = new Set<number>();
+  for (const char of characters) {
+    char.inventory?.bags?.forEach((bag) => {
+      if (!bag) return;
+      bag.inventory?.forEach((item) => {
+        if (item?.id) itemIds.add(item.id);
+      });
+    });
+  }
+  if (!itemIds.size) return characters;
+
+  const items = await fetchGw2ByIds<{
+    id: number;
+    name: string;
+    icon?: string;
+    rarity?: string;
+    vendor_value?: number;
+  }>('items', [...itemIds], `&lang=${lang}`);
+
+  const map = new Map(items.map((item) => [item.id, item]));
+
+  return characters.map((char) => ({
+    ...char,
+    inventory: char.inventory
+      ? {
+          ...char.inventory,
+          bags: char.inventory.bags?.map((bag) => {
+            if (!bag) return bag;
+            return {
+              ...bag,
+              inventory: bag.inventory?.map((slot) => {
+                if (!slot?.id) return slot;
+                const detail = map.get(slot.id);
+                if (!detail) return slot;
+                return {
+                  ...slot,
+                  name: detail.name,
+                  icon: detail.icon,
+                  rarity: detail.rarity,
+                  vendor_value: detail.vendor_value,
+                };
+              }),
+            };
+          }),
+        }
+      : char.inventory,
+  }));
+}
+
+async function fetchWorldNames(worldIds: number[], lang: string): Promise<Map<number, string>> {
+  if (!worldIds.length) return new Map();
+  const res = await gw2PublicGet(`/worlds?ids=${worldIds.join(',')}&lang=${lang}`);
+  if (!res.ok) return new Map();
+  const worlds: Array<{ id: number; name: string }> = await res.json();
+  return new Map(worlds.map((world) => [world.id, world.name]));
+}
+
+export type EnrichedCharacter = {
+  name: string;
+  profession: string;
+  level: number;
+  race: string;
+  specialization?: string;
+  world: number;
+  worldName?: string;
+  inventory?: {
+    bags?: Array<{
+      id: number;
+      size: number;
+      inventory: Array<InventoryItemSlot | null>;
+    } | null>;
+  } | null;
+};
+
+async function fetchCharacterInventories(
+  characters: Array<{ name: string }>,
+  key: string,
+): Promise<Map<string, EnrichedCharacter['inventory']>> {
+  const entries = await Promise.all(
+    characters.map(async (char) => {
+      const res = await gw2AuthedGet(`/characters/${encodeURIComponent(char.name)}/inventory`, key);
+      if (!res.ok) return [char.name, null] as const;
+      const data = await res.json().catch(() => null);
+      return [char.name, (data as EnrichedCharacter['inventory']) ?? null] as const;
+    }),
+  );
+  return new Map(entries);
+}
+
+export async function fetchCharactersEnrichedFromBrowser(
+  userId: string,
+  lang: string,
+  apiKey?: string | null,
+): Promise<EnrichedCharacter[] | null> {
+  const key = await resolveApiKey(userId, apiKey);
+  const characters = await fetchCharactersFromBrowser(userId, apiKey);
+  if (!characters || !Array.isArray(characters)) return null;
+
+  const inventoryByName = key
+    ? await fetchCharacterInventories(characters as Array<{ name: string }>, key)
+    : new Map<string, EnrichedCharacter['inventory']>();
+
+  const charactersWithInventory = (characters as EnrichedCharacter[]).map((char) => ({
+    ...char,
+    inventory: inventoryByName.get(char.name) ?? char.inventory ?? null,
+  }));
+
+  const worldIds = [
+    ...new Set(
+      charactersWithInventory
+        .map((c) => c.world)
+        .filter((id): id is number => typeof id === 'number' && id > 0),
+    ),
+  ];
+  const worldNames = await fetchWorldNames(worldIds, lang);
+  const enriched = await enrichCharactersWithItems(charactersWithInventory, lang);
+
+  return enriched.map((char) => ({
+    ...char,
+    worldName: char.world != null ? worldNames.get(char.world) : undefined,
+  }));
 }

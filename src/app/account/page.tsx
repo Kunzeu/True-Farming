@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
@@ -18,10 +20,10 @@ const cards = [
   { href: '/account/search', icon: Search, titleKey: 'account.search', fallback: 'Search', descKey: 'account.searchDesc', fallbackDesc: 'Search across your account data.' },
 ];
 
-function AccountIndexPage() {
+export default function AccountIndexPage() {
   const { t } = useI18n();
   usePageTitle('pageTitles.account', 'Account');
-  const { hasApiKey, loading } = useAccountGw2();
+  const { hasApiKey, loading, refreshing } = useAccountGw2();
   const [showNoKey, setShowNoKey] = useState(false);
 
   useEffect(() => {
@@ -52,6 +54,12 @@ function AccountIndexPage() {
       section="overview"
       title={t('account.title', 'Your Account')}
       subtitle={t('account.subtitle', 'Access your Guild Wars 2 account tools')}>
+      {!loading && !hasApiKey && (
+        <AccountNoApiKeyBanner messageKey="account.noApiKeyDesc" />
+      )}
+
+      <AccountRefreshingIndicator visible={refreshing} />
+
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ href, icon: Icon, titleKey, fallback, descKey, fallbackDesc }) => (
           <Link key={href} href={href} className="group">
@@ -117,5 +125,3 @@ function AccountIndexPage() {
     </AccountLayout>
   );
 }
-
-export default withAccountPage(AccountIndexPage);

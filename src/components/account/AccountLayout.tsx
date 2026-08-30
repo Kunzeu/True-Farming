@@ -10,9 +10,9 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useI18n } from '@/contexts/I18nContext';
-import { AccountGw2Provider, useAccountGw2 } from '@/hooks/useAccountGw2';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import AccountInvalidApiKeyBanner from '@/components/account/AccountInvalidApiKeyBanner';
 
 export type AccountSection = 'overview' | 'wallet' | 'bank' | 'storage' | 'characters' | 'search' | 'settings';
 
@@ -64,6 +64,7 @@ function AccountLayoutInner({ section, title, subtitle, children }: AccountLayou
               <Link
                 key={href}
                 href={href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? 'border-blue-500/60 bg-blue-500/15 text-blue-200'
@@ -81,6 +82,8 @@ function AccountLayoutInner({ section, title, subtitle, children }: AccountLayou
           {subtitle ? <p className="mt-2 text-gray-400">{subtitle}</p> : null}
         </header>
 
+        <AccountInvalidApiKeyBanner />
+
         {children}
       </main>
     </div>
@@ -91,17 +94,7 @@ export default function AccountLayout(props: AccountLayoutProps) {
   return <AccountLayoutInner {...props} />;
 }
 
-/** Envuelve páginas /account/* con auth + contexto GW2 (el hook debe usarse dentro). */
+/** @deprecated Usar `app/account/layout.tsx` + export directo de la página. */
 export function withAccountPage<P extends object>(Page: React.ComponentType<P>) {
-  function AccountPageWrapper(props: P) {
-    return (
-      <ProtectedRoute>
-        <AccountGw2Provider>
-          <Page {...props} />
-        </AccountGw2Provider>
-      </ProtectedRoute>
-    );
-  }
-  AccountPageWrapper.displayName = `withAccountPage(${Page.displayName || Page.name || 'Page'})`;
-  return AccountPageWrapper;
+  return Page;
 }

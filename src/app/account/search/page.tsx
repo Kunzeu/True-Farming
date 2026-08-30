@@ -14,7 +14,7 @@ interface SearchResult {
   location: string;
   rarity?: string;
   character?: string;
-  slot?: string;
+  slot?: number;
   bag?: number;
   category?: string;
 }
@@ -188,8 +188,9 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchAccountSearchIndex } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, readSessionCache, writeSessionCache } from '@/lib/gw2-client-cache';
@@ -203,6 +204,7 @@ const SearchPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [index, setIndex] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchScope, setSearchScope] = useState<'all' | 'bank' | 'characters' | 'storage'>('all');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
@@ -228,6 +230,7 @@ const SearchPage = () => {
     let cancelled = false;
     (async () => {
       if (!cached?.length) setIsLoading(true);
+      else setIsRefreshing(true);
       setApiError(null);
       try {
         const data = await fetchAccountSearchIndex(user.id, lang, apiKey);
@@ -241,7 +244,10 @@ const SearchPage = () => {
           setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
         }
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     })();
     return () => {
@@ -271,6 +277,8 @@ const SearchPage = () => {
       title={t('search.title', 'Search')}
       subtitle={t('search.subtitle', 'Search items in your account')}>
       {!gw2Loading && !hasApiKey && <AccountNoApiKeyBanner />}
+
+      <AccountRefreshingIndicator visible={isRefreshing} />
 
       {/* Search Controls */}
         <div className="mb-8">
@@ -401,4 +409,4 @@ const SearchPage = () => {
   );
 };
 
-export default withAccountPage(SearchPage); 
+export default SearchPage;

@@ -7,8 +7,9 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
@@ -38,6 +39,7 @@ const WalletPage = () => {
   walletDataRef.current = walletData;
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
 
@@ -80,11 +82,14 @@ const WalletPage = () => {
 
   useAccountPageCache(cacheKey, applyCachedWallet);
 
-  const fetchWalletData = useCallback(async () => {
+  const fetchWalletData = useCallback(async (options?: { forceLoading?: boolean }) => {
     if (!user?.id || !apiKey) return;
 
+    const showSpinner = options?.forceLoading || walletDataRef.current.length === 0;
+
     try {
-      if (walletDataRef.current.length === 0) setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
+      else setIsRefreshing(true);
       setApiError(null);
 
       const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds, apiKey);
@@ -105,6 +110,7 @@ const WalletPage = () => {
       setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [user?.id, apiKey, importantCurrencyIds, t, lang, cacheKey]);
 
@@ -127,6 +133,18 @@ const WalletPage = () => {
           messageFallback="Add your Guild Wars 2 API key in Settings to enable Wallet."
         />
       )}
+
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => void fetchWalletData({ forceLoading: true })}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+        >
+          {t('common.refresh', 'Refresh')}
+        </button>
+      </div>
+
+      <AccountRefreshingIndicator visible={isRefreshing} />
 
       {isLoading ? (
           <div className="text-center py-12">
@@ -174,6 +192,13 @@ const WalletPage = () => {
               })}
             </div>
          )}
+
+      {!isLoading && walletData.length === 0 && hasApiKey && (
+        <div className="text-center py-12 text-gray-400">
+          <p>{t('account.walletEmpty', 'No wallet currencies found')}</p>
+        </div>
+      )}
+
       <ServiceUnavailableModal
         isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
         onClose={handleCloseModal}
@@ -183,4 +208,4 @@ const WalletPage = () => {
   );
 };
 
-export default withAccountPage(WalletPage); 
+export default WalletPage;
