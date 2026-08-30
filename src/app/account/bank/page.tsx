@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
  
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Package, Search, Database } from 'lucide-react';
-import Link from 'next/link';
+import { Package, Search, Database } from 'lucide-react';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
 
 interface BankItem {
   id: number;
@@ -57,8 +59,9 @@ interface ItemDetails {
 }
 
 const BankPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.bank', t('pageTitles.bank', 'Bank'));
   const [bankItems, setBankItems] = useState<(BankItem | null)[]>([]);
@@ -241,10 +244,12 @@ const BankPage = () => {
 
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user?.id && hasApiKey) {
       fetchBankData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, fetchBankData]);
+  }, [user?.id, hasApiKey, gw2Loading, fetchBankData]);
 
   const filteredItems = bankItems.filter((item): item is BankItem => 
     item !== null && 
@@ -322,30 +327,17 @@ const BankPage = () => {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('bank.title', 'Bank')}</h1>
-          <p className="text-gray-400">{t('bank.subtitle', 'Your bank inventory')}</p>
-        </div>
+    <AccountLayout
+      section="bank"
+      title={t('bank.title', 'Bank')}
+      subtitle={t('bank.subtitle', 'Your bank inventory')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyBank"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Bank."
+        />
+      )}
 
                  {/* Search and Refresh */}
          <div className="mb-6 flex gap-4">
@@ -858,8 +850,7 @@ const BankPage = () => {
            }}
            description={apiError || undefined}
          />
-       </div>
-     </div>
+    </AccountLayout>
    );
  };
 

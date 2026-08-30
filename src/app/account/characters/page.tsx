@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Users, Search, Shield, Sword, Zap, Key, AlertCircle, Package, Eye, EyeOff } from 'lucide-react';
+import { Users, Search, Shield, Sword, Zap, AlertCircle, Package, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
 
 interface Character {
   name: string;
@@ -49,15 +52,15 @@ interface Character {
 }
 
 const CharactersPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.characters', t('pageTitles.characters', 'Characters'));
   const [characters, setCharacters] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [expandedInventories, setExpandedInventories] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<{ id: number; name?: string; icon?: string; rarity?: string; count: number; vendor_value?: number; description?: string; level?: number; binding?: string; bound_to?: string } | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -73,88 +76,77 @@ const CharactersPage = () => {
     }
   }, [isApiHealthy]);
 
-  useEffect(() => {
-    const checkApiKey = () => {
-      const apiKey = localStorage.getItem('gw2_api_key');
-      setHasApiKey(!!apiKey);
-      return apiKey;
-    };
+  const fetchCharactersData = useCallback(async () => {
+    if (!user?.id) return;
 
-    const fetchCharactersData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        setApiError(null);
-        
-        const apiKey = checkApiKey();
-        if (!apiKey || apiKey.trim().length < 10) {
-          setHasApiKey(false);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Fetch characters and profession data in parallel
-        const [charactersResponse, professionsResponse] = await Promise.all([
-          fetch(`/api/gw2/characters?api_key=${apiKey}`, { cache: 'no-store' }),
-          fetch(`/api/gw2/professions?lang=${lang}`)
-        ]);
+    try {
+      setIsLoading(true);
+      setError(null);
+      setApiError(null);
 
-        let charactersData: Character[] = [];
-        
-        if (charactersResponse.ok) {
-          charactersData = await charactersResponse.json();
-          setCharacters(charactersData);
+      const [charactersResponse, professionsResponse] = await Promise.all([
+        fetch(`/api/gw2/characters?user_id=${user.id}`, { cache: 'no-store' }),
+        fetch(`/api/gw2/professions?lang=${lang}`),
+      ]);
+
+      let charactersData: Character[] = [];
+
+      if (charactersResponse.ok) {
+        charactersData = await charactersResponse.json();
+        setCharacters(charactersData);
+      } else {
+        if (charactersResponse.status === 401) {
+          setError('Invalid API key or insufficient permissions');
+        } else if (charactersResponse.status >= 500 || charactersResponse.status === 0) {
+          setApiError(`API Error: ${charactersResponse.status} ${charactersResponse.statusText}`);
         } else {
-          if (charactersResponse.status === 401) {
-            setError('Invalid API key or insufficient permissions');
-          } else if (charactersResponse.status >= 500 || charactersResponse.status === 0) {
-            setApiError(`API Error: ${charactersResponse.status} ${charactersResponse.statusText}`);
-          } else {
-            setError('Error loading characters');
-          }
+          setError('Error loading characters');
         }
-
-        if (professionsResponse.ok) {
-          const professionsData = await professionsResponse.json();
-          setProfessions(professionsData);
-        } else if (professionsResponse.status >= 500 || professionsResponse.status === 0) {
-          setApiError(`API Error: ${professionsResponse.status} ${professionsResponse.statusText}`);
-        }
-
-        // Load specializations if characters were loaded successfully
-        if (charactersResponse.ok && charactersData.length > 0) {
-          const specializationNames = charactersData
-            .map((char: Character) => char.specialization)
-            .filter((spec): spec is string => Boolean(spec))
-            .filter((value: string, index: number, self: string[]) => self.indexOf(value) === index); // Remove duplicates
-          
-          if (specializationNames.length > 0) {
-            try {
-              const specializationsResponse = await fetch(`/api/gw2/specializations?lang=${lang}`);
-              if (specializationsResponse.ok) {
-                const specializationsData = await specializationsResponse.json();
-                setSpecializations(specializationsData);
-              } else if (specializationsResponse.status >= 500 || specializationsResponse.status === 0) {
-                setApiError(`API Error: ${specializationsResponse.status} ${specializationsResponse.statusText}`);
-              }
-            } catch (error) {
-              console.error('Error fetching specializations:', error);
-              setApiError('Network error or service unavailable');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching characters:', error);
-        setApiError('Network error or service unavailable');
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    if (isAuthenticated) {
-      fetchCharactersData();
+      if (professionsResponse.ok) {
+        const professionsData = await professionsResponse.json();
+        setProfessions(professionsData);
+      } else if (professionsResponse.status >= 500 || professionsResponse.status === 0) {
+        setApiError(`API Error: ${professionsResponse.status} ${professionsResponse.statusText}`);
+      }
+
+      if (charactersResponse.ok && charactersData.length > 0) {
+        const specializationNames = charactersData
+          .map((char: Character) => char.specialization)
+          .filter((spec): spec is string => Boolean(spec))
+          .filter((value: string, index: number, self: string[]) => self.indexOf(value) === index);
+
+        if (specializationNames.length > 0) {
+          try {
+            const specializationsResponse = await fetch(`/api/gw2/specializations?lang=${lang}`);
+            if (specializationsResponse.ok) {
+              const specializationsData = await specializationsResponse.json();
+              setSpecializations(specializationsData);
+            } else if (specializationsResponse.status >= 500 || specializationsResponse.status === 0) {
+              setApiError(`API Error: ${specializationsResponse.status} ${specializationsResponse.statusText}`);
+            }
+          } catch (fetchError) {
+            console.error('Error fetching specializations:', fetchError);
+            setApiError('Network error or service unavailable');
+          }
+        }
+      }
+    } catch (fetchError) {
+      console.error('Error fetching characters:', fetchError);
+      setApiError('Network error or service unavailable');
+    } finally {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, lang]);
+  }, [user?.id, lang]);
+
+  useEffect(() => {
+    if (user?.id && hasApiKey) {
+      void fetchCharactersData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
+    }
+  }, [user?.id, hasApiKey, gw2Loading, fetchCharactersData]);
 
 
   const filteredCharacters = characters.filter(character => 
@@ -375,51 +367,17 @@ const CharactersPage = () => {
     );
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-                    <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                        {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-                        {t('account.back', 'Back to My Account')}
-          </Link>
-                    <h1 className="text-3xl font-bold mb-2">{t('characters.title', 'Characters')}</h1>
-          <p className="text-gray-400">{t('characters.subtitle', 'Your characters and equipment')}</p>
-        </div>
-
-        {/* API Key Warning */}
-        {hasApiKey === false && (
-          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
-            <div className="flex items-center">
-              <Key className="w-5 h-5 text-yellow-500 mr-3" />
-              <div>
-                                <h3 className="text-yellow-400 font-semibold mb-1">{t('characters.apiKeyRequiredTitle', 'API Key Required')}</h3>
-                <p className="text-yellow-300 text-sm mb-3">
-                  {t('characters.apiKeyRequiredDesc', 'To view your characters, you need to configure your Guild Wars 2 API key.')}
-                </p>
-               <Link 
-                 href="/profile" 
-                 className="inline-flex items-center px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors"
-               >
-                                    {t('characters.configureApiKey', 'Configure API Key')}
-               </Link>
-              </div>
-            </div>
-          </div>
-        )}
+    <AccountLayout
+      section="characters"
+      title={t('characters.title', 'Characters')}
+      subtitle={t('characters.subtitle', 'Your characters and equipment')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyCharacters"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Characters."
+        />
+      )}
 
         {/* Error Message */}
         {error && (
@@ -623,8 +581,7 @@ const CharactersPage = () => {
           }}
           description={apiError || undefined}
         />
-       </div>
-     </div>
+    </AccountLayout>
    );
  };
 

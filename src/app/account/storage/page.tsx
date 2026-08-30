@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database, Search } from 'lucide-react';
-import Link from 'next/link';
+import { Database, Search } from 'lucide-react';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
 
 interface Material {
   id: number;
@@ -20,8 +22,9 @@ interface Material {
 }
 
 const StoragePage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.storage', t('pageTitles.storage', 'Material Storage'));
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -93,41 +96,30 @@ const StoragePage = () => {
 
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user?.id && hasApiKey) {
       fetchMaterialsData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, fetchMaterialsData]);
+  }, [user?.id, hasApiKey, gw2Loading, fetchMaterialsData]);
 
   const filteredMaterials = materials.filter(material => 
     material && material.name && material.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('storage.title', 'Material Storage')}</h1>
-          <p className="text-gray-400">{t('storage.subtitle', 'Your Material Storage')}</p>
-        </div>
+    <AccountLayout
+      section="storage"
+      title={t('storage.title', 'Material Storage')}
+      subtitle={t('storage.subtitle', 'Your Material Storage')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyStorage"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Material Storage."
+        />
+      )}
 
-        {/* Search */}
+      {/* Search */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -203,8 +195,7 @@ const StoragePage = () => {
           }}
           description={apiError || undefined}
         />
-      </div>
-    </div>
+    </AccountLayout>
   );
 };
 

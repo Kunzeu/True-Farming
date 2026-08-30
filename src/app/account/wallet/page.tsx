@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Shield } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
 
 interface WalletItem {
   id: number;
@@ -24,8 +25,9 @@ interface Currency {
 }
 
 const WalletPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.wallet', t('account.wallet', 'Wallet'));
   const [walletData, setWalletData] = useState<WalletItem[]>([]);
@@ -148,38 +150,26 @@ const WalletPage = () => {
     }, [user?.id, importantCurrencyIds, t, lang]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user?.id && hasApiKey) {
       fetchWalletData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, importantCurrencyIds, fetchWalletData]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Access Required</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            Go to Login
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  }, [user?.id, hasApiKey, gw2Loading, fetchWalletData]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('account.wallet', 'Wallet')}</h1>
-          <p className="text-gray-400">{t('account.walletSubtitle', 'Your coins and resources')}</p>
-        </div>
+    <AccountLayout
+      section="wallet"
+      title={t('account.wallet', 'Wallet')}
+      subtitle={t('account.walletSubtitle', 'Your coins and resources')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyWallet"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Wallet."
+        />
+      )}
 
-        {isLoading ? (
+      {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-400">{t('account.loadingWallet', 'Loading wallet...')}</p>
@@ -225,14 +215,12 @@ const WalletPage = () => {
               })}
             </div>
          )}
-      </div>
-
       <ServiceUnavailableModal
         isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
         onClose={handleCloseModal}
         description={apiError || undefined}
       />
-    </div>
+    </AccountLayout>
   );
 };
 

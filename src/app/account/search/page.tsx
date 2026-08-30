@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Search, Package, Database } from 'lucide-react';
-import Link from 'next/link';
+import { Search, Package, Database } from 'lucide-react';
 import Image from 'next/image';
 
 interface SearchResult {
@@ -23,10 +22,14 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
 
 const SearchPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.search', t('pageTitles.search', 'Account Search'));
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,19 +44,18 @@ const SearchPage = () => {
   }, [isApiHealthy]);
 
   useEffect(() => {
+    if (!user?.id || gw2Loading) return;
+    if (!hasApiKey) {
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       setIsLoading(true);
       setApiError(null);
       try {
-        const apiKey = localStorage.getItem('gw2_api_key');
-        const params = new URLSearchParams({ lang });
-        if (user?.id) params.set('user_id', user.id);
-        else if (apiKey && apiKey.trim().length >= 10) params.set('api_key', apiKey);
-        else {
-          setIsLoading(false);
-          return;
-        }
+        const params = new URLSearchParams({ lang, user_id: user.id });
         const response = await fetch(`/api/gw2/search?${params}`, { cache: 'no-store' });
         if (cancelled) return;
         if (response.ok) {
@@ -71,7 +73,7 @@ const SearchPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [lang, user?.id]);
+  }, [lang, user?.id, hasApiKey, gw2Loading]);
 
   const searchResults = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -84,32 +86,14 @@ const SearchPage = () => {
     });
   }, [index, searchTerm, searchScope]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-                    <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                        {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-                     <h1 className="text-3xl font-bold mb-2">{t('search.title', 'Search')}</h1>
-                     <p className="text-gray-400">{t('search.subtitle', 'Search items in your account')}</p>
-        </div>
+    <AccountLayout
+      section="search"
+      title={t('search.title', 'Search')}
+      subtitle={t('search.subtitle', 'Search items in your account')}>
+      {!gw2Loading && !hasApiKey && <AccountNoApiKeyBanner />}
 
-        {/* Search Controls */}
+      {/* Search Controls */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -244,8 +228,7 @@ const SearchPage = () => {
           }}
           description={apiError || undefined}
         />
-      </div>
-    </div>
+    </AccountLayout>
   );
 };
 
