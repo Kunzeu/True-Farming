@@ -1,211 +1,298 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Database, Search } from 'lucide-react';
-import Link from 'next/link';
+import { Database, Search } from 'lucide-react';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchMaterialsFromBrowser, enrichMaterialPrices } from '@/lib/gw2-client-account-data';
+import type { MaterialStorageData } from '@/lib/gw2-client-account-data';
+import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { useAccountPageCache } from '@/hooks/useAccountPageCache';
+import type { MaterialCategoryDef, MaterialSortKey, StorageMaterial } from '@/lib/gw2-material-storage';
+import {
+  getRarityBorderColor,
+  groupMaterialsByCategory,
+  sortMaterials,
+} from '@/lib/gw2-material-storage';
 
-interface Material {
-  id: number;
-  name: string;
-  icon?: string;
-  count: number;
-  max_count: number;
-  category?: string;
-}
+const ALL_CATEGORIES = 'all';
 
 const StoragePage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.storage', t('pageTitles.storage', 'Material Storage'));
-  const [materials, setMaterials] = useState<Material[]>([]);
+
+  const [categories, setCategories] = useState<MaterialCategoryDef[]>([]);
+  const [materials, setMaterials] = useState<StorageMaterial[]>([]);
+  const materialsRef = useRef(materials);
+  materialsRef.current = materials;
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
+  const [sortBy, setSortBy] = useState<MaterialSortKey>('in-game');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
 
-  // Reset modal closed state when API becomes healthy
   useEffect(() => {
-    if (isApiHealthy) {
-      setIsModalClosed(false);
-    }
+    if (isApiHealthy) setIsModalClosed(false);
   }, [isApiHealthy]);
 
-  const fetchMaterialsData = useCallback(async () => {
+  const cacheKey = user?.id ? `gw2_storage_${user.id}_${lang}` : null;
+
+  const applyCachedStorage = useCallback((cached: MaterialStorageData) => {
+    setCategories(cached.categories);
+    setMaterials(cached.materials);
+    setIsLoading(false);
+  }, []);
+
+  useAccountPageCache(cacheKey, applyCachedStorage);
+
+  const fetchMaterialsData = useCallback(async (options?: { forceLoading?: boolean }) => {
+    if (!user?.id || !apiKey) return;
+
+    const showSpinner = options?.forceLoading || materialsRef.current.length === 0;
+
     try {
-      setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
       setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-          }
-        } catch {}
-      }
 
-      if (!apiKeyAllowed) {
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
-        setIsLoading(false);
-        return;
-      }
+      const data = await fetchMaterialsFromBrowser(user.id, lang, apiKey, { withPrices: false });
+      if (!data) return;
 
-      // Preferir user_id en servidor (evita exponer API key)
-      const response = user?.id
-        ? await fetch(`/api/gw2/materials?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
-        : await (async () => {
-            const apiKey = localStorage.getItem('gw2_api_key');
-            if (!apiKey || apiKey.trim().length < 10) {
-              return new Response(null, { status: 400 });
-            }
-            return fetch(`/api/gw2/materials?api_key=${apiKey}&lang=${lang}`);
-          })();
-      if (response.ok) {
-        const data = await response.json();
-        setMaterials(data);
-        } else {
-          if (response.status >= 500 || response.status === 0) {
-            setApiError(`API Error: ${response.status} ${response.statusText}`);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching materials:', error);
-        setApiError('Network error or service unavailable');
-      } finally {
-        setIsLoading(false);
-      }
-    }, [user?.id, t, lang]);
+      setCategories(data.categories);
+      setMaterials(data.materials);
+      setIsLoading(false);
+      if (cacheKey) writeSessionCache(cacheKey, data, GW2_CACHE_TTL.accountPage);
 
+      const enriched = await enrichMaterialPrices(data.materials);
+      const withPrices = { categories: data.categories, materials: enriched };
+      setMaterials(enriched);
+      if (cacheKey) writeSessionCache(cacheKey, withPrices, GW2_CACHE_TTL.accountPage);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(
+        message.includes('429')
+          ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds')
+          : message,
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, apiKey, t, lang, cacheKey]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchMaterialsData();
+    if (user?.id && apiKey) {
+      void fetchMaterialsData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, fetchMaterialsData]);
+  }, [user?.id, apiKey, gw2Loading, fetchMaterialsData]);
 
-  const filteredMaterials = materials.filter(material => 
-    material && material.name && material.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const formatGold = (copper: number) => ({
+    gold: Math.floor(copper / 10000),
+    silver: Math.floor((copper % 10000) / 100),
+    copper: copper % 100,
+  });
+
+  const filteredMaterials = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    let list = materials;
+    if (categoryFilter !== ALL_CATEGORIES) {
+      const categoryId = Number(categoryFilter);
+      list = list.filter((m) => m.categoryId === categoryId);
+    }
+    if (term) {
+      list = list.filter((m) => m.name.toLowerCase().includes(term));
+    }
+    return list;
+  }, [materials, searchTerm, categoryFilter]);
+
+  const sections = useMemo(() => {
+    if (categoryFilter !== ALL_CATEGORIES) {
+      const category = categories.find((c) => c.id === Number(categoryFilter));
+      if (!category) return [];
+      return [{ category, materials: sortMaterials(filteredMaterials, sortBy) }];
+    }
+    return groupMaterialsByCategory(filteredMaterials, categories).map((section) => ({
+      ...section,
+      materials: sortMaterials(section.materials, sortBy),
+    }));
+  }, [filteredMaterials, categories, categoryFilter, sortBy]);
+
+  const visibleCount = useMemo(
+    () => sections.reduce((sum, section) => sum + section.materials.length, 0),
+    [sections],
   );
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const totalValue = useMemo(
+    () => materials.reduce((sum, m) => sum + m.count * (m.unitPrice ?? 0), 0),
+    [materials],
+  );
+  const totalValueParts = formatGold(totalValue);
+
+  const sortOptions: { value: MaterialSortKey; label: string }[] = [
+    { value: 'in-game', label: t('storage.sort.inGame', 'In-Game') },
+    { value: 'name', label: t('storage.sort.name', 'Name') },
+    { value: 'price', label: t('storage.sort.price', 'Price') },
+    { value: 'unit-price', label: t('storage.sort.unitPrice', 'Individual Price') },
+    { value: 'rarity', label: t('storage.sort.rarity', 'Rarity') },
+    { value: 'count', label: t('storage.sort.count', 'Count') },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('storage.title', 'Material Storage')}</h1>
-          <p className="text-gray-400">{t('storage.subtitle', 'Your Material Storage')}</p>
-        </div>
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder={t('storage.searchPlaceholder', 'Search materials...')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">{t('storage.loading', 'Loading materials...')}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredMaterials.map((material) => (
-              <div key={material.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                                 <div className="flex items-center mb-3">
-                   {material.icon && (
-                     <Image 
-                       src={material.icon} 
-                       alt={material.name}
-                       width={32}
-                       height={32}
-                       className="mr-3"
-                     />
-                   )}
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">{material.name}</h3>
-                    <p className="text-gray-400 text-xs">ID: {material.id}</p>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-blue-400 font-semibold">
-                    {material.count || 0}
-                  </span>
-                  <span className="text-gray-400 text-xs">
-                    / {material.max_count || 250}
-                  </span>
-                </div>
-                {/* Progress bar */}
-                <div className="mt-2 bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all"
-                    style={{ 
-                      width: `${Math.min(((material.count || 0) / (material.max_count || 250)) * 100, 100)}%` 
-                    }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && filteredMaterials.length === 0 && (
-          <div className="text-center py-12">
-            <Database className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-300 mb-2">{t('storage.emptyTitle', 'No materials')}</h3>
-            <p className="text-gray-400">{t('storage.emptyDesc', 'There are no materials in your storage')}</p>
-          </div>
-        )}
-
-        <ServiceUnavailableModal
-          isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
-          onClose={() => {
-            setApiError(null);
-            setIsModalClosed(true);
-          }}
-          description={apiError || undefined}
+    <AccountLayout
+      section="storage"
+      title={t('storage.title', 'Material Storage')}
+      subtitle={t('storage.subtitle', 'Your Material Storage')}
+    >
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyStorage"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Material Storage."
         />
+      )}
+
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder={t('storage.searchPlaceholder', 'Search materials...')}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <label className="flex flex-col gap-1 text-sm text-gray-400">
+            {t('storage.filterCategory', 'Category')}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="min-w-[200px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value={ALL_CATEGORIES}>{t('storage.allCategories', 'All categories')}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={String(category.id)}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm text-gray-400">
+            {t('storage.orderBy', 'Order By')}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as MaterialSortKey)}
+              className="min-w-[180px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
-    </div>
+
+      {!isLoading && materials.length > 0 && (
+        <div className="mb-6 flex items-center gap-2 text-sm text-gray-300">
+          <span className="text-gray-400">{t('storage.totalValue', 'Total Value')}</span>
+          <span className="text-yellow-400 font-semibold">{totalValueParts.gold}</span>
+          <Image src="/images/expansions/Gold.webp" alt="" width={16} height={16} />
+          <span>{totalValueParts.silver}</span>
+          <Image src="/images/expansions/Silver.webp" alt="" width={16} height={16} />
+          <span>{String(totalValueParts.copper).padStart(2, '0')}</span>
+          <Image src="/images/expansions/Copper.webp" alt="" width={16} height={16} />
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
+          <p className="text-gray-400">{t('storage.loading', 'Loading materials...')}</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {sections.map(({ category, materials: sectionMaterials }) => (
+            <section key={category.id}>
+              <h2 className="text-lg font-semibold text-gray-200 mb-4 border-b border-gray-700 pb-2">
+                {category.name}
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  ({sectionMaterials.length})
+                </span>
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                {sectionMaterials.map((material) => (
+                  <div
+                    key={material.id}
+                    title={material.name}
+                    className={`relative rounded-lg border-2 ${getRarityBorderColor(material.rarity)} bg-gray-800 p-2 hover:bg-gray-700 transition-colors`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      {material.icon ? (
+                        <Image
+                          src={material.icon}
+                          alt={material.name}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-700 rounded" />
+                      )}
+                      <span className="text-xs text-center text-gray-300 line-clamp-2 leading-tight">
+                        {material.name}
+                      </span>
+                      <span className="text-blue-400 font-semibold text-sm">
+                        {material.count.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && visibleCount === 0 && (
+        <div className="text-center py-12">
+          <Database className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">
+            {t('storage.emptyTitle', 'No materials')}
+          </h3>
+          <p className="text-gray-400">
+            {searchTerm || categoryFilter !== ALL_CATEGORIES
+              ? t('storage.emptyFilter', 'No materials match your filters')
+              : t('storage.emptyDesc', 'There are no materials in your storage')}
+          </p>
+        </div>
+      )}
+
+      <ServiceUnavailableModal
+        isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
+        onClose={() => {
+          setApiError(null);
+          setIsModalClosed(true);
+        }}
+        description={apiError || undefined}
+      />
+    </AccountLayout>
   );
 };
 
-export default StoragePage; 
+export default withAccountPage(StoragePage);

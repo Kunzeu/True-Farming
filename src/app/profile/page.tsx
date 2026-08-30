@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -16,7 +17,8 @@ import {
   EyeOff,
   Copy,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft,
 } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
@@ -427,6 +429,13 @@ export default function ProfilePage() {
       <div className="min-h-screen">
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Link
+            href="/account"
+            className="mb-6 inline-flex items-center text-blue-400 hover:text-blue-300">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t('account.back', 'Back to My Account')}
+          </Link>
+
           {/* Header Hero */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}

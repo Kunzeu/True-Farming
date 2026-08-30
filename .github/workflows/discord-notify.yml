@@ -20,40 +20,44 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_USER: ${{ github.event.pull_request.user.login }}
         run: |
+          set +e
           WEBHOOK="${DISCORD_WEBHOOK_URL:-$DISCORD_WEBHOOK}"
           if [ -z "$WEBHOOK" ]; then
             echo "::warning::Sin DISCORD_WEBHOOK_URL ni DISCORD_WEBHOOK; se omite la notificación."
             exit 0
           fi
-          python3 - <<'PY'
-          import json, os, urllib.request
-          payload = {
+          # Discord exige User-Agent; sin él suele devolver 403.
+          # wait=true: respuesta síncrona y errores más claros.
+          case "$WEBHOOK" in
+            *\?*) WEBHOOK="${WEBHOOK}&wait=true" ;;
+            *)    WEBHOOK="${WEBHOOK}?wait=true" ;;
+          esac
+          PAYLOAD=$(python3 -c 'import json,os; print(json.dumps({
             "username": "GitHub PR Notifier",
             "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
             "embeds": [{
               "title": "New PR opened",
-              "description": f"**{os.environ['PR_TITLE']}**",
+              "description": "**" + os.environ["PR_TITLE"] + "**",
               "url": os.environ["PR_URL"],
               "color": 3447003,
               "fields": [
                 {"name": "Creator", "value": os.environ["PR_USER"], "inline": True},
-                {"name": "URL", "value": os.environ["PR_URL"], "inline": False},
+                {"name": "URL", "value": os.environ["PR_URL"], "inline": False}
               ],
-              "thumbnail": {
-                "url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"
-              },
-            }],
-          }
-          webhook = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("DISCORD_WEBHOOK")
-          req = urllib.request.Request(
-            webhook,
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-          )
-          with urllib.request.urlopen(req) as res:
-            print(res.status)
-          PY
+              "thumbnail": {"url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"}
+            }]
+          }))')
+          HTTP=$(curl -sS -o /tmp/discord-out.txt -w "%{http_code}" \
+            -X POST "$WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: TrueFarming-GitHubNotify/1.0" \
+            --data "$PAYLOAD")
+          echo "Discord HTTP $HTTP"
+          cat /tmp/discord-out.txt || true
+          if [ "$HTTP" != "200" ] && [ "$HTTP" != "204" ]; then
+            echo "::warning::Discord webhook falló ($HTTP). Revisa el secret DISCORD_WEBHOOK_URL (URL completa del webhook)."
+          fi
+          exit 0
 
   notify-failure:
     runs-on: ubuntu-latest
@@ -68,14 +72,17 @@ jobs:
           WF_URL: ${{ github.event.workflow_run.html_url }}
           REPO: ${{ github.repository }}
         run: |
+          set +e
           WEBHOOK="${DISCORD_WEBHOOK_URL:-$DISCORD_WEBHOOK}"
           if [ -z "$WEBHOOK" ]; then
             echo "::warning::Sin DISCORD_WEBHOOK_URL ni DISCORD_WEBHOOK; se omite la notificación."
             exit 0
           fi
-          python3 - <<'PY'
-          import json, os, urllib.request
-          payload = {
+          case "$WEBHOOK" in
+            *\?*) WEBHOOK="${WEBHOOK}&wait=true" ;;
+            *)    WEBHOOK="${WEBHOOK}?wait=true" ;;
+          esac
+          PAYLOAD=$(python3 -c 'import json,os; print(json.dumps({
             "username": "GitHub Workflow Notifier",
             "avatar_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
             "embeds": [{
@@ -83,22 +90,21 @@ jobs:
               "color": 15158332,
               "fields": [
                 {"name": "Workflow", "value": os.environ["WF_NAME"], "inline": False},
-                {"name": "Branch", "value": os.environ["WF_BRANCH"], "inline": True},
+                {"name": "Branch", "value": os.environ["WF_BRANCH"] or "—", "inline": True},
                 {"name": "Repository", "value": os.environ["REPO"], "inline": True},
-                {"name": "URL", "value": os.environ["WF_URL"], "inline": False},
+                {"name": "URL", "value": os.environ["WF_URL"], "inline": False}
               ],
-              "thumbnail": {
-                "url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"
-              },
-            }],
-          }
-          webhook = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("DISCORD_WEBHOOK")
-          req = urllib.request.Request(
-            webhook,
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-          )
-          with urllib.request.urlopen(req) as res:
-            print(res.status)
-          PY
+              "thumbnail": {"url": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"}
+            }]
+          }))')
+          HTTP=$(curl -sS -o /tmp/discord-out.txt -w "%{http_code}" \
+            -X POST "$WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: TrueFarming-GitHubNotify/1.0" \
+            --data "$PAYLOAD")
+          echo "Discord HTTP $HTTP"
+          cat /tmp/discord-out.txt || true
+          if [ "$HTTP" != "200" ] && [ "$HTTP" != "204" ]; then
+            echo "::warning::Discord webhook falló ($HTTP). Revisa el secret DISCORD_WEBHOOK_URL."
+          fi
+          exit 0

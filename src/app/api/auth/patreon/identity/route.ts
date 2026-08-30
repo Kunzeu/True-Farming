@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Incluimos fields y includes para obtener toda la información necesaria
     const identityResponse = await fetch(
       'https://www.patreon.com/api/oauth2/v2/identity?' + new URLSearchParams({
-        'include': 'memberships,memberships.currently_entitled_tiers',
+        'include': 'memberships,memberships.currently_entitled_tiers,memberships.campaign',
         'fields[user]': 'email,first_name,full_name,image_url,thumb_url,url,vanity',
         'fields[member]': 'patron_status,currently_entitled_amount_cents,lifetime_support_cents,campaign_lifetime_support_cents,last_charge_status,last_charge_date,pledge_relationship_start',
         'fields[tier]': 'amount_cents,title,description,image_url',

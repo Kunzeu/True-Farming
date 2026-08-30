@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Shield } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
+import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 
 interface WalletItem {
   id: number;
@@ -24,11 +28,14 @@ interface Currency {
 }
 
 const WalletPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.wallet', t('account.wallet', 'Wallet'));
   const [walletData, setWalletData] = useState<WalletItem[]>([]);
+  const walletDataRef = useRef(walletData);
+  walletDataRef.current = walletData;
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -60,126 +67,68 @@ const WalletPage = () => {
     setIsModalClosed(true);
   };
 
-  const fetchWalletData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-            if (summary.accountInfo?.name) {
-              // opcional: podríamos mostrar el nombre de cuenta en el futuro
-            }
-          }
-        } catch {}
-      }
+  const cacheKey = user?.id ? `gw2_wallet_${user.id}_${lang}` : null;
 
-      if (!apiKeyAllowed) {
-        // Si la API key es inválida, informar para guiar al usuario
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
+  const applyCachedWallet = useCallback(
+    (cached: { wallet: WalletItem[]; currencies: Currency[] }) => {
+      setWalletData(cached.wallet);
+      setCurrencies(cached.currencies);
+      setIsLoading(false);
+    },
+    [],
+  );
+
+  useAccountPageCache(cacheKey, applyCachedWallet);
+
+  const fetchWalletData = useCallback(async () => {
+    if (!user?.id || !apiKey) return;
+
+    try {
+      if (walletDataRef.current.length === 0) setIsLoading(true);
+      setApiError(null);
+
+      const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds, apiKey);
+      if (!result) {
         setIsLoading(false);
         return;
       }
 
-      // Preferir user_id en servidor (evita exponer API key)
-      let walletResponse = null as Response | null;
-      if (user?.id) {
-        walletResponse = await fetch(`/api/gw2/wallet?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' });
-      } else {
-        const apiKey = localStorage.getItem('gw2_api_key');
-        if (!apiKey || apiKey.trim().length < 10) {
-          return;
-        }
-        walletResponse = await fetch(`/api/gw2/wallet?api_key=${apiKey}&lang=${lang}`);
+      const onlyImportant = result.currencies.filter((c) => importantCurrencyIds.includes(c.id));
+      setWalletData(result.wallet);
+      setCurrencies(onlyImportant);
+      if (cacheKey) {
+        writeSessionCache(cacheKey, { wallet: result.wallet, currencies: onlyImportant }, GW2_CACHE_TTL.accountPage);
       }
-      if (walletResponse.ok) {
-        const payload = await walletResponse.json();
-        const serverWallet: WalletItem[] = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload.wallet) ? payload.wallet : [];
-        const serverCurrencies: Currency[] = Array.isArray(payload?.currencies)
-          ? payload.currencies
-          : [];
-
-        const filteredWalletData = serverWallet.filter((item: WalletItem) => 
-          importantCurrencyIds.includes(item.id)
-        );
-        setWalletData(filteredWalletData);
-        if (serverCurrencies.length > 0) {
-          const onlyImportant = serverCurrencies.filter(c => importantCurrencyIds.includes(c.id));
-          setCurrencies(onlyImportant);
-        } else {
-          // Fallback: obtener currencies desde la API pública
-          const currenciesResponse = await fetch(`https://api.guildwars2.com/v2/currencies?ids=${importantCurrencyIds.join(',')}`, {
-            headers: {
-              'Accept': 'application/json',
-              'Accept-Encoding': 'gzip, deflate, br'
-            }
-          });
-          if (currenciesResponse.ok) {
-            const currenciesData = await currenciesResponse.json();
-            setCurrencies(currenciesData);
-          } else if (currenciesResponse.status >= 500 || currenciesResponse.status === 0) {
-            setApiError(`API Error: ${currenciesResponse.status} ${currenciesResponse.statusText}`);
-          }
-        }
-      } else {
-        if (walletResponse.status >= 500 || walletResponse.status === 0) {
-          setApiError(`API Error: ${walletResponse.status} ${walletResponse.statusText}`);
-        }
-      }
-      } catch (error) {
-        console.error('Error fetching wallet:', error);
-        setApiError('Network error or service unavailable');
-      } finally {
-        setIsLoading(false);
-      }
-    }, [user?.id, importantCurrencyIds, t, lang]);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, apiKey, importantCurrencyIds, t, lang, cacheKey]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchWalletData();
+    if (user?.id && apiKey) {
+      void fetchWalletData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, importantCurrencyIds, fetchWalletData]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Access Required</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            Go to Login
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  }, [user?.id, apiKey, gw2Loading, fetchWalletData]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('account.wallet', 'Wallet')}</h1>
-          <p className="text-gray-400">{t('account.walletSubtitle', 'Your coins and resources')}</p>
-        </div>
+    <AccountLayout
+      section="wallet"
+      title={t('account.wallet', 'Wallet')}
+      subtitle={t('account.walletSubtitle', 'Your coins and resources')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyWallet"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Wallet."
+        />
+      )}
 
-        {isLoading ? (
+      {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-400">{t('account.loadingWallet', 'Loading wallet...')}</p>
@@ -225,15 +174,13 @@ const WalletPage = () => {
               })}
             </div>
          )}
-      </div>
-
       <ServiceUnavailableModal
         isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
         onClose={handleCloseModal}
         description={apiError || undefined}
       />
-    </div>
+    </AccountLayout>
   );
 };
 
-export default WalletPage; 
+export default withAccountPage(WalletPage); 

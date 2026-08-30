@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { comparePassword } from '@/lib/server/password-utils';
 import { generateToken } from '@/lib/server/jwt-utils';
 import { pool } from '@/lib/postgres-db';
+import { syncPatreonMembershipForUser } from '@/lib/server/patreon-sync';
 
 export const runtime = 'nodejs';
 
@@ -83,6 +84,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Invalid credentials' 
       }, { status: 401 });
+    }
+
+    // Re-sincronizar Patreon con la API del creador (evita roles/status obsoletos)
+    if (user.patreonId) {
+      try {
+        const synced = await syncPatreonMembershipForUser({
+          patreonId: user.patreonId,
+          userId: user.id,
+          email: user.email,
+        });
+        user.patreonStatus = synced.patreonStatus;
+        user.patreonTier = synced.patreonTier;
+        user.role = synced.role;
+      } catch (syncError) {
+        console.error('Patreon sync on login failed:', syncError);
+      }
     }
 
     // Generate JWT token

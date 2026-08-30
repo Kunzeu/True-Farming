@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
  
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Package, Search, Database } from 'lucide-react';
-import Link from 'next/link';
+import { Package, Search, Database } from 'lucide-react';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchBankFromBrowser, enrichBankWithPrices } from '@/lib/gw2-client-account-data';
+import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 
 interface BankItem {
   id: number;
@@ -57,20 +62,16 @@ interface ItemDetails {
 }
 
 const BankPage = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { t, lang } = useI18n();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.bank', t('pageTitles.bank', 'Bank'));
   const [bankItems, setBankItems] = useState<(BankItem | null)[]>([]);
+  const bankItemsRef = useRef(bankItems);
+  bankItemsRef.current = bankItems;
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [bankSummary, setBankSummary] = useState<BankSummary>({
-    totalBuyPrice: 0,
-    totalSellPrice: 0,
-    totalValue: 0,
-    usedSlots: 0,
-    totalSlots: 30
-  });
   const [selectedItem, setSelectedItem] = useState<{ item: BankItem; details: ItemDetails; price?: ItemPrice } | null>(null);
   const [isLoadingItemDetails, setIsLoadingItemDetails] = useState(false);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
@@ -183,68 +184,51 @@ const BankPage = () => {
     setSelectedItem(null);
   };
 
-  const fetchBankData = useCallback(async () => {
+  const cacheKey = user?.id ? `gw2_bank_${user.id}_${lang}` : null;
+
+  const applyCachedBank = useCallback((cached: (BankItem | null)[]) => {
+    setBankItems(cached);
+    setIsLoading(false);
+  }, []);
+
+  useAccountPageCache(cacheKey, applyCachedBank);
+
+  const fetchBankData = useCallback(async (options?: { forceLoading?: boolean }) => {
+    if (!user?.id || !apiKey) return;
+
+    const showSpinner = options?.forceLoading || bankItemsRef.current.length === 0;
+
     try {
-      setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
       setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-          }
-        } catch {}
-      }
 
-      if (!apiKeyAllowed) {
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
-        setIsLoading(false);
-        return;
-      }
+      const data = await fetchBankFromBrowser(user.id, lang, apiKey, { withPrices: false });
+      if (!data) return;
 
-      const response = user?.id
-        ? await fetch(`/api/gw2/bank?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
-        : await (async () => {
-            const apiKey = localStorage.getItem('gw2_api_key') || sessionStorage.getItem('gw2_api_key');
-            if (!apiKey || apiKey.trim().length < 10) {
-              return new Response(null, { status: 400 });
-            }
-            return fetch(`/api/gw2/bank?api_key=${apiKey}&lang=${lang}`);
-          })();
-      if (response.ok) {
-        const data = await response.json();
-        setBankItems(data);
-        // Calcular resumen usando precios incluidos por el servidor si están presentes
-        await calculateBankSummary(data);
-      } else {
-        console.error('Bank API error:', response.status, response.statusText);
-        if (response.status >= 500 || response.status === 0) {
-          setApiError(`API Error: ${response.status} ${response.statusText}`);
-        }
-      }
+      setBankItems(data);
+      setIsLoading(false);
+      if (cacheKey) writeSessionCache(cacheKey, data, GW2_CACHE_TTL.accountPage);
+
+      const enriched = await enrichBankWithPrices(data);
+      setBankItems(enriched);
+      if (cacheKey) writeSessionCache(cacheKey, enriched, GW2_CACHE_TTL.accountPage);
     } catch (error) {
       console.error('Error fetching bank data:', error);
-      setApiError('Network error or service unavailable');
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, lang, t]);
+  }, [user?.id, apiKey, lang, t, cacheKey]);
 
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchBankData();
+    if (user?.id && apiKey) {
+      void fetchBankData();
+    } else if (!gw2Loading) {
+      setIsLoading(false);
     }
-  }, [isAuthenticated, fetchBankData]);
+  }, [user?.id, apiKey, gw2Loading, fetchBankData]);
 
   const filteredItems = bankItems.filter((item): item is BankItem => 
     item !== null && 
@@ -258,94 +242,38 @@ const BankPage = () => {
   const slotsPerTab = 30;
   const bankTabs = Math.max(1, Math.ceil((bankItems.length || slotsPerTab) / slotsPerTab));
 
-  // Calculate bank summary with real prices
-  const calculateBankSummary = async (items: (BankItem | null)[]) => {
-    // Filter out null items (empty slots)
-    const validItems = items.filter((item): item is BankItem => item !== null);
-    
-    if (validItems.length === 0) {
-      console.log('No valid items, setting summary to 0');
-      setBankSummary({
-        totalBuyPrice: 0,
-        totalSellPrice: 0,
-        totalValue: 0,
-        usedSlots: 0,
-        totalSlots: items.length
-      });
-      return;
-    }
+  const bankSummary = useMemo<BankSummary>(() => {
+    const validItems = bankItems.filter((item): item is BankItem => item !== null);
+    let totalBuyPrice = 0;
+    let totalSellPrice = 0;
 
-    try {
-      // Si el servidor ya incluyó 'price' por ítem, usarlo y evitar fetch
-      const serverHasPrices = validItems.every((it) => it.price && it.price.sells);
-      let totalBuyPrice = 0;
-      let totalSellPrice = 0;
-      if (serverHasPrices) {
-        validItems.forEach((item) => {
-          const price = item.price!;
-          const buyPrice = price.buys.unit_price * item.count;
-          const sellPrice = price.sells.unit_price * item.count;
-          totalBuyPrice += buyPrice;
-          totalSellPrice += sellPrice;
-        });
-      } else {
-        // Fallback: obtener precios en cliente
-        const itemIds = [...new Set(validItems.map(item => item.id))];
-        const pricesResponse = await fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${itemIds.join(',')}`);
-        if (pricesResponse.ok) {
-          const prices: ItemPrice[] = await pricesResponse.json();
-          validItems.forEach(item => {
-            const price = prices.find(p => p.id === item.id);
-            if (price) {
-              const buyPrice = price.buys.unit_price * item.count;
-              const sellPrice = price.sells.unit_price * item.count;
-              totalBuyPrice += buyPrice;
-              totalSellPrice += sellPrice;
-            } else {
-              const craftingValue = (item.value || 0) * item.count;
-              totalBuyPrice += craftingValue;
-              totalSellPrice += craftingValue;
-            }
-          });
-        }
+    validItems.forEach((item) => {
+      if (item.price?.sells) {
+        totalBuyPrice += (item.price.buys?.unit_price ?? 0) * item.count;
+        totalSellPrice += item.price.sells.unit_price * item.count;
       }
+    });
 
-      setBankSummary({
-        totalBuyPrice,
-        totalSellPrice,
-        totalValue: totalSellPrice,
-        usedSlots: validItems.length,
-        totalSlots: items.length
-      });
-    } catch (error) {
-      console.error('Error calculating bank summary:', error);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">{t('auth.accessRequired', 'Access Required')}</h2>
-          <Link href="/login" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-            {t('auth.goToLogin', 'Go to Login')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
+    return {
+      totalBuyPrice,
+      totalSellPrice,
+      totalValue: totalSellPrice,
+      usedSlots: validItems.length,
+      totalSlots: bankItems.length || 30,
+    };
+  }, [bankItems]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Link href="/account" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('account.back', 'Back to My Account')}
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">{t('bank.title', 'Bank')}</h1>
-          <p className="text-gray-400">{t('bank.subtitle', 'Your bank inventory')}</p>
-        </div>
+    <AccountLayout
+      section="bank"
+      title={t('bank.title', 'Bank')}
+      subtitle={t('bank.subtitle', 'Your bank inventory')}>
+      {!gw2Loading && !hasApiKey && (
+        <AccountNoApiKeyBanner
+          messageKey="account.noApiKeyBank"
+          messageFallback="Add your Guild Wars 2 API key in Settings to enable Bank."
+        />
+      )}
 
                  {/* Search and Refresh */}
          <div className="mb-6 flex gap-4">
@@ -360,7 +288,7 @@ const BankPage = () => {
              />
            </div>
           <button
-            onClick={fetchBankData}
+            onClick={() => void fetchBankData({ forceLoading: true })}
             className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
            >
             🔄 {t('common.refresh', 'Refresh')}
@@ -369,9 +297,9 @@ const BankPage = () => {
 
                  {isLoading ? (
           <div className="text-center py-12">
-             <div className="animate-spin rounded-full h-15 w-15 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
             <p className="text-gray-400">{t('bank.loading', 'Loading bank...')}</p>
-           </div>
+          </div>
          ) : (
            <div className="space-y-6">
                            {/* Financial Summary */}
@@ -858,9 +786,8 @@ const BankPage = () => {
            }}
            description={apiError || undefined}
          />
-       </div>
-     </div>
+    </AccountLayout>
    );
  };
 
-export default BankPage; 
+export default withAccountPage(BankPage); 

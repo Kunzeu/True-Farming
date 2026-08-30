@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { pool } from '@/lib/postgres-db';
 import { gw2Get } from '@/lib/gw2-ids';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const apiKey = request.nextUrl.searchParams.get('api_key') || request.headers.get('x-api-key');
+    const searchParams = request.nextUrl.searchParams;
+    let apiKey = searchParams.get('api_key') || request.headers.get('x-api-key') || undefined;
+    const userId = searchParams.get('user_id');
+
+    if (!apiKey && userId) {
+      try {
+        const result = await pool.query('SELECT gw2_api_key AS "gw2ApiKey" FROM users WHERE id = $1', [userId]);
+        if (result.rows.length > 0) apiKey = result.rows[0].gw2ApiKey || undefined;
+      } catch {
+        /* ignore */
+      }
+    }
+
     if (!apiKey) {
       return NextResponse.json({ error: 'API key required' }, { status: 400 });
     }

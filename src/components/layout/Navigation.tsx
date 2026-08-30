@@ -22,7 +22,8 @@ import {
   ShoppingCart,
   Star,
   Gift,
-  Search
+  Search,
+  LayoutGrid,
 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 
@@ -986,6 +987,14 @@ const Navigation = () => {
 
                               <div className="py-1">
                                 <Link
+                                  href="/account"
+                                  className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
+                                  onClick={() => setIsUserMenuOpen(false)}>
+                                  <LayoutGrid className="w-4 h-4" />
+                                  <span>{t('auth.myAccount', 'My Account')}</span>
+                                </Link>
+
+                                <Link
                                   href="/profile"
                                   className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
                                   onClick={() => setIsUserMenuOpen(false)}>
@@ -1249,6 +1258,14 @@ const Navigation = () => {
                                 </button>
                                 {isMobileUserOpen && (
                                   <div className="space-y-0.5 mt-1">
+                                    <Link
+                                      href="/account"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      className="flex items-center space-x-2.5 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition-colors duration-200">
+                                      <LayoutGrid className="w-5 h-5" />
+                                      <span className="font-medium">{t('auth.myAccount', 'My Account')}</span>
+                                    </Link>
+
                                     <Link
                                       href="/profile"
                                       onClick={() => setIsMobileMenuOpen(false)}
