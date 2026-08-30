@@ -10,6 +10,7 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
 
 interface WalletItem {
   id: number;
@@ -63,91 +64,29 @@ const WalletPage = () => {
   };
 
   const fetchWalletData = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
       setIsLoading(true);
       setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-            if (summary.accountInfo?.name) {
-              // opcional: podríamos mostrar el nombre de cuenta en el futuro
-            }
-          }
-        } catch {}
-      }
 
-      if (!apiKeyAllowed) {
-        // Si la API key es inválida, informar para guiar al usuario
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
+      const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds);
+      if (!result) {
         setIsLoading(false);
         return;
       }
 
-      // Preferir user_id en servidor (evita exponer API key)
-      let walletResponse = null as Response | null;
-      if (user?.id) {
-        walletResponse = await fetch(`/api/gw2/wallet?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' });
-      } else {
-        const apiKey = localStorage.getItem('gw2_api_key');
-        if (!apiKey || apiKey.trim().length < 10) {
-          return;
-        }
-        walletResponse = await fetch(`/api/gw2/wallet?api_key=${apiKey}&lang=${lang}`);
-      }
-      if (walletResponse.ok) {
-        const payload = await walletResponse.json();
-        const serverWallet: WalletItem[] = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload.wallet) ? payload.wallet : [];
-        const serverCurrencies: Currency[] = Array.isArray(payload?.currencies)
-          ? payload.currencies
-          : [];
-
-        const filteredWalletData = serverWallet.filter((item: WalletItem) => 
-          importantCurrencyIds.includes(item.id)
-        );
-        setWalletData(filteredWalletData);
-        if (serverCurrencies.length > 0) {
-          const onlyImportant = serverCurrencies.filter(c => importantCurrencyIds.includes(c.id));
-          setCurrencies(onlyImportant);
-        } else {
-          // Fallback: obtener currencies desde la API pública
-          const currenciesResponse = await fetch(`https://api.guildwars2.com/v2/currencies?ids=${importantCurrencyIds.join(',')}`, {
-            headers: {
-              'Accept': 'application/json',
-              'Accept-Encoding': 'gzip, deflate, br'
-            }
-          });
-          if (currenciesResponse.ok) {
-            const currenciesData = await currenciesResponse.json();
-            setCurrencies(currenciesData);
-          } else if (currenciesResponse.status >= 500 || currenciesResponse.status === 0) {
-            setApiError(`API Error: ${currenciesResponse.status} ${currenciesResponse.statusText}`);
-          }
-        }
-      } else {
-        if (walletResponse.status >= 500 || walletResponse.status === 0) {
-          setApiError(`API Error: ${walletResponse.status} ${walletResponse.statusText}`);
-        }
-      }
-      } catch (error) {
-        console.error('Error fetching wallet:', error);
-        setApiError('Network error or service unavailable');
-      } finally {
-        setIsLoading(false);
-      }
-    }, [user?.id, importantCurrencyIds, t, lang]);
+      setWalletData(result.wallet);
+      const onlyImportant = result.currencies.filter((c) => importantCurrencyIds.includes(c.id));
+      setCurrencies(onlyImportant);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, importantCurrencyIds, t, lang]);
 
   useEffect(() => {
     if (user?.id && hasApiKey) {

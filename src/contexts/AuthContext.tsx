@@ -6,6 +6,7 @@ import { AuthState, User, LoginCredentials, RegisterCredentials } from '@/types/
 import type { User as DbUser } from '@/lib/database-client';
 import { isActivePatron } from '@/lib/patreon-benefits';
 import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
+import { extractPatreonMembership } from '@/lib/patreon-membership';
 
 // Tipos para la API de Patreon
 interface PatreonResource {
@@ -134,53 +135,9 @@ interface PatreonIdentityResponse {
   included?: PatreonResource[];
 }
 
-const PATREON_CAMPAIGN_ID =
-  (typeof process !== 'undefined' &&
-    (process.env.NEXT_PUBLIC_PATREON_CAMPAIGN_ID || process.env.PATREON_CAMPAIGN_ID)) ||
-  '';
-
 // Función auxiliar para extraer información de Patreon de forma consistente
 function extractPatreonInfo(patreonData: PatreonIdentityResponse) {
-  const included = patreonData.included || [];
-  const memberships = included.filter((item: PatreonResource) => item.type === 'member');
-
-  const membership = memberships.find((member) => {
-    if (!PATREON_CAMPAIGN_ID) return true;
-    const campaignId =
-      member.relationships?.campaign?.data?.id ||
-      member.relationships?.currently_entitled_campaign?.data?.id ||
-      null;
-    return campaignId === PATREON_CAMPAIGN_ID;
-  });
-
-  if (!membership || !membership.attributes) {
-    return { patreonStatus: null, patreonTier: undefined };
-  }
-
-  const patreonStatus =
-    membership.attributes.patron_status &&
-      (membership.attributes.patron_status === 'active_patron' ||
-        membership.attributes.patron_status === 'declined_patron' ||
-        membership.attributes.patron_status === 'former_patron')
-      ? membership.attributes.patron_status
-      : null;
-
-  let patreonTier: string | undefined;
-
-  const tierRelationship = membership.relationships?.currently_entitled_tiers?.data?.[0];
-  if (tierRelationship) {
-    const tierResource = included.find(
-      (resource: PatreonResource) => resource.type === 'tier' && resource.id === tierRelationship.id
-    );
-    if (tierResource?.attributes?.title) {
-      patreonTier = tierResource.attributes.title;
-    }
-  }
-
-  return {
-    patreonStatus,
-    patreonTier,
-  };
+  return extractPatreonMembership(patreonData);
 }
 
 // Provider interno que usa hooks
@@ -574,12 +531,8 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
 
       // Usar función auxiliar y normalizar
       const { patreonStatus, patreonTier } = extractPatreonInfo(patreonData);
-      let finalStatus = patreonStatus;
+      const finalStatus = patreonStatus;
       const finalTier = patreonTier;
-      // Si hay tier y no es Free, pero status viene vacío, considerar activo
-      if (!finalStatus && finalTier && finalTier.toLowerCase() !== 'free') {
-        finalStatus = 'active_patron';
-      }
 
 
       // Buscar o crear usuario en la base de datos
@@ -804,13 +757,8 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
 
       // Usar función auxiliar y normalizar
       const { patreonStatus, patreonTier } = extractPatreonInfo(patreonData);
-      let finalStatus = patreonStatus;
+      const finalStatus = patreonStatus;
       const finalTier = patreonTier;
-      if (!finalStatus && finalTier && finalTier.toLowerCase() !== 'free') {
-        finalStatus = 'active_patron';
-      }
-
-
 
       const persistRes = await fetch('/api/auth/patreon/link', {
         method: 'POST',
@@ -1039,6 +987,23 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
 
     const doRefresh = (async () => {
       try {
+        const current = currentUser as User;
+        if (current.patreonId) {
+          try {
+            await fetch('/api/auth/patreon/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: current.id,
+                email: current.email,
+                patreonId: current.patreonId,
+              }),
+            });
+          } catch (syncError) {
+            console.error('Patreon sync on refresh failed:', syncError);
+          }
+        }
+
         const response = await fetch(`/api/users/${currentUser.id}?full=true`, {
           cache: 'no-store',
           headers: {

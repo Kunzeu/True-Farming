@@ -25,6 +25,7 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchAccountSearchIndex } from '@/lib/gw2-client-account-data';
 
 const SearchPage = () => {
   const { user } = useAuth();
@@ -55,17 +56,14 @@ const SearchPage = () => {
       setIsLoading(true);
       setApiError(null);
       try {
-        const params = new URLSearchParams({ lang, user_id: user.id });
-        const response = await fetch(`/api/gw2/search?${params}`, { cache: 'no-store' });
+        const data = await fetchAccountSearchIndex(user.id, lang);
         if (cancelled) return;
-        if (response.ok) {
-          const data = await response.json();
-          setIndex(Array.isArray(data) ? data : []);
-        } else if (response.status >= 500 || response.status === 0) {
-          setApiError(`API Error: ${response.status} ${response.statusText}`);
+        setIndex(Array.isArray(data) ? (data as unknown as SearchResult[]) : []);
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+          setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
         }
-      } catch {
-        if (!cancelled) setApiError('Network error or service unavailable');
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -73,7 +71,7 @@ const SearchPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [lang, user?.id, hasApiKey, gw2Loading]);
+  }, [lang, user?.id, hasApiKey, gw2Loading, t]);
 
   const searchResults = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();

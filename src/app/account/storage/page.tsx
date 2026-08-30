@@ -11,6 +11,7 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchMaterialsFromBrowser } from '@/lib/gw2-client-account-data';
 
 interface Material {
   id: number;
@@ -41,58 +42,21 @@ const StoragePage = () => {
   }, [isApiHealthy]);
 
   const fetchMaterialsData = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
       setIsLoading(true);
       setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-          }
-        } catch {}
-      }
-
-      if (!apiKeyAllowed) {
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
-        setIsLoading(false);
-        return;
-      }
-
-      // Preferir user_id en servidor (evita exponer API key)
-      const response = user?.id
-        ? await fetch(`/api/gw2/materials?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
-        : await (async () => {
-            const apiKey = localStorage.getItem('gw2_api_key');
-            if (!apiKey || apiKey.trim().length < 10) {
-              return new Response(null, { status: 400 });
-            }
-            return fetch(`/api/gw2/materials?api_key=${apiKey}&lang=${lang}`);
-          })();
-      if (response.ok) {
-        const data = await response.json();
-        setMaterials(data);
-        } else {
-          if (response.status >= 500 || response.status === 0) {
-            setApiError(`API Error: ${response.status} ${response.statusText}`);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching materials:', error);
-        setApiError('Network error or service unavailable');
-      } finally {
-        setIsLoading(false);
-      }
-    }, [user?.id, t, lang]);
+      const data = await fetchMaterialsFromBrowser(user.id, lang);
+      if (data) setMaterials(data);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id, t, lang]);
 
 
   useEffect(() => {

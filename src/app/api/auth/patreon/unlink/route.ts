@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
            patreon_tier = NULL,
            patreon_status = NULL,
            patreon_active = FALSE,
+           role = CASE WHEN role IN ('admin','moderator') THEN role ELSE 'user' END,
            updated_at = NOW()
        WHERE email = $1
        RETURNING id, email, username, role, is_active as "isActive",

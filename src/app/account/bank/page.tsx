@@ -12,6 +12,7 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchBankFromBrowser } from '@/lib/gw2-client-account-data';
 
 interface BankItem {
   id: number;
@@ -187,56 +188,20 @@ const BankPage = () => {
   };
 
   const fetchBankData = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
       setIsLoading(true);
       setApiError(null);
-      // Verificar estado de API key vía resumen del usuario
-      let apiKeyAllowed = true;
-      if (user?.id) {
-        try {
-          const summaryResp = await fetch(`/api/users/${user.id}/summary`);
-          if (summaryResp.ok) {
-            const summary = await summaryResp.json();
-            apiKeyAllowed = !!summary.hasApiKey && summary.apiKeyValid !== false;
-          }
-        } catch {}
-      }
-
-      if (!apiKeyAllowed) {
-        try {
-          const resp = user?.id ? await fetch(`/api/users/${user.id}/summary`) : null;
-          const data = resp && resp.ok ? await resp.json() : null;
-          if (data && data.apiKeyValid === false) {
-            setApiError(t('profile.apiKey.invalid', 'Invalid API key. Check permissions.'));
-          }
-        } catch {}
-        setIsLoading(false);
-        return;
-      }
-
-      const response = user?.id
-        ? await fetch(`/api/gw2/bank?user_id=${user.id}&lang=${lang}`, { cache: 'no-store' })
-        : await (async () => {
-            const apiKey = localStorage.getItem('gw2_api_key') || sessionStorage.getItem('gw2_api_key');
-            if (!apiKey || apiKey.trim().length < 10) {
-              return new Response(null, { status: 400 });
-            }
-            return fetch(`/api/gw2/bank?api_key=${apiKey}&lang=${lang}`);
-          })();
-      if (response.ok) {
-        const data = await response.json();
-        setBankItems(data);
-        // Calcular resumen usando precios incluidos por el servidor si están presentes
-        await calculateBankSummary(data);
-      } else {
-        console.error('Bank API error:', response.status, response.statusText);
-        if (response.status >= 500 || response.status === 0) {
-          setApiError(`API Error: ${response.status} ${response.statusText}`);
-        }
+      const data = await fetchBankFromBrowser(user.id, lang);
+      if (data) {
+        setBankItems(data as (BankItem | null)[]);
+        await calculateBankSummary(data as (BankItem | null)[]);
       }
     } catch (error) {
       console.error('Error fetching bank data:', error);
-      setApiError('Network error or service unavailable');
+      const message = error instanceof Error ? error.message : 'Network error or service unavailable';
+      setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
     } finally {
       setIsLoading(false);
     }

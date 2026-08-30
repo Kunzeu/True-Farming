@@ -12,6 +12,7 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
+import { fetchCharactersFromBrowser } from '@/lib/gw2-client-account-data';
 
 interface Character {
   name: string;
@@ -84,25 +85,17 @@ const CharactersPage = () => {
       setError(null);
       setApiError(null);
 
-      const [charactersResponse, professionsResponse] = await Promise.all([
-        fetch(`/api/gw2/characters?user_id=${user.id}`, { cache: 'no-store' }),
+      const charactersData = await fetchCharactersFromBrowser(user.id);
+      if (!charactersData) {
+        setIsLoading(false);
+        return;
+      }
+
+      const [professionsResponse] = await Promise.all([
         fetch(`/api/gw2/professions?lang=${lang}`),
       ]);
 
-      let charactersData: Character[] = [];
-
-      if (charactersResponse.ok) {
-        charactersData = await charactersResponse.json();
-        setCharacters(charactersData);
-      } else {
-        if (charactersResponse.status === 401) {
-          setError('Invalid API key or insufficient permissions');
-        } else if (charactersResponse.status >= 500 || charactersResponse.status === 0) {
-          setApiError(`API Error: ${charactersResponse.status} ${charactersResponse.statusText}`);
-        } else {
-          setError('Error loading characters');
-        }
-      }
+      setCharacters(charactersData);
 
       if (professionsResponse.ok) {
         const professionsData = await professionsResponse.json();
@@ -111,7 +104,7 @@ const CharactersPage = () => {
         setApiError(`API Error: ${professionsResponse.status} ${professionsResponse.statusText}`);
       }
 
-      if (charactersResponse.ok && charactersData.length > 0) {
+      if (Array.isArray(charactersData) && charactersData.length > 0) {
         const specializationNames = charactersData
           .map((char: Character) => char.specialization)
           .filter((spec): spec is string => Boolean(spec))
@@ -134,11 +127,18 @@ const CharactersPage = () => {
       }
     } catch (fetchError) {
       console.error('Error fetching characters:', fetchError);
-      setApiError('Network error or service unavailable');
+      const message = fetchError instanceof Error ? fetchError.message : 'Network error or service unavailable';
+      if (message.includes('401')) {
+        setError('Invalid API key or insufficient permissions');
+      } else if (message.includes('429')) {
+        setApiError(t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds'));
+      } else {
+        setApiError(message);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, lang]);
+  }, [user?.id, lang, t]);
 
   useEffect(() => {
     if (user?.id && hasApiKey) {
