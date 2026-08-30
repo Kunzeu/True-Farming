@@ -88,11 +88,20 @@ function AccountLayoutInner({ section, title, subtitle, children }: AccountLayou
 }
 
 export default function AccountLayout(props: AccountLayoutProps) {
-  return (
-    <ProtectedRoute>
-      <AccountGw2Provider>
-        <AccountLayoutInner {...props} />
-      </AccountGw2Provider>
-    </ProtectedRoute>
-  );
+  return <AccountLayoutInner {...props} />;
+}
+
+/** Envuelve páginas /account/* con auth + contexto GW2 (el hook debe usarse dentro). */
+export function withAccountPage<P extends object>(Page: React.ComponentType<P>) {
+  function AccountPageWrapper(props: P) {
+    return (
+      <ProtectedRoute>
+        <AccountGw2Provider>
+          <Page {...props} />
+        </AccountGw2Provider>
+      </ProtectedRoute>
+    );
+  }
+  AccountPageWrapper.displayName = `withAccountPage(${Page.displayName || Page.name || 'Page'})`;
+  return AccountPageWrapper;
 }

@@ -9,7 +9,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout from '@/components/account/AccountLayout';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchBankFromBrowser } from '@/lib/gw2-client-account-data';
@@ -819,4 +819,4 @@ const BankPage = () => {
    );
  };
 
-export default BankPage; 
+export default withAccountPage(BankPage); 

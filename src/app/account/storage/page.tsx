@@ -8,7 +8,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout from '@/components/account/AccountLayout';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchMaterialsFromBrowser } from '@/lib/gw2-client-account-data';
@@ -163,4 +163,4 @@ const StoragePage = () => {
   );
 };
 
-export default StoragePage; 
+export default withAccountPage(StoragePage); 

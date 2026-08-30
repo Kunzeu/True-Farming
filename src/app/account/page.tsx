@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import AccountLayout from '@/components/account/AccountLayout';
+import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
@@ -18,7 +18,7 @@ const cards = [
   { href: '/account/search', icon: Search, titleKey: 'account.search', fallback: 'Search', descKey: 'account.searchDesc', fallbackDesc: 'Search across your account data.' },
 ];
 
-export default function AccountIndexPage() {
+function AccountIndexPage() {
   const { t } = useI18n();
   usePageTitle('pageTitles.account', 'Account');
   const { hasApiKey, loading } = useAccountGw2();
@@ -117,3 +117,5 @@ export default function AccountIndexPage() {
     </AccountLayout>
   );
 }
+
+export default withAccountPage(AccountIndexPage);
