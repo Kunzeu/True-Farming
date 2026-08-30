@@ -55,7 +55,7 @@ interface Character {
 const CharactersPage = () => {
   const { user } = useAuth();
   const { t, lang } = useI18n();
-  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.characters', t('pageTitles.characters', 'Characters'));
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -78,22 +78,22 @@ const CharactersPage = () => {
   }, [isApiHealthy]);
 
   const fetchCharactersData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !apiKey) return;
 
     try {
       setIsLoading(true);
       setError(null);
       setApiError(null);
 
-      const charactersData = await fetchCharactersFromBrowser(user.id);
+      const [charactersData, professionsResponse] = await Promise.all([
+        fetchCharactersFromBrowser(user.id, apiKey),
+        fetch(`/api/gw2/professions?lang=${lang}`),
+      ]);
+
       if (!charactersData) {
         setIsLoading(false);
         return;
       }
-
-      const [professionsResponse] = await Promise.all([
-        fetch(`/api/gw2/professions?lang=${lang}`),
-      ]);
 
       setCharacters(charactersData);
 
@@ -138,15 +138,15 @@ const CharactersPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, lang, t]);
+  }, [user?.id, apiKey, lang, t]);
 
   useEffect(() => {
-    if (user?.id && hasApiKey) {
+    if (user?.id && apiKey) {
       void fetchCharactersData();
     } else if (!gw2Loading) {
       setIsLoading(false);
     }
-  }, [user?.id, hasApiKey, gw2Loading, fetchCharactersData]);
+  }, [user?.id, apiKey, gw2Loading, fetchCharactersData]);
 
 
   const filteredCharacters = characters.filter(character => 

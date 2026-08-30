@@ -52,7 +52,11 @@ export function AccountGw2Provider({ children }: { children: React.ReactNode }) 
 
     setLoading(true);
     try {
-      const summaryResp = await fetch(`/api/users/${user.id}/summary`, { cache: 'no-store' });
+      const [summaryResp, key] = await Promise.all([
+        fetch(`/api/users/${user.id}/summary`, { cache: 'no-store' }),
+        fetchUserGw2ApiKey(user.id),
+      ]);
+
       if (!summaryResp.ok) {
         setSummary(null);
         setGw2AccountName(null);
@@ -66,25 +70,23 @@ export function AccountGw2Provider({ children }: { children: React.ReactNode }) 
         apiKeyValid: data.apiKeyValid !== false,
       };
       setSummary(nextSummary);
+      setApiKey(nextSummary.hasApiKey ? key : null);
 
       if (!nextSummary.hasApiKey) {
         setGw2AccountName(null);
-        setApiKey(null);
         return;
       }
 
       const storedName = readStoredGw2AccountName();
-      if (storedName) setGw2AccountName(storedName);
-
-      const key = await fetchUserGw2ApiKey(user.id);
-      setApiKey(key);
-
-      if (!storedName && key) {
-        const name = await fetchGw2AccountName(user.id);
-        if (name) {
-          setGw2AccountName(name);
-          storeGw2AccountInfo(user.id, name);
-        }
+      if (storedName) {
+        setGw2AccountName(storedName);
+      } else if (key) {
+        void fetchGw2AccountName(user.id, key).then((name) => {
+          if (name) {
+            setGw2AccountName(name);
+            storeGw2AccountInfo(user.id, name);
+          }
+        });
       }
     } catch {
       setSummary(null);

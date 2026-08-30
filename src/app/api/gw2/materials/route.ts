@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
         name: item?.name || `Item ${storageMaterial.id}`,
         icon: item?.icon,
         rarity: item?.rarity,
-        max_count: 250,
       };
     });
 

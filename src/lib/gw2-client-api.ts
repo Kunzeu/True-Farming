@@ -1,7 +1,15 @@
 /** GW2 desde el navegador (IP del usuario). Cloudflare Workers reciben 429 de ArenaNet. */
 
+import { gw2CacheGet, gw2CacheKey, gw2CacheSet, GW2_CACHE_TTL } from '@/lib/gw2-client-cache';
+
 const GW2 = 'https://api.guildwars2.com/v2';
 const CHUNK = 200;
+
+const ENDPOINT_TTL: Record<string, number> = {
+  items: GW2_CACHE_TTL.items,
+  'commerce/prices': GW2_CACHE_TTL.prices,
+  currencies: GW2_CACHE_TTL.currencies,
+};
 
 type KeyCache = { userId: string; key: string };
 let keyCache: KeyCache | null = null;
@@ -67,14 +75,31 @@ export async function fetchGw2ByIds<T extends { id: number }>(
   extra = '',
 ): Promise<T[]> {
   const unique = [...new Set(ids.filter((id) => Number.isFinite(id) && id > 0))];
-  const out: T[] = [];
+  const ttl = ENDPOINT_TTL[endpoint] ?? GW2_CACHE_TTL.items;
+  const cached: T[] = [];
+  const missing: number[] = [];
+
+  for (const id of unique) {
+    const hit = gw2CacheGet<T>(gw2CacheKey(endpoint, id, extra));
+    if (hit) cached.push(hit);
+    else missing.push(id);
+  }
+
+  if (!missing.length) return cached;
+
+  const fetched: T[] = [];
 
   async function go(batch: number[]) {
     if (!batch.length) return;
     const res = await gw2PublicGet(`/${endpoint}?ids=${batch.join(',')}${extra}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) out.push(...data);
+      if (Array.isArray(data)) {
+        for (const item of data as T[]) {
+          gw2CacheSet(gw2CacheKey(endpoint, item.id, extra), item, ttl);
+          fetched.push(item);
+        }
+      }
       return;
     }
     if (batch.length === 1) return;
@@ -83,11 +108,11 @@ export async function fetchGw2ByIds<T extends { id: number }>(
   }
 
   const jobs: Promise<void>[] = [];
-  for (let i = 0; i < unique.length; i += CHUNK) {
-    jobs.push(go(unique.slice(i, i + CHUNK)));
+  for (let i = 0; i < missing.length; i += CHUNK) {
+    jobs.push(go(missing.slice(i, i + CHUNK)));
   }
   await Promise.all(jobs);
-  return out;
+  return [...cached, ...fetched];
 }
 
 export function readStoredGw2AccountName(): string | null {

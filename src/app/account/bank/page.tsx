@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
  
 import { useAuth } from '@/contexts/AuthContext';
 import { Package, Search, Database } from 'lucide-react';
@@ -12,7 +12,9 @@ import { useApiStatus } from '@/hooks/useApiStatus';
 import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
-import { fetchBankFromBrowser } from '@/lib/gw2-client-account-data';
+import { fetchBankFromBrowser, enrichBankWithPrices } from '@/lib/gw2-client-account-data';
+import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 
 interface BankItem {
   id: number;
@@ -62,19 +64,14 @@ interface ItemDetails {
 const BankPage = () => {
   const { user } = useAuth();
   const { t, lang } = useI18n();
-  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.bank', t('pageTitles.bank', 'Bank'));
   const [bankItems, setBankItems] = useState<(BankItem | null)[]>([]);
+  const bankItemsRef = useRef(bankItems);
+  bankItemsRef.current = bankItems;
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [bankSummary, setBankSummary] = useState<BankSummary>({
-    totalBuyPrice: 0,
-    totalSellPrice: 0,
-    totalValue: 0,
-    usedSlots: 0,
-    totalSlots: 30
-  });
   const [selectedItem, setSelectedItem] = useState<{ item: BankItem; details: ItemDetails; price?: ItemPrice } | null>(null);
   const [isLoadingItemDetails, setIsLoadingItemDetails] = useState(false);
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
@@ -187,17 +184,34 @@ const BankPage = () => {
     setSelectedItem(null);
   };
 
-  const fetchBankData = useCallback(async () => {
-    if (!user?.id) return;
+  const cacheKey = user?.id ? `gw2_bank_${user.id}_${lang}` : null;
+
+  const applyCachedBank = useCallback((cached: (BankItem | null)[]) => {
+    setBankItems(cached);
+    setIsLoading(false);
+  }, []);
+
+  useAccountPageCache(cacheKey, applyCachedBank);
+
+  const fetchBankData = useCallback(async (options?: { forceLoading?: boolean }) => {
+    if (!user?.id || !apiKey) return;
+
+    const showSpinner = options?.forceLoading || bankItemsRef.current.length === 0;
 
     try {
-      setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
       setApiError(null);
-      const data = await fetchBankFromBrowser(user.id, lang);
-      if (data) {
-        setBankItems(data as (BankItem | null)[]);
-        await calculateBankSummary(data as (BankItem | null)[]);
-      }
+
+      const data = await fetchBankFromBrowser(user.id, lang, apiKey, { withPrices: false });
+      if (!data) return;
+
+      setBankItems(data);
+      setIsLoading(false);
+      if (cacheKey) writeSessionCache(cacheKey, data, GW2_CACHE_TTL.accountPage);
+
+      const enriched = await enrichBankWithPrices(data);
+      setBankItems(enriched);
+      if (cacheKey) writeSessionCache(cacheKey, enriched, GW2_CACHE_TTL.accountPage);
     } catch (error) {
       console.error('Error fetching bank data:', error);
       const message = error instanceof Error ? error.message : 'Network error or service unavailable';
@@ -205,16 +219,16 @@ const BankPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, lang, t]);
+  }, [user?.id, apiKey, lang, t, cacheKey]);
 
 
   useEffect(() => {
-    if (user?.id && hasApiKey) {
-      fetchBankData();
+    if (user?.id && apiKey) {
+      void fetchBankData();
     } else if (!gw2Loading) {
       setIsLoading(false);
     }
-  }, [user?.id, hasApiKey, gw2Loading, fetchBankData]);
+  }, [user?.id, apiKey, gw2Loading, fetchBankData]);
 
   const filteredItems = bankItems.filter((item): item is BankItem => 
     item !== null && 
@@ -228,69 +242,26 @@ const BankPage = () => {
   const slotsPerTab = 30;
   const bankTabs = Math.max(1, Math.ceil((bankItems.length || slotsPerTab) / slotsPerTab));
 
-  // Calculate bank summary with real prices
-  const calculateBankSummary = async (items: (BankItem | null)[]) => {
-    // Filter out null items (empty slots)
-    const validItems = items.filter((item): item is BankItem => item !== null);
-    
-    if (validItems.length === 0) {
-      console.log('No valid items, setting summary to 0');
-      setBankSummary({
-        totalBuyPrice: 0,
-        totalSellPrice: 0,
-        totalValue: 0,
-        usedSlots: 0,
-        totalSlots: items.length
-      });
-      return;
-    }
+  const bankSummary = useMemo<BankSummary>(() => {
+    const validItems = bankItems.filter((item): item is BankItem => item !== null);
+    let totalBuyPrice = 0;
+    let totalSellPrice = 0;
 
-    try {
-      // Si el servidor ya incluyó 'price' por ítem, usarlo y evitar fetch
-      const serverHasPrices = validItems.every((it) => it.price && it.price.sells);
-      let totalBuyPrice = 0;
-      let totalSellPrice = 0;
-      if (serverHasPrices) {
-        validItems.forEach((item) => {
-          const price = item.price!;
-          const buyPrice = price.buys.unit_price * item.count;
-          const sellPrice = price.sells.unit_price * item.count;
-          totalBuyPrice += buyPrice;
-          totalSellPrice += sellPrice;
-        });
-      } else {
-        // Fallback: obtener precios en cliente
-        const itemIds = [...new Set(validItems.map(item => item.id))];
-        const pricesResponse = await fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${itemIds.join(',')}`);
-        if (pricesResponse.ok) {
-          const prices: ItemPrice[] = await pricesResponse.json();
-          validItems.forEach(item => {
-            const price = prices.find(p => p.id === item.id);
-            if (price) {
-              const buyPrice = price.buys.unit_price * item.count;
-              const sellPrice = price.sells.unit_price * item.count;
-              totalBuyPrice += buyPrice;
-              totalSellPrice += sellPrice;
-            } else {
-              const craftingValue = (item.value || 0) * item.count;
-              totalBuyPrice += craftingValue;
-              totalSellPrice += craftingValue;
-            }
-          });
-        }
+    validItems.forEach((item) => {
+      if (item.price?.sells) {
+        totalBuyPrice += (item.price.buys?.unit_price ?? 0) * item.count;
+        totalSellPrice += item.price.sells.unit_price * item.count;
       }
+    });
 
-      setBankSummary({
-        totalBuyPrice,
-        totalSellPrice,
-        totalValue: totalSellPrice,
-        usedSlots: validItems.length,
-        totalSlots: items.length
-      });
-    } catch (error) {
-      console.error('Error calculating bank summary:', error);
-    }
-  };
+    return {
+      totalBuyPrice,
+      totalSellPrice,
+      totalValue: totalSellPrice,
+      usedSlots: validItems.length,
+      totalSlots: bankItems.length || 30,
+    };
+  }, [bankItems]);
 
   return (
     <AccountLayout
@@ -317,7 +288,7 @@ const BankPage = () => {
              />
            </div>
           <button
-            onClick={fetchBankData}
+            onClick={() => void fetchBankData({ forceLoading: true })}
             className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
            >
             🔄 {t('common.refresh', 'Refresh')}
@@ -326,9 +297,9 @@ const BankPage = () => {
 
                  {isLoading ? (
           <div className="text-center py-12">
-             <div className="animate-spin rounded-full h-15 w-15 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
             <p className="text-gray-400">{t('bank.loading', 'Loading bank...')}</p>
-           </div>
+          </div>
          ) : (
            <div className="space-y-6">
                            {/* Financial Summary */}

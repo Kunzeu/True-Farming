@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -11,6 +11,8 @@ import AccountLayout, { withAccountPage } from '@/components/account/AccountLayo
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
+import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 
 interface WalletItem {
   id: number;
@@ -28,10 +30,12 @@ interface Currency {
 const WalletPage = () => {
   const { user } = useAuth();
   const { t, lang } = useI18n();
-  const { hasApiKey, loading: gw2Loading } = useAccountGw2();
+  const { hasApiKey, apiKey, loading: gw2Loading } = useAccountGw2();
   const { hasApiIssues, isApiHealthy } = useApiStatus();
   usePageTitle('pageTitles.wallet', t('account.wallet', 'Wallet'));
   const [walletData, setWalletData] = useState<WalletItem[]>([]);
+  const walletDataRef = useRef(walletData);
+  walletDataRef.current = walletData;
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -63,22 +67,38 @@ const WalletPage = () => {
     setIsModalClosed(true);
   };
 
+  const cacheKey = user?.id ? `gw2_wallet_${user.id}_${lang}` : null;
+
+  const applyCachedWallet = useCallback(
+    (cached: { wallet: WalletItem[]; currencies: Currency[] }) => {
+      setWalletData(cached.wallet);
+      setCurrencies(cached.currencies);
+      setIsLoading(false);
+    },
+    [],
+  );
+
+  useAccountPageCache(cacheKey, applyCachedWallet);
+
   const fetchWalletData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !apiKey) return;
 
     try {
-      setIsLoading(true);
+      if (walletDataRef.current.length === 0) setIsLoading(true);
       setApiError(null);
 
-      const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds);
+      const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds, apiKey);
       if (!result) {
         setIsLoading(false);
         return;
       }
 
-      setWalletData(result.wallet);
       const onlyImportant = result.currencies.filter((c) => importantCurrencyIds.includes(c.id));
+      setWalletData(result.wallet);
       setCurrencies(onlyImportant);
+      if (cacheKey) {
+        writeSessionCache(cacheKey, { wallet: result.wallet, currencies: onlyImportant }, GW2_CACHE_TTL.accountPage);
+      }
     } catch (error) {
       console.error('Error fetching wallet:', error);
       const message = error instanceof Error ? error.message : 'Network error or service unavailable';
@@ -86,15 +106,15 @@ const WalletPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, importantCurrencyIds, t, lang]);
+  }, [user?.id, apiKey, importantCurrencyIds, t, lang, cacheKey]);
 
   useEffect(() => {
-    if (user?.id && hasApiKey) {
-      fetchWalletData();
+    if (user?.id && apiKey) {
+      void fetchWalletData();
     } else if (!gw2Loading) {
       setIsLoading(false);
     }
-  }, [user?.id, hasApiKey, gw2Loading, fetchWalletData]);
+  }, [user?.id, apiKey, gw2Loading, fetchWalletData]);
 
   return (
     <AccountLayout
