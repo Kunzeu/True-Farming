@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import GW2Icon from "@/components/ui/GW2Icon";
+import { getAuthHeaders, isUsableAuthToken } from "@/lib/auth-client";
 
 // Utilidad para detectar AbortError sin usar 'any'
 function isAbortError(error: unknown): boolean {
@@ -150,7 +151,7 @@ const translateGiveawayText = (text: string, giveawayId: string, t: (key: string
 
 const GiveawaysPage = () => {
   const { t, lang } = useI18n();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
 
   // Set page title
   useEffect(() => {
@@ -652,25 +653,23 @@ const GiveawaysPage = () => {
     const targetGiveaway = giveawayToSelectWinners || activeGiveaway;
     if (!targetGiveaway) return;
 
+    const sessionToken = token ?? (typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null);
+    if (!isUsableAuthToken(sessionToken)) {
+      setErrorMessage(
+        'Tu sesión no es válida para acciones de administrador. Cierra sesión y vuelve a entrar (Patreon o email).',
+      );
+      setShowErrorModal(true);
+      setShowSelectWinnersModal(false);
+      return;
+    }
+
     try {
       setIsSelectingWinners(true);
       setShowSelectWinnersModal(false);
 
-      // Obtener token de localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null;
-
-      // Preparar headers con autenticación
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const response = await fetch("/api/giveaways/select-winners", {
         method: "POST",
-        headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           giveawayId: targetGiveaway.id,
         }),
@@ -688,8 +687,11 @@ const GiveawaysPage = () => {
         const errorData = await response.json();
         console.error("Error selecting winners:", errorData);
         setErrorMessage(
-          `Error seleccionando ganadores: ${errorData.error || "Error desconocido"
-          }`
+          `Error seleccionando ganadores: ${errorData.error || "Error desconocido"}${
+            errorData.details?.includes('token') || errorData.details?.includes('Token')
+              ? ' Cierra sesión y vuelve a entrar.'
+              : ''
+          }`,
         );
         setShowErrorModal(true);
       }

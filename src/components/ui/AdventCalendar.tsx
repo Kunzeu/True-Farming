@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { getAuthHeaders, isUsableAuthToken } from "@/lib/auth-client";
 import Link from "next/link";
 import { Crown, AlertCircle, Users, Trophy, Gift } from "lucide-react";
 
@@ -41,7 +42,7 @@ export default function AdventCalendar({
   month = 11, // Diciembre
   className = ""
 }: AdventCalendarProps) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   const { t } = useI18n();
   const [adventDays, setAdventDays] = useState<AdventDay[]>([]);
   const [participatedDays, setParticipatedDays] = useState<Set<string>>(new Set());
@@ -630,25 +631,23 @@ export default function AdventCalendar({
   const handleConfirmSelectWinners = async () => {
     if (!giveawayToSelectWinners) return;
 
+    const sessionToken = token ?? (typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null);
+    if (!isUsableAuthToken(sessionToken)) {
+      setErrorMessage(
+        'Tu sesión no es válida para acciones de administrador. Cierra sesión y vuelve a entrar (Patreon o email).',
+      );
+      setShowErrorModal(true);
+      setShowSelectWinnersModal(false);
+      return;
+    }
+
     try {
       setIsSelectingWinners(true);
       setShowSelectWinnersModal(false);
 
-      // Obtener token de localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null;
-
-      // Preparar headers con autenticación
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const response = await fetch("/api/giveaways/select-winners", {
         method: "POST",
-        headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           giveawayId: giveawayToSelectWinners,
         }),

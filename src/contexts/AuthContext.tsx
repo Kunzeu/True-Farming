@@ -655,14 +655,18 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         console.error('Persist Patreon link threw (loginWithPatreon immediate):', e);
       }
 
-      const existingToken = localStorage.getItem('gw2_token');
-      const token =
-        existingToken && !existingToken.startsWith('temp_')
-          ? existingToken
-          : 'temp_patreon_token_' + Date.now();
-
-      // Verificar qué se va a guardar
-
+      const sessionRes = await fetch('/api/auth/patreon/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token }),
+      });
+      if (!sessionRes.ok) {
+        throw new Error('Error al crear sesión');
+      }
+      const { token } = await sessionRes.json();
+      if (!token || typeof token !== 'string') {
+        throw new Error('Error al crear sesión');
+      }
 
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);

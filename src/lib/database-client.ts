@@ -1,23 +1,6 @@
 // Cliente para API de base de datos (funciona en browser)
 
-// Función helper para obtener headers con autenticación JWT
-function getAuthHeaders(): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json'
-  };
-  
-  // Obtener token de localStorage si existe
-  // IMPORTANTE: El token se guarda como 'gw2_token' en el AuthContext
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('gw2_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-  
-  return headers;
-}
-
+import { getAuthHeaders } from '@/lib/auth-client';
 export interface FarmItem {
   id: string;
   name: string;
