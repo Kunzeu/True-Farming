@@ -23,7 +23,7 @@ export default function CookiePolicyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen tf-site-bg">
       {/* Header */}
       <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50">
         <div className="max-w-4xl mx-auto px-4 py-6">

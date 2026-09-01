@@ -171,7 +171,7 @@ export default function ConversionGuidePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen tf-site-bg flex flex-col" style={{ scrollBehavior: 'smooth' }}>
       <div className="container mx-auto px-4 py-8 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Sidebar sticky - Desktop Only */}

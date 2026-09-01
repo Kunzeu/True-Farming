@@ -51,7 +51,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Side - Benefits */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-slate-900 to-slate-800 p-8">
+      <div className="hidden lg:flex flex-1 tf-site-bg p-8">
         <div className="max-w-md mx-auto flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, x: 20 }}

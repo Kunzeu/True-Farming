@@ -145,7 +145,7 @@ export default function ConversionGuideCorePage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white flex flex-col">
+        <div className="min-h-screen tf-site-bg text-white flex flex-col">
 
             {/* Hero Section - More Immersive */}
             <section className="relative pt-12 pb-12">

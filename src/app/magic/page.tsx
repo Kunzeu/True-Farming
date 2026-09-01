@@ -2483,7 +2483,7 @@ const CraftingPage = () => {
           will-change: transform, opacity;
         }
       `}</style>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-screen tf-site-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <motion.div

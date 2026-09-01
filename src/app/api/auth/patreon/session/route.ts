@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateToken } from '@/lib/server/jwt-utils';
+import { generateToken, type JWTPayload } from '@/lib/server/jwt-utils';
 import { resolveEffectiveRole } from '@/lib/server/site-admin';
 import { pool } from '@/lib/postgres-db';
 
