@@ -7,6 +7,8 @@ type Env = {
   POSTGRES_URL?: string;
   JWT_SECRET?: string;
   JWT_EXPIRES_IN?: string;
+  ADMIN_USERNAMES?: string;
+  ADMIN_EMAILS?: string;
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   NEXT_PUBLIC_APP_URL?: string;

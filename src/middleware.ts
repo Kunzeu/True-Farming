@@ -27,6 +27,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     'RESEND_API_KEY',
     'EMAIL_FROM',
     'JWT_SECRET',
+    'ADMIN_USERNAMES',
+    'ADMIN_EMAILS',
     'NEXT_PUBLIC_APP_URL',
     'APP_URL',
     'PATREON_CLIENT_ID',

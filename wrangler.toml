@@ -18,6 +18,7 @@ crons = ["5 19 * * *"]
 [vars]
 # Non-secret defaults; secrets via `wrangler secret` / dashboard env
 # EMAIL_FROM is a Worker secret (noreply@true-farming.com) — do not also put it here
+ADMIN_USERNAMES = "Kunzeu"
 PUBLIC_SITE_URL = "https://www.true-farming.com"
 NEXT_PUBLIC_APP_URL = "https://www.true-farming.com"
 PATREON_CLIENT_ID = "PWrLYPmnp_Wm8B2xBDTeRUrXcJgh96VNUev0_goTzoeYSus_Zhnukdgh-yIhw5VC"
@@ -33,6 +34,7 @@ DISCORD_REDIRECT_URI = "https://www.true-farming.com/auth/discord/callback"
 name = "true-farming-qa"
 
 [env.qa.vars]
+ADMIN_USERNAMES = "Kunzeu"
 PUBLIC_SITE_URL = "https://qa.true-farming.com"
 NEXT_PUBLIC_APP_URL = "https://qa.true-farming.com"
 PATREON_CLIENT_ID = "PWrLYPmnp_Wm8B2xBDTeRUrXcJgh96VNUev0_goTzoeYSus_Zhnukdgh-yIhw5VC"

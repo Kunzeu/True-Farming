@@ -619,7 +619,7 @@ export default function AdventCalendar({
   };
 
   // Verificar si el usuario es admin
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isAdmin = user?.role === "admin";
 
   // Función para mostrar modal de selección de ganadores
   const handleSelectWinnersClick = (giveawayId: string) => {

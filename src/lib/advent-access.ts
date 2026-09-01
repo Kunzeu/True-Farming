@@ -8,5 +8,5 @@ export function canAccessAdventCalendar(user?: {
   isAdmin?: boolean;
 } | null): boolean {
   if (isAdventSeason()) return true;
-  return user?.role === 'admin' || user?.isAdmin === true;
+  return user?.role === 'admin';
 }

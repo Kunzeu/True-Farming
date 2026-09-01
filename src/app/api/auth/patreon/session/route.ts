@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateToken, type JWTPayload } from '@/lib/server/jwt-utils';
+import { generateToken } from '@/lib/server/jwt-utils';
+import { resolveEffectiveRole } from '@/lib/server/site-admin';
 import { pool } from '@/lib/postgres-db';
 
 export const runtime = 'nodejs';
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       username: user.username,
-      role: user.role,
+      role: resolveEffectiveRole(user.role, user.email, user.username),
       isActive: user.isActive,
     });
 

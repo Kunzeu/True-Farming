@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/postgres-db';
 import { getAllGiveaways, getAllGiveawaysWithAdvent, getGiveawayById, getItemInfo } from '../../../../config/giveaways';
-import { authorizeRequest } from '@/lib/server/jwt-utils';
+import { authorizeAdminRequest } from '@/lib/server/authorize-admin';
 
 export const runtime = 'nodejs';
 export const revalidate = 60; // Revalidar cada 1 minuto
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación y autorización (solo administradores)
-    const authResult = authorizeRequest(request, 'admin');
+    const authResult = await authorizeAdminRequest(request);
 
     if (!authResult.isAuthorized) {
       console.log('Unauthorized giveaway winners announcement:', authResult.error);

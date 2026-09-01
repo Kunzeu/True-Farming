@@ -733,7 +733,7 @@ const GiveawaysPage = () => {
     });
 
   // Check if user is admin
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isAdmin = user?.role === "admin";
 
   // Function to render prize with dynamic item information
   const renderPrize = (

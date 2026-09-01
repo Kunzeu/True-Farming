@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { comparePassword } from '@/lib/server/password-utils';
 import { generateToken } from '@/lib/server/jwt-utils';
 import { pool } from '@/lib/postgres-db';
+import { resolveEffectiveRole } from '@/lib/server/site-admin';
 import { syncPatreonMembershipForUser } from '@/lib/server/patreon-sync';
 
 export const runtime = 'nodejs';
@@ -102,12 +103,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const effectiveRole = resolveEffectiveRole(user.role, user.email, user.username);
+    user.role = effectiveRole;
+
     // Generate JWT token
     const token = generateToken({
       userId: user.id,
       email: user.email,
       username: user.username,
-      role: user.role,
+      role: effectiveRole,
       isActive: user.isActive
     });
 

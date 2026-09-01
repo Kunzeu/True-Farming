@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/postgres-db';
 import { getGiveawayById, getAllGiveawaysWithAdvent, getItemInfo } from '../../../../config/giveaways';
-import { authorizeRequest } from '@/lib/server/jwt-utils';
+import { authorizeAdminRequest } from '@/lib/server/authorize-admin';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación y autorización (solo administradores)
-    const authResult = authorizeRequest(request, 'admin');
+    const authResult = await authorizeAdminRequest(request);
 
     // Logging detallado para diagnóstico
     console.log('=== AUTHORIZATION DEBUG ===');
