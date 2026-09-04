@@ -16,6 +16,7 @@ import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 interface WalletItem {
   id: number;
@@ -50,6 +51,7 @@ const WalletPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
+  const [coinDelta, setCoinDelta] = useState<number | null>(null);
 
   // Important currency IDs (ordered with Spirit Shards after Coin)
   const importantCurrencyIds = useMemo(() => [
@@ -130,6 +132,23 @@ const WalletPage = () => {
     }
   }, [user?.id, apiKey, gw2Loading, fetchWalletData]);
 
+  useEffect(() => {
+    if (!user?.id || !hasExclusiveAccess(user) || !walletData.length) return;
+    const coins = walletData.find((item) => item.id === 1)?.value;
+    if (coins == null) return;
+    const key = `tf_wallet_snap_${user.id}`;
+    try {
+      if (sessionStorage.getItem(`${key}:seen`)) return;
+      const prevRaw = localStorage.getItem(key);
+      const prev = prevRaw ? (JSON.parse(prevRaw) as { coins: number }) : null;
+      if (prev && Number.isFinite(prev.coins)) setCoinDelta(coins - prev.coins);
+      localStorage.setItem(key, JSON.stringify({ coins, at: Date.now() }));
+      sessionStorage.setItem(`${key}:seen`, '1');
+    } catch {
+      /* ignore */
+    }
+  }, [user, walletData]);
+
   return (
     <AccountLayout
       section="wallet"
@@ -140,6 +159,13 @@ const WalletPage = () => {
           messageKey="account.noApiKeyWallet"
           messageFallback="Add your Guild Wars 2 API key in Settings to enable Wallet."
         />
+      )}
+
+      {coinDelta != null && coinDelta !== 0 && (
+        <p className={`mb-3 text-sm ${coinDelta > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+          {t('account.walletSinceLastVisit', 'Since last visit')}: {coinDelta > 0 ? '+' : ''}
+          {formatGold(Math.abs(coinDelta))}
+        </p>
       )}
 
       <div className="mb-4 flex justify-end">

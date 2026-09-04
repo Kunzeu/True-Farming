@@ -22,6 +22,7 @@ import type { NavItem } from './types';
 import { getImageSrc, isImageUnoptimized } from './nav-utils';
 import NavResetBar from './NavResetBar';
 import NavLanguageMenu from './NavLanguageMenu';
+import PatreonBadge from '@/components/PatreonBadge';
 
 interface NavMobileSheetProps {
   open: boolean;
@@ -200,6 +201,7 @@ export default function NavMobileSheet({
                         {initial}
                       </span>
                       <span className="truncate">{user?.username}</span>
+                      <PatreonBadge className="!px-1.5 !py-0" />
                     </span>
                     <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${userOpen ? 'rotate-180' : ''}`} />
                   </button>

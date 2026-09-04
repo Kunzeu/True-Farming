@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AuthState, User, LoginCredentials, RegisterCredentials } from '@/types/auth';
 import type { User as DbUser } from '@/lib/database-client';
 import { isActivePatron } from '@/lib/patreon-benefits';
+import { setGw2PatronPriority } from '@/lib/gw2-client-api';
 import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 import { extractPatreonMembership } from '@/lib/patreon-membership';
 
@@ -151,6 +152,10 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
   const lastSummaryRef = useRef<{ hasApiKey: boolean; apiKeyValid: boolean | null } | null>(null);
   const autoEnrollGiveawayRef = useRef<string | null>(null);
   const refreshThrottleMs = 120000; // 2 minutos para deduplicar refrescos
+
+  useEffect(() => {
+    setGw2PatronPriority(isActivePatron(state.user));
+  }, [state.user]);
 
   const broadcastAuth = () => {
     if (typeof window !== 'undefined') {

@@ -47,12 +47,20 @@ export async function fetchUserGw2ApiKey(userId: string): Promise<string | null>
   return inflight;
 }
 
+let patronApiPriority = false;
+
+export function setGw2PatronPriority(enabled: boolean) {
+  patronApiPriority = enabled;
+}
+
 async function gw2Fetch(url: string): Promise<Response> {
   let retries = 0;
+  const maxRetries = patronApiPriority ? 8 : 3;
   while (true) {
     const res = await fetch(url);
-    if (res.status !== 429 || retries >= 3) return res;
-    const wait = Number(res.headers.get('retry-after') || 0) * 1000 || 2 ** retries * 400;
+    if (res.status !== 429 || retries >= maxRetries) return res;
+    const headerWait = Number(res.headers.get('retry-after') || 0) * 1000;
+    const wait = headerWait || (patronApiPriority ? 250 * (retries + 1) : 2 ** retries * 400);
     await new Promise((r) => setTimeout(r, wait || 400));
     retries += 1;
   }

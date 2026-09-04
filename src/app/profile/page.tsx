@@ -23,6 +23,7 @@ import {
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import PatreonSection from '@/components/auth/PatreonSection';
+import PatreonBadge from '@/components/PatreonBadge';
 import { validateGw2ApiKeyInBrowser } from '@/lib/gw2-client-validate';
 
 export default function ProfilePage() {
@@ -470,7 +471,10 @@ export default function ProfilePage() {
                       <CheckCircle className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <h2 className="text-3xl font-black text-white mt-4 mb-2 tracking-tight">{user?.username}</h2>
+                  <h2 className="mt-4 mb-2 flex flex-wrap items-center justify-center gap-2 text-3xl font-black tracking-tight text-white lg:justify-start">
+                    {user?.username}
+                    <PatreonBadge />
+                  </h2>
                   <p className="text-gray-400 text-lg">{user?.email}</p>
                 </div>
 

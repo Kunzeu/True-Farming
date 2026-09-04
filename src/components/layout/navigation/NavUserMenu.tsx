@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, Crown, LayoutGrid, LogOut, Shield, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
+import PatreonBadge from '@/components/PatreonBadge';
 
 interface NavUserMenuProps {
   onLogout: () => void;
@@ -45,7 +46,10 @@ export default function NavUserMenu({ onLogout }: NavUserMenuProps) {
       {open && (
         <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-white/10 bg-[#0d1118]/95 py-1 shadow-2xl backdrop-blur-xl">
           <div className="border-b border-white/10 px-4 py-3">
-            <p className="truncate text-sm font-semibold text-white">{user?.username}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold text-white">{user?.username}</p>
+              <PatreonBadge className="!px-2 !py-0.5" showIcon />
+            </div>
             <p className="truncate text-xs text-slate-500">{user?.email}</p>
           </div>
 

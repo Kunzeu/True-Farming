@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
 import { getTierTheme, type UnidentifiedGearTier } from '@/components/salvage/salvage-config';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
+import { useEffect, useState } from 'react';
 import type { LuckMode, SalvageRoi } from '@/lib/unidentified-salvage';
 
 interface SalvageSummaryCardsProps {
@@ -44,7 +47,21 @@ export default function SalvageSummaryCards({
   onLuckModeChange,
 }: SalvageSummaryCardsProps) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const [profitAlert, setProfitAlert] = useState(false);
   const theme = getTierTheme(tier);
+
+  useEffect(() => {
+    if (!hasExclusiveAccess(user)) return;
+    const key = `tf_salvage_profit_${tier}`;
+    try {
+      const prev = Number(localStorage.getItem(key));
+      setProfitAlert(Number.isFinite(prev) && prev > 0 && totalProfit < 0);
+      localStorage.setItem(key, String(totalProfit));
+    } catch {
+      /* ignore */
+    }
+  }, [user, tier, totalProfit]);
   const profitPositive = totalProfit >= 0;
   const ProfitIcon = profitPositive ? TrendingUp : TrendingDown;
   const activeRoi = rois.find((r) => r.mode === luckMode);
@@ -100,6 +117,11 @@ export default function SalvageSummaryCards({
             {activeRoi && (
               <p className="mt-2 font-mono text-sm tabular-nums text-zinc-400">
                 ROI {(activeRoi.roi * 100).toFixed(1)}%
+              </p>
+            )}
+            {profitAlert && (
+              <p className="mt-2 text-sm text-amber-300">
+                {t('salvage.profit.turnedNegative', 'This salvage is no longer profitable vs your last visit.')}
               </p>
             )}
           </div>
