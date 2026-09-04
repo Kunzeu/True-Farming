@@ -25,6 +25,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import PatreonSection from '@/components/auth/PatreonSection';
 import PatreonBadge from '@/components/PatreonBadge';
 import { validateGw2ApiKeyInBrowser } from '@/lib/gw2-client-validate';
+import AltAccountsManager from '@/components/account/AltAccountsManager';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -650,154 +651,9 @@ export default function ProfilePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
               className="space-y-6">
+              
+              <AltAccountsManager />
 
-              {/* API Key Card */}
-              <div className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl p-6 border border-gray-700/50 shadow-xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
-                    <Key className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-white">{t('profile.apiKey.title', 'Guild Wars 2 API Key')}</h3>
-                    <p className="text-gray-400 text-sm">{t('profile.apiKey.subtitle', 'Connect your GW2 account for enhanced features')}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Account Info Display */}
-                  {hasApiKey && accountName && (
-                    <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-xl p-4 border border-green-500/30">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-green-400 uppercase tracking-wider">
-                          {t('profile.apiKey.status', 'API Key Status')}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                          <span className="text-xs text-green-400 font-semibold">{t('profile.apiKey.connected', 'Connected')}</span>
-                        </div>
-                      </div>
-                      {accountName && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-gray-300">
-                            {t('profile.apiKey.accountName', 'Account Name')}
-                          </span>
-                          <span className="text-sm text-green-400 font-bold">{accountName}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {!hasApiKey && (
-                    <div className="bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-xl p-4 border border-gray-600/30">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                          {t('profile.apiKey.status', 'API Key Status')}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-gray-400" />
-                          <span className="text-xs text-gray-400 font-semibold">{t('profile.apiKey.notConnected', 'Not Connected')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* API Key Input */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-gray-300 text-sm font-semibold mb-2">
-                        {t('profile.apiKey.label', 'API Key')}
-                      </label>
-                      <div className="relative">
-                        {isApiKeyLoading && !apiKey ? (
-                          // Skeleton loader mientras carga
-                          <div className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl">
-                            <div className="h-5 bg-gray-600/50 rounded animate-pulse"></div>
-                          </div>
-                        ) : (
-                          <>
-                            <input
-                              type={showApiKey ? "text" : "password"}
-                              value={apiKey}
-                              onChange={(e) => setApiKey(e.target.value)}
-                              placeholder={t('profile.apiKey.placeholder', 'Enter your GW2 API key')}
-                              className="w-full px-4 py-3 pr-20 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                              autoComplete="off"
-                              disabled={isApiKeyLoading}
-                            />
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                              <button
-                                type="button"
-                                onClick={toggleShowApiKey}
-                                className="p-1.5 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-600/50"
-                                title={showApiKey ? t('profile.apiKey.hide', 'Hide') : t('profile.apiKey.show', 'Show')}
-                                disabled={isApiKeyLoading}
-                              >
-                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
-                              {(apiKey || hasApiKey) && (
-                                <button
-                                  type="button"
-                                  onClick={handleCopyApiKey}
-                                  className="p-1.5 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-600/50"
-                                  title={t('profile.apiKey.copy', 'Copy')}
-                                  disabled={isApiKeyLoading}
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {copyMessage && (
-                        <div className="mt-2 text-xs text-green-400 font-medium">
-                          {copyMessage}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <button
-                        onClick={handleSaveApiKey}
-                        disabled={isApiKeyLoading || !apiKey.trim()}
-                        className="group inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        <Save className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-                        <span className="text-sm">{isApiKeyLoading ? t('profile.apiKey.saving', 'Saving...') : t('profile.apiKey.save', 'Save API Key')}</span>
-                      </button>
-
-                      <a
-                        href="https://account.arena.net/applications"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
-                      >
-                        <ExternalLink className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-                        <span className="text-sm">{t('profile.apiKey.getApiKey', 'Get API Key')}</span>
-                      </a>
-
-                      {hasApiKey && (
-                        <button
-                          onClick={() => setShowDeleteApiKeyModal(true)}
-                          disabled={isApiKeyLoading}
-                          className="group inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none sm:col-span-2"
-                        >
-                          <Trash2 className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-                          <span className="text-sm">{t('profile.apiKey.delete', 'Delete API Key')}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {apiKeyMessage && (
-                      <div className={`flex items-center space-x-2 p-3 rounded-xl ${isApiKeyValid ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'
-                        }`}>
-                        {isApiKeyValid ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                        <span className="text-sm font-medium">{apiKeyMessage}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </div>
 
@@ -807,44 +663,6 @@ export default function ProfilePage() {
           </div>
         </main>
 
-        {/* Delete API Key Confirmation Modal */}
-        {showDeleteApiKeyModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-md w-full mx-4 border border-gray-700/50 shadow-xl">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <Trash2 className="w-5 h-5 text-red-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  {t('profile.apiKey.deleteModal.title', 'Confirm Deletion')}
-                </h3>
-              </div>
-
-              <p className="text-gray-300 mb-6">
-                {t('profile.apiKey.deleteModal.message', 'Are you sure you want to delete the API key? This action cannot be undone and you will lose access to GW2 account features.')}
-              </p>
-
-              <div className="flex space-x-3 justify-end">
-                <button
-                  onClick={() => setShowDeleteApiKeyModal(false)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
-                >
-                  {t('profile.apiKey.deleteModal.cancel', 'Cancel')}
-                </button>
-                <button
-                  onClick={handleDeleteApiKey}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{t('profile.apiKey.deleteModal.confirm', 'Yes, Delete')}</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
 
         {/* Username Confirmation Modal */}
         {showUsernameConfirm && (

@@ -396,30 +396,6 @@ const SearchPage = () => {
               </button>
             </div>
           </div>
-          {hasExclusiveAccess(user) && aggregatedResults.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                const rows = [
-                  ['name', 'total', 'rarity'].join(','),
-                  ...aggregatedResults.map((item) =>
-                    [`"${item.name.replace(/"/g, '""')}"`, item.totalCount, item.rarity ?? ''].join(','),
-                  ),
-                ];
-                const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'true-farming-search.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-100"
-            >
-              <Download className="h-4 w-4" />
-              {t('search.exportCsv', 'Export CSV')}
-            </button>
-          )}
         </div>
 
         {/* Search Results */}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 import Image from 'next/image';
 import FourWindsConfigEditor from '@/components/festivals/FourWindsConfigEditor';
 import {
@@ -26,7 +27,8 @@ import {
   ArrowLeft,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Download
 } from 'lucide-react';
 
 interface Gw2Price {
@@ -131,6 +133,50 @@ const FourWindsPage = () => {
   const { hasPermission, token, user } = useAuth();
   const canEditFourWinds = hasPermission('moderator');
   const [selectedSection, setSelectedSection] = useState<string>('overview');
+  
+  const handleExportBoxesCsv = () => {
+    const rows = [
+      [t('salvage.table.material'), t('fourWinds.table.numPerBox'), t('fourWinds.table.pricePerUnit'), t('fourWinds.table.pricePerBox')].join(','),
+      ...sortedBoxCalculatorItems.map((item) =>
+        [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.numPerBox,
+          item.pricePerUnit,
+          item.pricePerBox
+        ].join(',')
+      )
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'four-winds-boxes.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPrimaryCsv = () => {
+    const rows = [
+      [t('table.name'), t('table.quantity'), t('table.price'), t('table.totalValue')].join(','),
+      ...sortedPrimaryItems.map((item) => {
+        const price = item.pricePerUnit || 0;
+        return [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.quantity,
+          Math.floor(price),
+          Math.floor(item.quantity * price)
+        ].join(',');
+      })
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'four-winds-obtained.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const pricesTableRef = useRef<HTMLDivElement | null>(null);
   const openingFetchGen = useRef(0);
 
@@ -950,9 +996,18 @@ const FourWindsPage = () => {
                               onClick={() => setShowItemSelectionModal(true)}
                               className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/80 hover:bg-blue-700/80 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-blue-500/50"
                             >
-                               <Plus className="w-4 h-4" />
+                              <Plus className="w-4 h-4" />
                                {t('common.selectItems')}
                             </button>
+                            {hasExclusiveAccess(user) && boxCalculatorItems.length > 0 && (
+                              <button
+                                onClick={handleExportBoxesCsv}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-700/80 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-emerald-500/50"
+                                title={t("search.exportCsv", "Export CSV")}
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={fetchBoxCalculatorData}
                               disabled={boxCalculatorLoading}
@@ -1394,14 +1449,25 @@ const FourWindsPage = () => {
                         <Calculator className="w-6 h-6 mr-3 text-cyan-400" />
                         {t('fourWinds.obtained.title')}
                       </h3>
-                      <button
-                        onClick={fetchPrimaryItems}
-                        disabled={primaryLoading}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-cyan-500/50 disabled:border-gray-500/50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${primaryLoading ? 'animate-spin' : ''}`} />
-                        {t('common.refreshData', 'Refresh Data')}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {hasExclusiveAccess(user) && primaryItems.length > 0 && (
+                          <button
+                            onClick={handleExportPrimaryCsv}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-700/80 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-emerald-500/50"
+                            title={t("search.exportCsv", "Export CSV")}
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={fetchPrimaryItems}
+                          disabled={primaryLoading}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600/80 hover:bg-cyan-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-cyan-500/50 disabled:border-gray-500/50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${primaryLoading ? 'animate-spin' : ''}`} />
+                          {t('common.refreshData', 'Refresh Data')}
+                        </button>
+                      </div>
                     </div>
                     {primaryItems.length === 0 ? (
                       <div className="bg-gray-800/50 rounded-lg border border-cyan-500/20 overflow-hidden shadow-lg">

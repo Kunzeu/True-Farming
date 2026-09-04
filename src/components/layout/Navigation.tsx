@@ -17,6 +17,7 @@ import NavMobileSheet, { NavMobileMenuButton } from './navigation/NavMobileSheet
 import { useNavigationItems } from './navigation/useNavigationItems';
 import { useResetTimers } from './navigation/useResetTimers';
 import type { MegaMenuId } from './navigation/types';
+import AccountSwitcher from '../account/AccountSwitcher';
 
 function navLinkClass(active: boolean) {
   return [
@@ -68,8 +69,8 @@ export default function Navigation() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/35 to-transparent" />
 
       <div className="border-b border-white/[0.08] bg-[#070a10] backdrop-blur-2xl">
-        <div className="mx-auto flex h-[4.25rem] w-full max-w-[100rem] items-center gap-4 px-5 sm:px-8 lg:gap-6 lg:px-10 xl:gap-8 xl:px-12">
-          <div className="flex min-w-0 shrink-0 items-center gap-4 lg:gap-8">
+        <div className="mx-auto flex h-[4.25rem] w-full max-w-[120rem] items-center gap-4 px-4 sm:px-6 lg:gap-5 lg:px-6 xl:gap-6 xl:px-8">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 lg:gap-6">
             <NavLogo />
 
             <nav className="hidden items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] p-1.5 lg:flex">
@@ -104,7 +105,7 @@ export default function Navigation() {
           </nav>
           </div>
 
-          <div className="ml-auto flex min-w-0 items-center gap-2.5 sm:gap-3 lg:gap-4 xl:gap-5">
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-2.5 lg:gap-3">
             <div className="hidden h-7 w-px shrink-0 bg-white/10 lg:block" aria-hidden />
 
             <NavResetBar
@@ -120,7 +121,7 @@ export default function Navigation() {
               className="flex h-9 items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/15"
             >
               <Gift className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">{t('nav.giveaways', 'Sorteos')}</span>
+              <span className="hidden lg:inline">{t('nav.giveaways', 'Sorteos')}</span>
             </Link>
 
             <div className="hidden sm:block">
@@ -130,7 +131,8 @@ export default function Navigation() {
             {!isLoading && (
               <>
                 {isAuthenticated ? (
-                  <div className="hidden lg:block">
+                  <div className="hidden lg:flex lg:items-center lg:gap-2 shrink-0">
+                    <AccountSwitcher />
                     <NavUserMenu onLogout={logout} />
                   </div>
                 ) : (

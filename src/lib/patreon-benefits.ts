@@ -50,7 +50,8 @@ export const PATREON_TIERS = {
  * - Y tiene un tier válido (Bronze, Silver, Gold, Legends)
  */
 export function isActivePatron(user: User | null): boolean {
-  if (!user) return false;
+  if (!user) return false;  
+  if (user.role === 'admin' || user.isAdmin) return true;
   
   // Debe tener status 'active_patron'
   if (user.patreonStatus !== 'active_patron') {
@@ -74,10 +75,11 @@ export function isActivePatron(user: User | null): boolean {
   return isValidTier;
 }
 
-/**
- * Obtiene el tier de Patreon del usuario
- */
 export function getUserPatreonTier(user: User | null): string | null {
+  if (!user) return null;
+  
+  if (user.role === 'admin' || user.isAdmin) return 'Legends';
+
   if (!isActivePatron(user)) return null;
   return user?.patreonTier || null;
 }
@@ -137,12 +139,12 @@ export function getTierInfo(user: User | null) {
   return PATREON_TIERS[tier as keyof typeof PATREON_TIERS] || null;
 }
 
-/**
- * Verifica si el usuario debe ver anuncios
- * Los patreons con suscripción activa NO ven anuncios
- * Solo los usuarios que NO son patreons activos ven anuncios
- */
 export function shouldShowAds(user: User | null): boolean {
+  // Administradores y moderadores no ven anuncios
+  if (user?.role === 'admin' || user?.isAdmin || user?.role === 'moderator') {
+    return false;
+  }
+  
   // Si es un patreon activo (status = 'active_patron'), NO mostrar anuncios
   if (isActivePatron(user)) {
     return false; // No mostrar anuncios a patreons activos

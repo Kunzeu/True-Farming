@@ -17,7 +17,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Map
+  Map,
+  Download
 } from 'lucide-react';
 
 interface Gw2Price {
@@ -160,10 +161,58 @@ const HALLOWEEN_CALCULATOR_KEY = 'halloween_calculator_data';
 
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 const HalloweenPage = () => {
   usePageTitle('pageTitles.halloween', 'Halloween Festival');
   const { t, lang } = useI18n();
+  const { user } = useAuth();
+
+  const handleExportCalculatorCsv = () => {
+    const rows = [
+      [t('table.name'), t('table.quantity'), t('table.price85'), t('table.total85')].join(','),
+      ...sortedCalculatorItems.map((item) => {
+        return [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.quantity,
+          item.price85,
+          item.total85
+        ].join(',');
+      })
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'halloween-calculator.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPrimaryCsv = () => {
+    const rows = [
+      [t('table.name'), t('table.quantity'), t('table.perBox'), t('table.price85'), t('table.totalValue')].join(','),
+      ...sortedPrimaryItems.map((item) => {
+        const price = item.pricePerUnit || 0;
+        return [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.quantity,
+          item.perBox.toFixed(4),
+          Math.floor(price * 0.85),
+          Math.floor(item.quantity * price * 0.85)
+        ].join(',');
+      })
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'halloween-box-opening.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const [selectedSection, setSelectedSection] = useState<string>('overview');
   const [isLoading, setIsLoading] = useState(false);
   const [calculatorItems, setCalculatorItems] = useState<CalculatorItem[]>(() => {
@@ -749,6 +798,16 @@ const HalloweenPage = () => {
                         <List className="w-4 h-4" />
                           {t('common.addAll')}
                       </button>
+                      {hasExclusiveAccess(user) && calculatorItems.length > 0 && (
+                        <button
+                          onClick={handleExportCalculatorCsv}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors duration-200"
+                          title={t("search.exportCsv", "Export CSV")}
+                        >
+                          <Download className="w-4 h-4" />
+                          CSV
+                        </button>
+                      )}
                       {calculatorItems.length > 0 && (
                         <button
                           onClick={removeAllItems}
@@ -1039,14 +1098,25 @@ const HalloweenPage = () => {
                           <Calculator className="w-6 h-6 mr-3 text-orange-400" />
                           {t('halloween.obtained.title')}
                         </h3>
-                        <button
-                          onClick={fetchPrimaryItems}
-                          disabled={primaryLoading}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-orange-600/80 hover:bg-orange-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-orange-500/50 disabled:border-gray-500/50"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${primaryLoading ? 'animate-spin' : ''}`} />
-                          {t('common.refreshData', 'Refresh Data')}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {hasExclusiveAccess(user) && primaryItems.length > 0 && (
+                            <button
+                              onClick={handleExportPrimaryCsv}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/80 hover:bg-emerald-700/80 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-emerald-500/50"
+                              title={t("search.exportCsv", "Export CSV")}
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={fetchPrimaryItems}
+                            disabled={primaryLoading}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-orange-600/80 hover:bg-orange-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-orange-500/50 disabled:border-gray-500/50"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${primaryLoading ? 'animate-spin' : ''}`} />
+                            {t('common.refreshData', 'Refresh Data')}
+                          </button>
+                        </div>
                       </div>
                       
                       {primaryItems.length === 0 ? (

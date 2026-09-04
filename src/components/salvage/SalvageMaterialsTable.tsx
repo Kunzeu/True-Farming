@@ -4,7 +4,9 @@ import Image from 'next/image';
 import { useI18n } from '@/contexts/I18nContext';
 import SalvageCurrency from '@/components/salvage/SalvageCurrency';
 import { getMaterialRowClass } from '@/components/salvage/salvage-config';
-import { gw2WikiUrl } from '@/lib/gw2-wiki';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';import { Download } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 export interface SalvageTableMaterial {
   id: number;
@@ -36,13 +38,48 @@ export default function SalvageMaterialsTable({
   quantity,
 }: SalvageMaterialsTableProps) {
   const { t, lang } = useI18n();
+  const { user } = useAuth();
+
+  const handleExportCsv = () => {
+    const rows = [
+      ['Material', 'Drop Rate', 'Sell Price', 'Processed Price', 'Quantity', 'Total Value'].join(','),
+      ...results.map((r) =>
+        [
+          `"${r.material.name.replace(/"/g, '""')}"`,
+          r.material.dropRate.toFixed(4),
+          r.material.sellPrice,
+          r.material.processedPrice,
+          Math.round(r.quantity),
+          r.totalValue,
+        ].join(',')
+      ),
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'salvage-materials.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm">
       <div className="flex items-center justify-between border-b border-slate-600/50 px-4 py-3 sm:px-5 sm:py-4">
-        <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-gray-300">
-          {t('salvage.table.materialsBreakdown', 'Materials breakdown')}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-gray-300">
+            {t('salvage.table.materialsBreakdown', 'Materials breakdown')}
+          </h2>
+          {hasExclusiveAccess(user) && results.length > 0 && (
+            <button
+              onClick={handleExportCsv}
+              className="inline-flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 p-1 text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+              title={t('search.exportCsv', 'Export CSV')}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         <span className="rounded-full bg-slate-700/50 px-2.5 py-1 text-xs text-gray-400">
           ×{quantity}
         </span>

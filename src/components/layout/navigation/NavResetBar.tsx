@@ -88,7 +88,7 @@ export default function NavResetBar({ daily, weekly, special, compact }: NavRese
   }
 
   return (
-    <div className="hidden items-center gap-2.5 lg:flex">
+    <div className="hidden items-center gap-2.5 xl:flex">
       <TimerChip
         icon={Clock}
         label=""
