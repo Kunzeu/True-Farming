@@ -88,8 +88,8 @@ export default function SalvageGearPageLayout({
 
   return (
     <SalvagePageShell>
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
+        <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
           <Link
             href="/salvage/unidentified-gear"
             className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"

@@ -11,7 +11,7 @@ const LANGUAGES = [
   { code: 'fr', name: 'Français', short: 'FR' },
 ] as const;
 
-export default function NavLanguageMenu() {
+export default function NavLanguageMenu({ fullWidth }: { fullWidth?: boolean }) {
   const { lang, setLang } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -32,7 +32,9 @@ export default function NavLanguageMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-xs font-medium text-slate-200 transition hover:border-amber-400/30 hover:bg-white/[0.07] hover:text-white"
+        className={`flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-xs font-medium text-slate-200 transition hover:border-amber-400/30 hover:bg-white/[0.07] hover:text-white ${
+          fullWidth ? 'w-full justify-between' : ''
+        }`}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
@@ -44,7 +46,9 @@ export default function NavLanguageMenu() {
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] min-w-[9.5rem] overflow-hidden rounded-xl border border-white/10 bg-[#0d1118]/95 py-1 shadow-2xl backdrop-blur-xl"
+          className={`absolute z-[70] min-w-[9.5rem] overflow-hidden rounded-xl border border-white/10 bg-[#0d1118]/95 py-1 shadow-2xl backdrop-blur-xl ${
+            fullWidth ? 'inset-x-0 bottom-[calc(100%+0.5rem)]' : 'right-0 top-[calc(100%+0.5rem)]'
+          }`}
         >
           {LANGUAGES.map((l) => (
             <button

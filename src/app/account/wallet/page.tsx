@@ -160,32 +160,30 @@ const WalletPage = () => {
                 if (!walletItem) return null;
                 
                 return (
-                  <div key={currencyId} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
+                  <div key={currencyId} className="rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center">
                         {currency?.icon && (
                           <Image 
                             src={currency.icon} 
                             alt={currency.name}
                             width={32}
                             height={32}
-                            className="mr-3"
+                            className="mr-3 shrink-0"
                           />
                         )}
-                        <div>
-                          <h3 className="text-lg font-semibold">
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold sm:text-lg">
                             {currency?.name || `Moneda ${currencyId}`}
                           </h3>
                           {currency?.description && (
-                            <p className="text-gray-400 text-sm">{currency.description}</p>
+                            <p className="line-clamp-2 text-sm text-gray-400">{currency.description}</p>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-400">
-                          {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
-                        </p>
-                      </div>
+                      <p className="shrink-0 text-xl font-bold text-blue-400 sm:text-right sm:text-2xl">
+                        {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 );

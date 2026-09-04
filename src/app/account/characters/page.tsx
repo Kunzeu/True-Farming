@@ -230,7 +230,7 @@ const CharactersPage = () => {
 
     return (
       <div className="w-full overflow-hidden rounded border border-gray-700/80 bg-[#0d0d0d]">
-        <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-px bg-gray-800/90 p-px">
+        <div className="grid grid-cols-8 gap-px bg-gray-800/90 p-px sm:grid-cols-10 md:grid-cols-[repeat(16,minmax(0,1fr))]">
           {slots.map(({ item, key }) => (
             <div
               key={key}

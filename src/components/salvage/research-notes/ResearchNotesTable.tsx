@@ -73,8 +73,97 @@ export default function ResearchNotesTable({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[880px] text-sm">
+    <>
+    <div className="divide-y divide-slate-600/30 lg:hidden">
+      <div className="flex flex-wrap gap-1.5 px-3 py-3">
+        {columns.map((col) => (
+          <button
+            key={col.field}
+            type="button"
+            onClick={() => onSortChange(col.field)}
+            className={`rounded-lg border px-2 py-1 text-[11px] font-medium ${
+              sortField === col.field
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+                : 'border-white/10 text-zinc-400'
+            }`}
+          >
+            {col.label}
+          </button>
+        ))}
+      </div>
+      {items.map((item, index) => {
+        const meta = item.id ? itemMeta[item.id] : undefined;
+        const discipline = getCraftingDisciplineIcon(item.id);
+        const pricePerNote = getPricePerNoteCopper(item);
+
+        return (
+          <div key={`${item.id ?? index}-${item.name}`} className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              {meta?.icon ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/30 ring-1 ring-white/10">
+                  <Image src={meta.icon} alt="" width={28} height={28} className="h-7 w-7" />
+                </div>
+              ) : (
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-slate-700/50" />
+              )}
+              <WikiItemLink
+                name={item.name}
+                itemId={item.id}
+                className={`min-w-0 flex-1 truncate text-sm font-medium hover:underline ${getRarityColor(meta?.rarity || '')}`}
+              >
+                {item.name}
+              </WikiItemLink>
+            </div>
+            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-500">
+              <div className="flex justify-between gap-2">
+                <dt>{t('researchNotesPage.table.notes')}</dt>
+                <dd className="font-medium text-emerald-400">{item.notes}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>{t('researchNotesPage.table.pricePerNote')}</dt>
+                <dd>
+                  {pricePerNote !== null ? (
+                    <SalvageCurrency copper={pricePerNote} size="sm" className="!text-xs" />
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>{t('researchNotesPage.table.craftingCost')}</dt>
+                <dd>
+                  {item.craftingCost ? (
+                    <SalvageCurrency copper={parsePriceCopper(item.craftingCost)} size="sm" className="!text-xs" />
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>{t('researchNotesPage.table.level')}</dt>
+                <dd className="flex items-center gap-1 text-zinc-300">
+                  {discipline === 'artificer' && (
+                    <Image
+                      src="https://wiki.guildwars2.com/images/b/b7/Artificer_tango_icon_20px.png"
+                      alt=""
+                      width={16}
+                      height={16}
+                      className="h-4 w-4"
+                    />
+                  )}
+                  {discipline === 'jeweler' && (
+                    <Image src="/images/icons/jeweler-icon.webp" alt="" width={16} height={16} className="h-4 w-4" />
+                  )}
+                  {getCraftingLevelDisplay(item.id)} · {item.level}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        );
+      })}
+    </div>
+    <div className="hidden overflow-x-auto lg:block">
+      <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-600/50 bg-slate-800/80 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-300">
             <th className="px-4 py-3">{t('researchNotesPage.table.item')}</th>
@@ -190,5 +279,6 @@ export default function ResearchNotesTable({
         </tbody>
       </table>
     </div>
+    </>
   );
 }

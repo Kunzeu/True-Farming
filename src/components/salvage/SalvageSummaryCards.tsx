@@ -82,7 +82,7 @@ export default function SalvageSummaryCards({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm">
-      <div className="border-b border-slate-600/50 px-6 py-8 sm:px-8">
+      <div className="border-b border-slate-600/50 px-4 py-5 sm:px-8 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">

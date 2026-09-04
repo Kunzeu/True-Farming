@@ -81,6 +81,46 @@ function formatSearchLocation(
   return location;
 }
 
+function compactLocationStacks(
+  stacks: AggregatedSearchResult['stacks'],
+  t: (key: string, fallback?: string) => string,
+) {
+  const groups = new Map<string, { label: string; count: number; places: number }>();
+
+  for (const stack of stacks) {
+    const isBank = stack.category === 'bank' || stack.location.includes('search.bankSlot');
+    const isStorage = stack.category === 'storage' || stack.location.includes('search.materialStorage');
+    const isShared = stack.category === 'shared';
+    const character =
+      stack.character ||
+      (stack.location.includes('search.characterBag') ? stack.location.split(' - ')[0] : '');
+    const key = isBank
+      ? 'bank'
+      : isStorage
+        ? 'storage'
+        : isShared
+          ? 'shared'
+          : `char:${character || formatSearchLocation(stack.location, t)}`;
+    const label = isBank
+      ? t('account.bank', 'Bank')
+      : isStorage
+        ? t('search.materialStorage', 'Material Storage')
+        : isShared
+          ? t('search.sharedInventory', 'Shared inventory')
+          : character || formatSearchLocation(stack.location, t);
+
+    const prev = groups.get(key);
+    if (prev) {
+      prev.count += stack.count;
+      prev.places += 1;
+    } else {
+      groups.set(key, { label, count: stack.count, places: 1 });
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
 function LocationsPanel({
   itemId,
   itemName,
@@ -105,11 +145,14 @@ function LocationsPanel({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  if (stacks.length === 1) {
+  const groups = compactLocationStacks(stacks, t);
+
+  if (groups.length === 1) {
+    const only = groups[0];
     return (
       <p className="text-xs text-gray-500">
         <strong>{t('search.location', 'Location')}:</strong>{' '}
-        {formatSearchLocation(stacks[0].location, t)} ({stacks[0].count.toLocaleString()})
+        {only.label} ({only.count.toLocaleString()})
       </p>
     );
   }
@@ -138,7 +181,7 @@ function LocationsPanel({
                     {t('search.totalQuantity', 'Total quantity')}:{' '}
                     <span className="font-semibold text-blue-300">{totalCount.toLocaleString()}</span>
                     {' · '}
-                    {t('search.locationCount', '{count} locations').replace('{count}', String(stacks.length))}
+                    {t('search.locationCount', '{count} locations').replace('{count}', String(groups.length))}
                   </p>
                 </div>
                 <button
@@ -149,16 +192,14 @@ function LocationsPanel({
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <ul className="grid grid-cols-1 gap-2 overflow-y-auto p-4 sm:grid-cols-2">
-                {stacks.map((stack, stackIndex) => (
+              <ul className="grid grid-cols-1 gap-2 overflow-y-auto p-4">
+                {groups.map((group) => (
                   <li
-                    key={stackIndex}
+                    key={group.label}
                     className="flex items-center justify-between gap-2 rounded-lg bg-gray-800/80 px-3 py-2 text-sm">
-                    <span className="min-w-0 truncate text-gray-200">
-                      {formatSearchLocation(stack.location, t)}
-                    </span>
+                    <span className="min-w-0 truncate text-gray-200">{group.label}</span>
                     <span className="shrink-0 font-semibold text-blue-300">
-                      {stack.count.toLocaleString()}
+                      {group.count.toLocaleString()}
                     </span>
                   </li>
                 ))}
@@ -177,7 +218,7 @@ function LocationsPanel({
         aria-expanded={open}
         onClick={() => setOpen(true)}>
         <Info className="h-3.5 w-3.5 shrink-0" />
-        {t('search.locationCount', '{count} locations').replace('{count}', String(stacks.length))}
+        {t('search.locationCount', '{count} locations').replace('{count}', String(groups.length))}
       </button>
       {modal}
     </>
@@ -363,18 +404,18 @@ const SearchPage = () => {
             {aggregatedResults.map((item) => (
               <div
                 key={item.id}
-                className="overflow-visible rounded-lg border border-gray-700 bg-gray-800 p-6">
-                <div className="mb-4 flex items-center">
+                className="overflow-visible rounded-lg border border-gray-700 bg-gray-800 p-4 sm:p-6">
+                <div className="mb-4 flex min-w-0 items-center">
                   {item.icon && (
                     <Image
                       src={item.icon}
                       alt={item.name}
                       width={32}
                       height={32}
-                      className="mr-3"
+                      className="mr-3 shrink-0"
                     />
                   )}
-                  <h3 className="text-lg font-semibold text-white">{item.name}</h3>
+                  <h3 className="min-w-0 truncate text-base font-semibold text-white sm:text-lg">{item.name}</h3>
                 </div>
                 <div className="space-y-3 text-sm text-gray-400">
                   <p>

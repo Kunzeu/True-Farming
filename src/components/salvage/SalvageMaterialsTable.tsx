@@ -39,7 +39,7 @@ export default function SalvageMaterialsTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-slate-600/50 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-slate-600/50 px-4 py-3 sm:px-5 sm:py-4">
         <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-gray-300">
           {t('salvage.table.materialsBreakdown', 'Materials breakdown')}
         </h2>
@@ -48,12 +48,60 @@ export default function SalvageMaterialsTable({
         </span>
       </div>
 
-      <p className="border-b border-slate-600/40 px-5 py-2 text-center text-xs text-gray-500 sm:hidden">
-        {t('salvage.table.scrollHint', 'Swipe to see more columns →')}
-      </p>
+      <div className="divide-y divide-slate-600/30 md:hidden">
+        {results.map((result) => {
+          const { id, name, icon } = result.material;
+          const wikiName = id > 0 ? name : SYNTH_WIKI[id] || name;
+          const href = gw2WikiUrl(wikiName, lang, {
+            itemId: id > 0 ? id : undefined,
+            englishName: id > 0 ? undefined : wikiName,
+          });
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px]">
+          return (
+            <div key={id} className={`border-l-2 px-4 py-3 ${getMaterialRowClass(id)}`}>
+              <div className="flex items-center gap-3">
+                {icon ? (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-black/30 ring-1 ring-white/[0.06]">
+                    <Image src={icon} alt="" width={28} height={28} className="h-7 w-7" />
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 shrink-0 rounded-lg bg-white/[0.04]" />
+                )}
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="min-w-0 flex-1 truncate text-sm font-medium text-white"
+                >
+                  {name}
+                </a>
+                <SalvageCurrency copper={result.totalValue} size="sm" />
+              </div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-500">
+                <div className="flex justify-between gap-2">
+                  <dt>{t('salvage.table.quantity', 'Quantity')}</dt>
+                  <dd className="font-mono text-zinc-300">{Math.round(result.quantity)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>{t('salvage.table.matPerUnit', 'Mat per Unit')}</dt>
+                  <dd className="font-mono text-zinc-400">{result.material.dropRate.toFixed(4)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>{t('salvage.table.sellPrice', 'Sell Price')}</dt>
+                  <dd><SalvageCurrency copper={result.material.sellPrice} size="sm" className="!text-xs !font-semibold !text-zinc-400" /></dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>{t('salvage.table.processedPrice', 'Processed')}</dt>
+                  <dd><SalvageCurrency copper={result.material.processedPrice} size="sm" className="!text-xs !font-semibold" /></dd>
+                </div>
+              </dl>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full">
           <thead>
             <tr className="border-b border-slate-600/50 bg-slate-800/80 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-gray-300">
               <th className="px-5 py-3">{t('salvage.table.material', 'Material')}</th>

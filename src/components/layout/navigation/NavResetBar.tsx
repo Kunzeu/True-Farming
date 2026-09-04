@@ -34,11 +34,21 @@ function TimerChip({
   return (
     <div
       title={title}
-      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${tones[tone]} ${compact ? 'text-[10px]' : 'text-xs'}`}
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${tones[tone]} ${
+        compact ? 'flex-col gap-1 px-1.5 py-2 text-center' : 'text-xs'
+      }`}
     >
       <Icon className={compact ? 'h-3 w-3 shrink-0 opacity-80' : 'h-3.5 w-3.5 shrink-0 opacity-80'} />
-      <span className="min-w-[5.75rem] font-mono text-[11px] font-semibold tabular-nums sm:min-w-[6.25rem] sm:text-xs">{value}</span>
-      {compact && <span className="ml-auto text-[9px] uppercase tracking-wide opacity-70">{label}</span>}
+      <span
+        className={
+          compact
+            ? 'font-mono text-[10px] font-semibold tabular-nums leading-none'
+            : 'min-w-[5.75rem] font-mono text-[11px] font-semibold tabular-nums sm:min-w-[6.25rem] sm:text-xs'
+        }
+      >
+        {value}
+      </span>
+      {compact && <span className="text-[9px] uppercase tracking-wide opacity-70">{label}</span>}
     </div>
   );
 }
@@ -48,7 +58,7 @@ export default function NavResetBar({ daily, weekly, special, compact }: NavRese
 
   if (compact) {
     return (
-      <div className="grid grid-cols-1 gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         <TimerChip
           icon={Clock}
           label={t('nav.daily', 'Daily')}

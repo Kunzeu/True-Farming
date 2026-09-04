@@ -181,13 +181,13 @@ const StoragePage = () => {
           />
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-1 text-sm text-gray-400">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-gray-400">
             {t('storage.filterCategory', 'Category')}
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="min-w-[200px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full min-w-0 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 sm:w-auto sm:min-w-[200px]"
             >
               <option value={ALL_CATEGORIES}>{t('storage.allCategories', 'All categories')}</option>
               {categories.map((category) => (
@@ -198,12 +198,12 @@ const StoragePage = () => {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1 text-sm text-gray-400">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-gray-400">
             {t('storage.orderBy', 'Order By')}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as MaterialSortKey)}
-              className="min-w-[180px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full min-w-0 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 sm:w-auto sm:min-w-[180px]"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>

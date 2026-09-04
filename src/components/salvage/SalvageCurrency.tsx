@@ -11,7 +11,7 @@ const sizeClasses = {
   sm: 'text-sm gap-1',
   md: 'text-base gap-1.5',
   lg: 'text-xl gap-2',
-  xl: 'text-3xl sm:text-4xl gap-2',
+  xl: 'text-2xl sm:text-4xl gap-1.5 sm:gap-2',
 };
 
 export default function SalvageCurrency({

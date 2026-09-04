@@ -33,17 +33,17 @@ export default function NavUserMenu({ onLogout }: NavUserMenuProps) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] pl-1 pr-2.5 text-sm text-slate-200 transition hover:border-amber-400/25 hover:bg-white/[0.07]"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-sm text-slate-200 transition hover:border-amber-400/25 hover:bg-white/[0.07] sm:w-auto sm:gap-2 sm:pl-1 sm:pr-2.5"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-amber-400 to-orange-600 text-xs font-bold text-black">
           {initial}
         </span>
         <span className="hidden max-w-[7rem] truncate font-medium sm:inline">{user?.username}</span>
-        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`hidden h-3.5 w-3.5 text-slate-400 transition sm:block ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-56 overflow-hidden rounded-xl border border-white/10 bg-[#0d1118]/95 py-1 shadow-2xl backdrop-blur-xl">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[70] w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-white/10 bg-[#0d1118]/95 py-1 shadow-2xl backdrop-blur-xl">
           <div className="border-b border-white/10 px-4 py-3">
             <p className="truncate text-sm font-semibold text-white">{user?.username}</p>
             <p className="truncate text-xs text-slate-500">{user?.email}</p>

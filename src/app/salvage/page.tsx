@@ -125,17 +125,17 @@ export default function SalvagePage() {
   return (
     <>
       <SalvagePageShell>
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-6xl px-3 py-6 sm:px-6 sm:py-8">
           <header className="mb-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 inline-flex items-center justify-center gap-3"
+              className="mb-4 inline-flex flex-col items-center justify-center gap-3 sm:flex-row"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-500/30 bg-violet-500/10">
-                <Package className="h-7 w-7 text-violet-300" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-500/30 bg-violet-500/10 sm:h-14 sm:w-14">
+                <Package className="h-6 w-6 text-violet-300 sm:h-7 sm:w-7" />
               </div>
-              <h1 className="text-3xl font-bold text-white sm:text-4xl">
+              <h1 className="text-2xl font-bold text-white sm:text-4xl">
                 {t('salvagePage.title', 'Salvaging')}
               </h1>
             </motion.div>
@@ -148,7 +148,7 @@ export default function SalvagePage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="mt-6 rounded-xl border border-slate-600/50 bg-slate-800/50 p-6 backdrop-blur-sm"
+            className="mt-6 rounded-xl border border-slate-600/50 bg-slate-800/50 p-4 backdrop-blur-sm sm:p-6"
           >
             <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-zinc-500">
               {t('salvagePage.whatIsSalvaging', 'What is Salvaging?')}

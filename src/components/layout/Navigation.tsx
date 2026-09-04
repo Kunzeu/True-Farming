@@ -117,7 +117,7 @@ export default function Navigation() {
 
             <Link
               href="/giveaways"
-              className="hidden h-9 items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/15 sm:flex"
+              className="flex h-9 items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/15"
             >
               <Gift className="h-3.5 w-3.5" />
               <span className="hidden md:inline">{t('nav.giveaways', 'Sorteos')}</span>

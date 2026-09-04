@@ -216,7 +216,7 @@ const BankPage = () => {
       )}
 
                  {/* Search and Refresh */}
-         <div className="mb-6 flex gap-4">
+         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:gap-4">
            <div className="relative flex-1">
              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -334,8 +334,8 @@ const BankPage = () => {
                 </div>
                 
                                  {/* Current Slot Count & Currency */}
-                 <div className="flex items-center justify-center space-x-4">
-                  <span className="text-xl font-semibold">{bankSummary.usedSlots} / {bankSummary.totalSlots} {t('bank.slots')}</span>
+                 <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                  <span className="text-base font-semibold sm:text-xl">{bankSummary.usedSlots} / {bankSummary.totalSlots} {t('bank.slots')}</span>
                    <div className="flex items-center space-x-1">
                      <span className="text-yellow-400">{Math.floor(bankSummary.totalValue / 10000)}</span>
                      <Image src="/images/expansions/Gold.webp" alt="Gold" width={16} height={16} />
@@ -348,7 +348,7 @@ const BankPage = () => {
              </div>
 
                                                        {/* Bank Grid */}
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 max-w-5xl mx-auto">
+              <div className="mx-auto max-w-5xl rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-6">
                 {isSearching ? (
                   <>
                     <div className="flex items-center justify-between mb-4">
@@ -360,12 +360,12 @@ const BankPage = () => {
                         {filteredItems.length} {t('bank.items')}
                       </div>
                     </div>
-                    <div className="grid grid-cols-10 gap-0.6 max-w-3xl mx-auto">
+                    <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 sm:grid-cols-6 md:grid-cols-10">
                       {filteredItems.map((item, idx) => (
                         <div 
                           key={`${item.id}-${idx}`}
                           className={`
-                            w-16 h-24 rounded border-2 flex flex-col items-center justify-center p-0.6 relative
+                            relative flex h-20 w-full flex-col items-center justify-center rounded border-2 p-0.5 sm:h-24
                             ${getRarityBorderColor(item.rarity)} bg-gray-700 hover:bg-gray-600 transition-colors cursor-pointer group
                           `}
                           title={`${t('bank.slot')} ${bankItems.indexOf(item) + 1}`}
@@ -419,7 +419,7 @@ const BankPage = () => {
                               {usedInTab} / 30 {t('bank.slots')}
                             </div>
                       </div>
-                      <div className="grid grid-cols-10 gap-0.6 max-w-3xl mx-auto">
+                      <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 sm:grid-cols-6 md:grid-cols-10">
                         {Array.from({ length: slotsPerTab }, (_, slotIndex) => {
                           const globalIndex = start + slotIndex;
                           const item = bankItems[globalIndex];
@@ -427,7 +427,7 @@ const BankPage = () => {
                             <div 
                               key={slotIndex} 
                                                                                                className={`
-                           w-16 h-24 rounded border-2 flex flex-col items-center justify-center p-0.6 relative
+                           relative flex h-20 w-full flex-col items-center justify-center rounded border-2 p-0.5 sm:h-24
                           ${item 
                             ? `${getRarityBorderColor(item.rarity)} bg-gray-700 hover:bg-gray-600 transition-colors cursor-pointer group` 
                             : 'border-dashed border-gray-600 bg-gray-800'
