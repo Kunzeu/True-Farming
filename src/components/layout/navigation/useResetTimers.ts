@@ -40,7 +40,7 @@ export function useResetTimers() {
 
     const calculateSpecialEvent = () => {
       const now = new Date();
-      const endTime = new Date('2026-09-01T16:00:00.000Z');
+      const endTime = new Date('2026-09-15T16:00:00.000Z');
       const diff = endTime.getTime() - now.getTime();
       if (diff <= 0) {
         setSpecialEventTime('Ended');
