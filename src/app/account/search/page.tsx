@@ -300,7 +300,12 @@ const SearchPage = () => {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return [];
     return index.filter((item) => {
-      if (searchScope !== 'all' && item.category !== searchScope && !(searchScope === 'bank' && item.category === 'shared')) {
+      if (
+        searchScope !== 'all' &&
+        item.category !== searchScope &&
+        !(searchScope === 'bank' && item.category === 'shared') &&
+        !(searchScope === 'characters' && item.category === 'character')
+      ) {
         return false;
       }
       return item.name.toLowerCase().includes(q);
@@ -332,7 +337,8 @@ const SearchPage = () => {
                   placeholder={t('search.searchPlaceholder', 'Search items...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500"
+                  disabled={isLoading}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 disabled:opacity-60"
                 />
               </div>
             </div>

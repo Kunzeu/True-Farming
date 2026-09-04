@@ -29,7 +29,7 @@ async function fetchMaterialCategoryDefs(lang: string): Promise<MaterialCategory
 }
 
 type WalletItem = { id: number; value: number };
-type Currency = { id: number; name: string; description: string; order: number; icon: string };
+type Currency = { id: number; name: string; description: string; order: number; icon: string; wikiName: string };
 
 export async function fetchWalletFromBrowser(
   userId: string,
@@ -47,8 +47,17 @@ export async function fetchWalletFromBrowser(
 
   const wallet: WalletItem[] = await walletRes.json();
   const filtered = wallet.filter((item) => currencyIds.includes(item.id));
-  const currencies = await fetchGw2ByIds<Currency>('currencies', currencyIds, `&lang=${lang}`);
-  return { wallet: filtered, currencies };
+  const [currencies, enCurrencies] = await Promise.all([
+    fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', currencyIds, `&lang=${lang}`),
+    lang === 'en'
+      ? Promise.resolve(null)
+      : fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', currencyIds, '&lang=en'),
+  ]);
+  const enNames = new Map((enCurrencies ?? currencies).map((c) => [c.id, c.name]));
+  return {
+    wallet: filtered,
+    currencies: currencies.map((c) => ({ ...c, wikiName: enNames.get(c.id) ?? c.name })),
+  };
 }
 
 export type MaterialStorageData = {
@@ -253,7 +262,51 @@ type SearchSlot = {
   slot?: number;
 };
 
-export async function fetchAccountSearchIndex(userId: string, lang: string, apiKey?: string | null) {
+type SearchIndexRow = {
+  id: number;
+  name: string;
+  icon?: string;
+  count: number;
+  location: string;
+  rarity?: string;
+  category: SearchSlot['category'];
+  character?: string;
+  bag?: number;
+  slot?: number;
+};
+
+async function resolveSearchSlots(slots: SearchSlot[], lang: string): Promise<SearchIndexRow[]> {
+  const items = await fetchGw2ByIds<{ id: number; name: string; icon?: string; rarity?: string }>(
+    'items',
+    slots.map((s) => s.id),
+    `&lang=${lang}`,
+  );
+  const itemMap = new Map(items.map((item) => [item.id, item]));
+  return slots
+    .map((slot) => {
+      const item = itemMap.get(slot.id);
+      if (!item?.name) return null;
+      return {
+        id: slot.id,
+        name: item.name,
+        icon: item.icon,
+        count: slot.count,
+        location: slot.location,
+        rarity: item.rarity,
+        category: slot.category,
+        character: slot.character,
+        bag: slot.bag,
+        slot: slot.slot,
+      };
+    })
+    .filter((row): row is SearchIndexRow => Boolean(row));
+}
+
+export async function fetchAccountSearchIndex(
+  userId: string,
+  lang: string,
+  apiKey?: string | null,
+) {
   const key = await resolveApiKey(userId, apiKey);
   if (!key) return null;
 
@@ -293,59 +346,38 @@ export async function fetchAccountSearchIndex(userId: string, lang: string, apiK
   });
 
   const names = await readJson<string[]>(namesRes);
-  if (Array.isArray(names) && names.length) {
-    const inventories = await Promise.all(
-      names.map(async (name) => {
-        const res = await gw2AuthedGet(`/characters/${encodeURIComponent(name)}/inventory`, key);
-        if (!res.ok) return { name, bags: [] as Array<{ inventory?: Array<{ id: number; count: number } | null> } | null> };
-        const data = await res.json().catch(() => null);
-        return { name, bags: data?.bags || [] };
-      }),
-    );
-    for (const { name, bags } of inventories) {
-      bags.forEach((bag, bagIndex) => {
-        bag?.inventory?.forEach((item, slotIndex) => {
-          if (item?.id) {
-            slots.push({
-              id: item.id,
-              count: item.count,
-              location: `${name} - search.characterBag ${bagIndex + 1}`,
-              category: 'character',
-              character: name,
-              bag: bagIndex + 1,
-              slot: slotIndex + 1,
-            });
-          }
-        });
+  const inventoriesP =
+    Array.isArray(names) && names.length
+      ? Promise.all(
+          names.map(async (name) => {
+            const res = await gw2AuthedGet(`/characters/${encodeURIComponent(name)}/inventory`, key);
+            if (!res.ok) return { name, bags: [] as Array<{ inventory?: Array<{ id: number; count: number } | null> } | null> };
+            const data = await res.json().catch(() => null);
+            return { name, bags: data?.bags || [] };
+          }),
+        )
+      : Promise.resolve([]);
+
+  const inventories = await inventoriesP;
+  for (const { name, bags } of inventories) {
+    bags.forEach((bag, bagIndex) => {
+      bag?.inventory?.forEach((item, slotIndex) => {
+        if (item?.id) {
+          slots.push({
+            id: item.id,
+            count: item.count,
+            location: `${name} - search.characterBag ${bagIndex + 1}`,
+            category: 'character',
+            character: name,
+            bag: bagIndex + 1,
+            slot: slotIndex + 1,
+          });
+        }
       });
-    }
+    });
   }
 
-  const items = await fetchGw2ByIds<{ id: number; name: string; icon?: string; rarity?: string }>(
-    'items',
-    slots.map((s) => s.id),
-    `&lang=${lang}`,
-  );
-  const itemMap = new Map(items.map((item) => [item.id, item]));
-
-  return slots
-    .map((slot) => {
-      const item = itemMap.get(slot.id);
-      if (!item?.name) return null;
-      return {
-        id: slot.id,
-        name: item.name,
-        icon: item.icon,
-        count: slot.count,
-        location: slot.location,
-        rarity: item.rarity,
-        category: slot.category,
-        character: slot.character,
-        bag: slot.bag,
-        slot: slot.slot,
-      };
-    })
-    .filter(Boolean);
+  return resolveSearchSlots(slots, lang);
 }
 
 export async function fetchGw2AccountName(userId: string, apiKey?: string | null): Promise<string | null> {

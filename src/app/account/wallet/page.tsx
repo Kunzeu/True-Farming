@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
+import Link from 'next/link';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
@@ -26,7 +28,13 @@ interface Currency {
   description: string;
   order: number;
   icon: string;
+  wikiName?: string;
 }
+
+const CURRENCY_HREF: Record<number, string> = {
+  23: '/magic#conversions',
+  61: '/salvage/research-notes',
+};
 
 const WalletPage = () => {
   const { user } = useAuth();
@@ -158,30 +166,50 @@ const WalletPage = () => {
                 const currency = currencies.find(c => c.id === currencyId);
                 
                 if (!walletItem) return null;
+
+                const name = currency?.name || `Moneda ${currencyId}`;
+                const wikiName = currency?.wikiName || name;
+                const href = CURRENCY_HREF[currencyId] ?? gw2WikiUrl(wikiName, lang, { englishName: wikiName });
+                const isInternal = href.startsWith('/');
                 
                 return (
                   <div key={currencyId} className="rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-center">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-center">
                         {currency?.icon && (
-                          <Image 
-                            src={currency.icon} 
-                            alt={currency.name}
-                            width={32}
-                            height={32}
-                            className="mr-3 shrink-0"
-                          />
+                          isInternal ? (
+                            <Link href={href} className="mr-3 shrink-0">
+                              <Image src={currency.icon} alt="" width={32} height={32} />
+                            </Link>
+                          ) : (
+                            <a href={href} target="_blank" rel="noreferrer" className="mr-3 shrink-0">
+                              <Image src={currency.icon} alt="" width={32} height={32} />
+                            </a>
+                          )
                         )}
                         <div className="min-w-0">
                           <h3 className="text-base font-semibold sm:text-lg">
-                            {currency?.name || `Moneda ${currencyId}`}
+                            {isInternal ? (
+                              <Link href={href} className="hover:underline decoration-white/30 underline-offset-4">
+                                {name}
+                              </Link>
+                            ) : (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:underline decoration-white/30 underline-offset-4"
+                              >
+                                {name}
+                              </a>
+                            )}
                           </h3>
                           {currency?.description && (
-                            <p className="line-clamp-2 text-sm text-gray-400">{currency.description}</p>
+                            <p className="mt-0.5 hidden text-sm text-gray-400 sm:line-clamp-2 sm:block">{currency.description}</p>
                           )}
                         </div>
                       </div>
-                      <p className="shrink-0 text-xl font-bold text-blue-400 sm:text-right sm:text-2xl">
+                      <p className="shrink-0 text-right text-lg font-bold text-blue-400 sm:text-2xl">
                         {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
                       </p>
                     </div>
