@@ -140,17 +140,15 @@ export function getTierInfo(user: User | null) {
 }
 
 export function shouldShowAds(user: User | null): boolean {
-  // Administradores y moderadores no ven anuncios
-  if (user?.role === 'admin' || user?.isAdmin || user?.role === 'moderator') {
+  if (!user) return true;
+  
+  // Solo los patreons reales (con suscripción activa) no ven anuncios
+  if (user.patreonStatus === 'active_patron') {
     return false;
   }
   
-  // Si es un patreon activo (status = 'active_patron'), NO mostrar anuncios
-  if (isActivePatron(user)) {
-    return false; // No mostrar anuncios a patreons activos
-  }
-  // Si no es patreon activo, mostrar anuncios
-  return true; // Mostrar anuncios a usuarios que no son patreons activos
+  // Todos los demás (incluyendo admins/mods sin Patreon) ven anuncios
+  return true;
 }
 
 /**

@@ -2941,5 +2941,11 @@
   "legendary.sort.profit": "Par bénéfice",
   "legendary.sort.sales": "Par ventes",
   "legendary.sort.listed": "{n} en vente",
-  "legendary.sort.listedHint": "Quantité listée maintenant au HV (l'API n'a pas les ventes/semaine)"
+  "legendary.sort.listedHint": "Quantité listée maintenant au HV (l'API n'a pas les ventes/semaine)",
+  "settings": {
+    "gw2Api": {
+      "switchAccount": "Changer de Compte",
+      "manageAccounts": "Gérer les Comptes"
+    }
+  }
 }

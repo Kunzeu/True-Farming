@@ -2800,7 +2800,6 @@
   "expBuffs.tips.bestUse.title": "Bester Anwendungsfall",
   "expBuffs.tips.bestUse.desc": "Diese Vorbereitung ist für \"Tagging\"-Farms wie Living Story Staffel 4 konzipiert. Sie ist nicht so notwendig für andere Farms wie \"End of Dragons\"-Farming, aber es hilft immer",
   "common.wikiLink": "Wiki-Link",
-
   "expBuffs.clickForDetails": "Klicken Sie auf den Namen oder das Symbol für Details",
   "expBuffs.pageTitle": "Leitfaden für Erfahrungs-Buffs",
   "expBuffs.title": "Leitfaden für Erfahrungs-Buffs",
@@ -2947,5 +2946,11 @@
   "legendary.sort.profit": "Nach Gewinn",
   "legendary.sort.sales": "Nach Verkäufen",
   "legendary.sort.listed": "{n} im Angebot",
-  "legendary.sort.listedHint": "Aktuell im Handelsposten gelistet (API hat keine Wochenverkäufe)"
+  "legendary.sort.listedHint": "Aktuell im Handelsposten gelistet (API hat keine Wochenverkäufe)",
+  "settings": {
+    "gw2Api": {
+      "switchAccount": "Konto Wechseln",
+      "manageAccounts": "Konten Verwalten"
+    }
+  }
 }

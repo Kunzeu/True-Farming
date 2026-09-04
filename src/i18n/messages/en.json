@@ -3107,5 +3107,11 @@
   "legendary.sort.profit": "By profit",
   "legendary.sort.sales": "By sales",
   "legendary.sort.listed": "{n} listed",
-  "legendary.sort.listedHint": "Currently listed on the Trading Post (API has no weekly sales)"
+  "legendary.sort.listedHint": "Currently listed on the Trading Post (API has no weekly sales)",
+  "settings": {
+    "gw2Api": {
+      "switchAccount": "Switch Account",
+      "manageAccounts": "Manage Accounts"
+    }
+  }
 }

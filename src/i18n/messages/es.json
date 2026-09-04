@@ -3143,5 +3143,11 @@
   "legendary.sort.profit": "Por beneficio",
   "legendary.sort.sales": "Por ventas",
   "legendary.sort.listed": "{n} en venta",
-  "legendary.sort.listedHint": "Cantidad listada ahora en el Bazar (la API no da ventas/semana)"
+  "legendary.sort.listedHint": "Cantidad listada ahora en el Bazar (la API no da ventas/semana)",
+  "settings": {
+    "gw2Api": {
+      "switchAccount": "Cambiar Cuenta",
+      "manageAccounts": "Gestionar Cuentas"
+    }
+  }
 }
