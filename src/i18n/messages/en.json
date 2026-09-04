@@ -3108,10 +3108,7 @@
   "legendary.sort.sales": "By sales",
   "legendary.sort.listed": "{n} listed",
   "legendary.sort.listedHint": "Currently listed on the Trading Post (API has no weekly sales)",
-  "settings": {
-    "gw2Api": {
-      "switchAccount": "Switch Account",
-      "manageAccounts": "Manage Accounts"
-    }
-  }
+  "settings.gw2Api.switchAccount": "Switch Account",
+  "settings.gw2Api.manageAccounts": "Manage Accounts",
+  "settings.gw2Api.noAltAccounts": "No alternative accounts added yet."
 }

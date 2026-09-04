@@ -3144,10 +3144,7 @@
   "legendary.sort.sales": "Por ventas",
   "legendary.sort.listed": "{n} en venta",
   "legendary.sort.listedHint": "Cantidad listada ahora en el Bazar (la API no da ventas/semana)",
-  "settings": {
-    "gw2Api": {
-      "switchAccount": "Cambiar Cuenta",
-      "manageAccounts": "Gestionar Cuentas"
-    }
-  }
+  "settings.gw2Api.switchAccount": "Cambiar Cuenta",
+  "settings.gw2Api.manageAccounts": "Gestionar Cuentas",
+  "settings.gw2Api.noAltAccounts": "Aún no se han añadido cuentas alternativas."
 }

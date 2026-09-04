@@ -2947,10 +2947,7 @@
   "legendary.sort.sales": "Nach Verkäufen",
   "legendary.sort.listed": "{n} im Angebot",
   "legendary.sort.listedHint": "Aktuell im Handelsposten gelistet (API hat keine Wochenverkäufe)",
-  "settings": {
-    "gw2Api": {
-      "switchAccount": "Konto Wechseln",
-      "manageAccounts": "Konten Verwalten"
-    }
-  }
+  "settings.gw2Api.switchAccount": "Konto Wechseln",
+  "settings.gw2Api.manageAccounts": "Konten Verwalten",
+  "settings.gw2Api.noAltAccounts": "Noch keine alternativen Konten hinzugefügt."
 }
