@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import GW2Icon from "@/components/ui/GW2Icon";
+import { getAuthHeaders, isUsableAuthToken } from "@/lib/auth-client";
 
 // Utilidad para detectar AbortError sin usar 'any'
 function isAbortError(error: unknown): boolean {
@@ -150,7 +151,7 @@ const translateGiveawayText = (text: string, giveawayId: string, t: (key: string
 
 const GiveawaysPage = () => {
   const { t, lang } = useI18n();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
 
   // Set page title
   useEffect(() => {
@@ -652,25 +653,23 @@ const GiveawaysPage = () => {
     const targetGiveaway = giveawayToSelectWinners || activeGiveaway;
     if (!targetGiveaway) return;
 
+    const sessionToken = token ?? (typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null);
+    if (!isUsableAuthToken(sessionToken)) {
+      setErrorMessage(
+        'Tu sesión no es válida para acciones de administrador. Cierra sesión y vuelve a entrar (Patreon o email).',
+      );
+      setShowErrorModal(true);
+      setShowSelectWinnersModal(false);
+      return;
+    }
+
     try {
       setIsSelectingWinners(true);
       setShowSelectWinnersModal(false);
 
-      // Obtener token de localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('gw2_token') : null;
-
-      // Preparar headers con autenticación
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const response = await fetch("/api/giveaways/select-winners", {
         method: "POST",
-        headers,
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           giveawayId: targetGiveaway.id,
         }),
@@ -688,8 +687,11 @@ const GiveawaysPage = () => {
         const errorData = await response.json();
         console.error("Error selecting winners:", errorData);
         setErrorMessage(
-          `Error seleccionando ganadores: ${errorData.error || "Error desconocido"
-          }`
+          `Error seleccionando ganadores: ${errorData.error || "Error desconocido"}${
+            errorData.details?.includes('token') || errorData.details?.includes('Token')
+              ? ' Cierra sesión y vuelve a entrar.'
+              : ''
+          }`,
         );
         setShowErrorModal(true);
       }
@@ -731,7 +733,7 @@ const GiveawaysPage = () => {
     });
 
   // Check if user is admin
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isAdmin = user?.role === "admin";
 
   // Function to render prize with dynamic item information
   const renderPrize = (
@@ -751,10 +753,13 @@ const GiveawaysPage = () => {
     const itemInfo = items.find((item) => item.position === prize.position);
 
     if (itemInfo && itemInfo.itemName && itemInfo.itemIcon) {
-      // Si es una clave de traducción (empieza con 'giveaways.')
-      const displayName = itemInfo.itemName.startsWith("giveaways.")
+      const rawName = itemInfo.itemName.startsWith("giveaways.")
         ? t(itemInfo.itemName)
         : itemInfo.itemName;
+      const displayName =
+        /^Item \d+$/.test(rawName) && itemInfo.itemId
+          ? t(`giveaways.items.${itemInfo.itemId}`, rawName)
+          : rawName;
 
       return (
         <div className="flex items-center gap-2">
@@ -771,7 +776,7 @@ const GiveawaysPage = () => {
             }}
           />
           <span className="font-medium text-white">
-            {itemInfo.quantity} {displayName}
+            {itemInfo.quantity}x {displayName}
           </span>
         </div>
       );

@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "astro dev --host",
+    "dev:tunnel": "astro dev --host",
+    "tunnel": "tunnelmole 4321",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",

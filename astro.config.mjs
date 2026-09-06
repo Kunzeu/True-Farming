@@ -11,6 +11,25 @@ const isDev = process.argv.includes('dev');
 const mode = isDev ? 'development' : 'production';
 const env = loadEnv(mode, root, '');
 
+/** URL pública del túnel (tunnelmole/ngrok). Ej: https://abc123.tunnelmole.net */
+const devPublicOrigin =
+  env.DEV_PUBLIC_ORIGIN ||
+  process.env.DEV_PUBLIC_ORIGIN ||
+  env.VITE_DEV_ORIGIN ||
+  process.env.VITE_DEV_ORIGIN ||
+  '';
+
+function devTunnelHostname() {
+  if (!devPublicOrigin) return undefined;
+  try {
+    return new URL(devPublicOrigin).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
+const tunnelHostname = devTunnelHostname();
+
 /** Client has no Node `process` — bake NEXT_PUBLIC_* at build time. */
 function envDef(...keys) {
   const out = {};
@@ -28,22 +47,37 @@ export default defineConfig({
     : cloudflare({
         platformProxy: { enabled: false },
       }),
-  // Workers/proxy: Origin del navegador != host interno sin allowedDomains → 403 CSRF en PUT/POST.
-  security: {
-    checkOrigin: true,
-    allowedDomains: [
-      { hostname: 'www.true-farming.com', protocol: 'https' },
-      { hostname: 'true-farming.com', protocol: 'https' },
-      { hostname: 'qa.true-farming.com', protocol: 'https' },
-      { hostname: 'true-farming.kunjohn24.workers.dev', protocol: 'https' },
-      { hostname: 'localhost', protocol: 'http' },
-    ],
-  },
+  // En dev: desactivar CSRF para tunnelmole/ngrok (Origin distinto de localhost).
+  // En prod: solo dominios reales.
+  security: isDev
+    ? { checkOrigin: false }
+    : {
+        checkOrigin: true,
+        allowedDomains: [
+          { hostname: 'www.true-farming.com', protocol: 'https' },
+          { hostname: 'true-farming.com', protocol: 'https' },
+          { hostname: 'qa.true-farming.com', protocol: 'https' },
+          { hostname: 'true-farming.kunjohn24.workers.dev', protocol: 'https' },
+          { hostname: 'localhost', protocol: 'http' },
+        ],
+      },
   integrations: [react()],
   vite: {
     server: {
-      // tunnelmole / ngrok / etc.
-      allowedHosts: ['.tunnelmole.net', '.loca.lt', '.ngrok-free.app', '.ngrok.io'],
+      host: true,
+      // Aceptar tunnelmole, ngrok, localtunnel, etc.
+      allowedHosts: true,
+      // Si defines DEV_PUBLIC_ORIGIN, los assets/HMR usan el host del túnel (no localhost).
+      ...(devPublicOrigin ? { origin: devPublicOrigin } : {}),
+      ...(tunnelHostname
+        ? {
+            hmr: {
+              protocol: 'wss',
+              host: tunnelHostname,
+              clientPort: 443,
+            },
+          }
+        : {}),
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(mode),

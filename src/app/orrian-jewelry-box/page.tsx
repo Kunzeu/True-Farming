@@ -397,7 +397,7 @@ export default function OrrianJewelryBoxPage() {
   // Memoizar el componente de loading para evitar re-renders
   const LoadingComponent = useMemo(() => (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="min-h-screen tf-site-bg text-white">
         <div className="max-w-7xl mx-auto p-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto"></div>
@@ -411,7 +411,7 @@ export default function OrrianJewelryBoxPage() {
   // Memoizar el componente de error
   const ErrorComponent = useMemo(() => (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="min-h-screen tf-site-bg text-white">
         <div className="max-w-7xl mx-auto p-6">
           <div className="text-center">
             <p className="text-red-400 text-xl">{error || t('orrianJewelryBoxPage.errorLoadingData', 'Error al cargar los datos')}</p>
@@ -455,7 +455,7 @@ export default function OrrianJewelryBoxPage() {
         </div>
       )}
       
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="min-h-screen tf-site-bg text-white">
         <div className="max-w-7xl mx-auto p-6">
           {/* Header con navegación */}
           <div className="mb-8">

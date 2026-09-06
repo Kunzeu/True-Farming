@@ -6,6 +6,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { CheckCircle, AlertCircle, ExternalLink, Link, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 export default function PatreonSection() {
   const { user, unlinkPatreon } = useAuth();
@@ -131,6 +132,26 @@ export default function PatreonSection() {
                     <CheckCircle className="w-3 h-3 text-green-400" />
                     <span>{t('profile.patreon.benefit.noAds', 'Sin anuncios')}</span>
                   </li>
+                  <li className="flex items-center gap-2 text-xs text-gray-300">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    <span>{t('profile.patreon.benefit.apiQueue', 'Cola GW2 más generosa (menos esperas 429)')}</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs text-gray-300">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    <span>{t('profile.patreon.benefit.badge', 'Badge visible en perfil y menú')}</span>
+                  </li>
+                  {hasExclusiveAccess(user) && (
+                    <>
+                      <li className="flex items-center gap-2 text-xs text-gray-300">
+                        <CheckCircle className="w-3 h-3 text-green-400" />
+                        <span>{t('profile.patreon.benefit.export', 'Exportar búsqueda a CSV')}</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs text-gray-300">
+                        <CheckCircle className="w-3 h-3 text-green-400" />
+                        <span>{t('profile.patreon.benefit.snapshots', 'Comparar cartera y avisos de salvage')}</span>
+                      </li>
+                    </>
+                  )}
                 </ul>
               </div>
             )}

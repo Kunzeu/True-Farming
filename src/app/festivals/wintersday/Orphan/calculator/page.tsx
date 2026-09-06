@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Calculator, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
+import { Calculator, ArrowUp, ArrowDown, ChevronsUpDown, Download } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 export default function OrphanCalculatorPage() {
     const { t, lang } = useI18n();
+    const { user } = useAuth();
 
     // Calculator State
     const [prices, setPrices] = useState<Record<number, number>>({});
@@ -122,13 +125,43 @@ export default function OrphanCalculatorPage() {
 
     const sortedItems = getSortedItems();
 
+    const handleExportCsv = () => {
+        const rows = [
+            [t('wintersday.calculator.item', 'Objeto'), t('wintersday.calculator.quantity', 'Cantidad x1'), t('wintersday.calculator.price', 'Precio x1'), t('wintersday.calculator.total', 'Total')].join(','),
+            ...sortedItems.map(item => [
+                `"${item.name.replace(/"/g, '""')}"`,
+                item.quantity,
+                item.price,
+                item.total
+            ].join(','))
+        ];
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wintersday-calculator.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div id="section-calculator" className="space-y-8">
             <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-6 shadow-2xl">
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                    <Calculator className="w-6 h-6 mr-3 text-cyan-400" />
-                    {t('wintersday.calculator.title', 'Calculadora de Regalos')}
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white flex items-center">
+                        <Calculator className="w-6 h-6 mr-3 text-cyan-400" />
+                        {t('wintersday.calculator.title', 'Calculadora de Regalos')}
+                    </h2>
+                    {hasExclusiveAccess(user) && sortedItems.length > 0 && (
+                        <button
+                            onClick={handleExportCsv}
+                            className="flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                            title={t("search.exportCsv", "Export CSV")}
+                        >
+                            <Download className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
                 <p className="text-gray-300 mb-6">
                     {t('wintersday.calculator.desc', 'Compara el costo de obtener los Regalos Envueltos necesarios con diferentes objetos.')}
                 </p>

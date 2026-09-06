@@ -3,16 +3,20 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
+import Link from 'next/link';
+import { gw2WikiUrl } from '@/lib/gw2-wiki';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
+import { hasExclusiveAccess } from '@/lib/patreon-benefits';
 
 interface WalletItem {
   id: number;
@@ -25,7 +29,13 @@ interface Currency {
   description: string;
   order: number;
   icon: string;
+  wikiName?: string;
 }
+
+const CURRENCY_HREF: Record<number, string> = {
+  23: '/magic#conversions',
+  61: '/salvage/research-notes',
+};
 
 const WalletPage = () => {
   const { user } = useAuth();
@@ -38,8 +48,10 @@ const WalletPage = () => {
   walletDataRef.current = walletData;
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
+  const [coinDelta, setCoinDelta] = useState<number | null>(null);
 
   // Important currency IDs (ordered with Spirit Shards after Coin)
   const importantCurrencyIds = useMemo(() => [
@@ -80,11 +92,14 @@ const WalletPage = () => {
 
   useAccountPageCache(cacheKey, applyCachedWallet);
 
-  const fetchWalletData = useCallback(async () => {
+  const fetchWalletData = useCallback(async (options?: { forceLoading?: boolean }) => {
     if (!user?.id || !apiKey) return;
 
+    const showSpinner = options?.forceLoading || walletDataRef.current.length === 0;
+
     try {
-      if (walletDataRef.current.length === 0) setIsLoading(true);
+      if (showSpinner) setIsLoading(true);
+      else setIsRefreshing(true);
       setApiError(null);
 
       const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds, apiKey);
@@ -105,6 +120,7 @@ const WalletPage = () => {
       setApiError(message.includes('429') ? t('profile.apiKey.rateLimited', 'GW2 rate limit — try again in a few seconds') : message);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [user?.id, apiKey, importantCurrencyIds, t, lang, cacheKey]);
 
@@ -115,6 +131,23 @@ const WalletPage = () => {
       setIsLoading(false);
     }
   }, [user?.id, apiKey, gw2Loading, fetchWalletData]);
+
+  useEffect(() => {
+    if (!user?.id || !hasExclusiveAccess(user) || !walletData.length) return;
+    const coins = walletData.find((item) => item.id === 1)?.value;
+    if (coins == null) return;
+    const key = `tf_wallet_snap_${user.id}`;
+    try {
+      if (sessionStorage.getItem(`${key}:seen`)) return;
+      const prevRaw = localStorage.getItem(key);
+      const prev = prevRaw ? (JSON.parse(prevRaw) as { coins: number }) : null;
+      if (prev && Number.isFinite(prev.coins)) setCoinDelta(coins - prev.coins);
+      localStorage.setItem(key, JSON.stringify({ coins, at: Date.now() }));
+      sessionStorage.setItem(`${key}:seen`, '1');
+    } catch {
+      /* ignore */
+    }
+  }, [user, walletData]);
 
   return (
     <AccountLayout
@@ -128,6 +161,25 @@ const WalletPage = () => {
         />
       )}
 
+      {coinDelta != null && coinDelta !== 0 && (
+        <p className={`mb-3 text-sm ${coinDelta > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+          {t('account.walletSinceLastVisit', 'Since last visit')}: {coinDelta > 0 ? '+' : ''}
+          {formatGold(Math.abs(coinDelta))}
+        </p>
+      )}
+
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => void fetchWalletData({ forceLoading: true })}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+        >
+          {t('common.refresh', 'Refresh')}
+        </button>
+      </div>
+
+      <AccountRefreshingIndicator visible={isRefreshing} />
+
       {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -140,40 +192,65 @@ const WalletPage = () => {
                 const currency = currencies.find(c => c.id === currencyId);
                 
                 if (!walletItem) return null;
+
+                const name = currency?.name || `Moneda ${currencyId}`;
+                const wikiName = currency?.wikiName || name;
+                const href = CURRENCY_HREF[currencyId] ?? gw2WikiUrl(wikiName, lang, { englishName: wikiName });
+                const isInternal = href.startsWith('/');
                 
                 return (
-                  <div key={currencyId} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
+                  <div key={currencyId} className="rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-center">
                         {currency?.icon && (
-                          <Image 
-                            src={currency.icon} 
-                            alt={currency.name}
-                            width={32}
-                            height={32}
-                            className="mr-3"
-                          />
+                          isInternal ? (
+                            <Link href={href} className="mr-3 shrink-0">
+                              <Image src={currency.icon} alt="" width={32} height={32} />
+                            </Link>
+                          ) : (
+                            <a href={href} target="_blank" rel="noreferrer" className="mr-3 shrink-0">
+                              <Image src={currency.icon} alt="" width={32} height={32} />
+                            </a>
+                          )
                         )}
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            {currency?.name || `Moneda ${currencyId}`}
+                        <div className="min-w-0">
+                          <h3 className="text-base font-semibold sm:text-lg">
+                            {isInternal ? (
+                              <Link href={href} className="hover:underline decoration-white/30 underline-offset-4">
+                                {name}
+                              </Link>
+                            ) : (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:underline decoration-white/30 underline-offset-4"
+                              >
+                                {name}
+                              </a>
+                            )}
                           </h3>
                           {currency?.description && (
-                            <p className="text-gray-400 text-sm">{currency.description}</p>
+                            <p className="mt-0.5 hidden text-sm text-gray-400 sm:line-clamp-2 sm:block">{currency.description}</p>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-blue-400">
-                          {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
-                        </p>
-                      </div>
+                      <p className="shrink-0 text-right text-lg font-bold text-blue-400 sm:text-2xl">
+                        {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
          )}
+
+      {!isLoading && walletData.length === 0 && hasApiKey && (
+        <div className="text-center py-12 text-gray-400">
+          <p>{t('account.walletEmpty', 'No wallet currencies found')}</p>
+        </div>
+      )}
+
       <ServiceUnavailableModal
         isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
         onClose={handleCloseModal}
@@ -183,4 +260,4 @@ const WalletPage = () => {
   );
 };
 
-export default withAccountPage(WalletPage); 
+export default WalletPage;

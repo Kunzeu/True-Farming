@@ -1,7 +1,7 @@
 // Configuración completa de sorteos
 // Modifica este archivo para cambiar cualquier aspecto de los sorteos
 
-
+import { fetchGw2ByIds } from '@/lib/gw2-client-api';
 export interface Giveaway {
   id: string;
   slug: string;
@@ -525,66 +525,6 @@ const customItemIcons: Record<number, string> = {
   96613: 'https://render.guildwars2.com/file/E4F0CDDEAA0C0BCFF158A5A3042AD3C4A3021A22/2595067.png', // Jade Bot Core: Tier 10
 };
 
-// Función para obtener información de un item de GW2
-export async function getItemInfo(itemId: number, lang: string = 'en'): Promise<{ name: string; icon: string } | null> {
-  try {
-    // Si hay un icono personalizado, usarlo
-    if (customItemIcons[itemId]) {
-      // Mapear idiomas a códigos de GW2 API
-      const gw2LangMap: Record<string, string> = {
-        'en': 'en',
-        'es': 'es',
-        'de': 'de',
-        'fr': 'fr'
-      };
-
-      const gw2Lang = gw2LangMap[lang] || 'en';
-
-      // Obtener el nombre desde la API con caching
-      const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`);
-      if (response.ok) {
-        const item = await response.json();
-        return {
-          name: item.name,
-          icon: customItemIcons[itemId] // Usar icono personalizado
-        };
-      }
-    }
-
-    // Mapear idiomas a códigos de GW2 API
-    const gw2LangMap: Record<string, string> = {
-      'en': 'en',
-      'es': 'es',
-      'de': 'de',
-      'fr': 'fr'
-    };
-
-    const gw2Lang = gw2LangMap[lang] || 'en';
-
-    // Hacer la petición con el parámetro de idioma y caching
-    const response = await fetch(`https://api.guildwars2.com/v2/items/${itemId}?lang=${gw2Lang}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const item = await response.json();
-    return {
-      name: item.name,
-      icon: item.icon
-    };
-  } catch (error) {
-    console.error(`Error fetching item ${itemId} in ${lang}:`, error);
-    // Si hay un icono personalizado, devolverlo aunque falle la API
-    if (customItemIcons[itemId]) {
-      return {
-        name: `Item ${itemId}`,
-        icon: customItemIcons[itemId]
-      };
-    }
-    return null;
-  }
-}
-
 // Función simple de traducción para usar en la API
 function getItemTranslation(itemId: number, lang: string): string {
   const translations: Record<string, Record<number, string>> = {
@@ -603,6 +543,50 @@ function getItemTranslation(itemId: number, lang: string): string {
   };
 
   return translations[lang]?.[itemId] || translations['en']?.[itemId] || `Item ${itemId}`;
+}
+
+function resolveGiveawayItemName(itemId: number, lang: string, apiName?: string): string {
+  if (apiName && !/^Item \d+$/.test(apiName)) {
+    return apiName;
+  }
+  return getItemTranslation(itemId, lang);
+}
+
+function getGiveawayItemIcon(itemId: number, apiIcon?: string): string | undefined {
+  return customItemIcons[itemId] ?? apiIcon;
+}
+
+// Función para obtener información de un item de GW2
+export async function getItemInfo(itemId: number, lang: string = 'en'): Promise<{ name: string; icon: string } | null> {
+  const gw2Lang = ['en', 'es', 'de', 'fr'].includes(lang) ? lang : 'en';
+
+  try {
+    const items = await fetchGw2ByIds<{ id: number; name: string; icon?: string }>(
+      'items',
+      [itemId],
+      `&lang=${gw2Lang}`,
+    );
+    const item = items[0];
+    if (item?.name) {
+      const icon = getGiveawayItemIcon(itemId, item.icon);
+      if (icon) {
+        return {
+          name: item.name,
+          icon,
+        };
+      }
+    }
+  } catch (error) {
+    console.error(`Error fetching item ${itemId} in ${lang}:`, error);
+  }
+
+  const icon = getGiveawayItemIcon(itemId);
+  if (!icon) return null;
+
+  return {
+    name: resolveGiveawayItemName(itemId, lang),
+    icon,
+  };
 }
 
 // Función para obtener información de todos los items de un sorteo
@@ -635,25 +619,18 @@ export async function getGiveawayItemsInfo(giveaway: Giveaway, lang: string = 'e
         };
       } else if (prize.itemId) {
         const itemInfo = await getItemInfo(prize.itemId, lang);
-
-        // Si no hay API disponible, usar traducciones locales
-        if (!itemInfo) {
-          const translatedName = t ? t(`giveaways.items.${prize.itemId}`, prize.prize) : getItemTranslation(prize.itemId, lang);
-          return {
-            ...prize,
-            itemName: translatedName,
-            itemIcon: prize.itemId === 19721
-              ? 'https://render.guildwars2.com/file/65A54DB9415714041ED9367305920C82594D184E/60829.png'
-              : 'https://render.guildwars2.com/file/65A54DB9415714041ED9367305920C82594D184E/60829.png'
-          };
-        }
+        const itemName = t
+          ? t(
+              `giveaways.items.${prize.itemId}`,
+              resolveGiveawayItemName(prize.itemId, lang, itemInfo?.name),
+            )
+          : resolveGiveawayItemName(prize.itemId, lang, itemInfo?.name);
+        const itemIcon = getGiveawayItemIcon(prize.itemId, itemInfo?.icon);
 
         return {
           ...prize,
-          itemName: itemInfo?.name || prize.prize,
-          itemIcon: itemInfo?.icon || (prize.itemId === 19721
-            ? 'https://render.guildwars2.com/file/65A54DB9415714041ED9367305920C82594D184E/60829.png'
-            : 'https://render.guildwars2.com/file/65A54DB9415714041ED9367305920C82594D184E/60829.png')
+          itemName,
+          itemIcon,
         };
       }
       return prize;

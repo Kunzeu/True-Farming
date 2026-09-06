@@ -403,7 +403,7 @@ export default function GiftOfJadeMasteryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
+      <div className="min-h-screen tf-site-bg flex flex-col">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-yellow-600 mx-auto mb-4" />
@@ -416,7 +416,7 @@ export default function GiftOfJadeMasteryPage() {
 
   if (error && !item) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
+      <div className="min-h-screen tf-site-bg flex flex-col">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="bg-red-900/20 border border-red-500/50 text-red-300 px-4 py-3 rounded mb-4">
@@ -436,7 +436,7 @@ export default function GiftOfJadeMasteryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col" style={{ scrollBehavior: 'smooth' }}>
+    <div className="min-h-screen tf-site-bg flex flex-col" style={{ scrollBehavior: 'smooth' }}>
 
       {/* Banner informativo cuando se usan datos de fallback */}
       {error && item && (

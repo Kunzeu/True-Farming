@@ -169,7 +169,7 @@ export default function LaurelsPage() {
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+            <div className="min-h-screen tf-site-bg">
                 <div className="max-w-[1600px] mx-auto p-4 sm:p-6">
                     {/* Header */}
                     <div className="mb-8">

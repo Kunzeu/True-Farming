@@ -744,7 +744,7 @@ export default function HomePage() {
       </Head>
 
       {/* Container principal */}
-      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-16">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-8 pt-[4.25rem]">
 
         {/* Hero — Visions of Eternity */}
         <section className="relative mb-6 overflow-hidden rounded-3xl border border-slate-600/30 min-h-[240px] sm:min-h-[300px] md:min-h-[340px] lg:min-h-[380px]">

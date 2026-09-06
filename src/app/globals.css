@@ -3,21 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tf-bg-base: #06080d;
+  --tf-bg-mid: #0a0e16;
+  --tf-bg-deep: #070a10;
+  --tf-bg-accent: rgba(217, 165, 70, 0.08);
+  --background: var(--tf-bg-base);
+  --foreground: #e8edf5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--tf-bg-base);
+    --foreground: #e8edf5;
   }
 }
 
 body {
-  background: var(--background);
+  background: var(--tf-bg-base);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fondo global — alineado con el header (navy + brillo ámbar sutil) */
+.tf-site-bg {
+  background-color: var(--tf-bg-base);
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -15%, var(--tf-bg-accent), transparent 55%),
+    radial-gradient(ellipse 45% 40% at 100% 0%, rgba(45, 62, 95, 0.14), transparent 50%),
+    linear-gradient(165deg, var(--tf-bg-base) 0%, var(--tf-bg-mid) 42%, var(--tf-bg-deep) 100%);
+  color: var(--foreground);
 }
 
 /* Animaciones personalizadas */
@@ -89,6 +103,6 @@ footer + div:not([class*="scroll"]):not([id*="scroll"]) {
 }
 
 /* Excluir padding-top de la página de inicio usando :has() */
-.flex-1.pt-16:has(.home-page) {
+.flex-1.pt-\[4\.25rem\]:has(.home-page) {
   padding-top: 0 !important;
 }

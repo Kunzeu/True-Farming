@@ -27,12 +27,12 @@ export default function AppProviders({
     <CookieConsentProvider>
       <AuthProvider>
         <I18nProvider initialLang={lang}>
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+          <div className="tf-site-bg flex min-h-screen flex-col">
             <PageUsageTracker />
             <RoleChecker />
             <ApiWarningBanner />
             {/* pt-16: pages with fixed Navigation; login/auth tolerate the gap */}
-            <div className="flex-1 pt-16">{children}</div>
+            <div className="flex-1 pt-[4.25rem]">{children}</div>
             <div className="mt-auto">
               <Footer />
             </div>

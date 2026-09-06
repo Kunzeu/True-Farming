@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Info, Calculator, TrendingUp, ArrowLeft, Package, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Info, Calculator, TrendingUp, ArrowLeft, Package, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown, Download } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useI18n } from "@/contexts/I18nContext";
 import Image from "next/image";
 import { gw2WikiUrl } from "@/lib/gw2-wiki";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasExclusiveAccess } from "@/lib/patreon-benefits";
 
 // Interfaces para la tabla de apertura de cajas
 interface Gw2Item {
@@ -96,6 +98,51 @@ const LunarNewYearPage = () => {
 
   usePageTitle("pageTitles.lunarNewYear", "Lunar New Year");
   const { t, lang } = useI18n();
+  const { user } = useAuth();
+
+  const handleExportRedBagsCsv = () => {
+    const rows = [
+      [t("table.name"), t("table.quantity"), t("table.perBox"), t("table.price"), t("table.totalValue")].join(','),
+      ...sortedRedBagItems.map((item) =>
+        [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.quantity,
+          item.perBox.toFixed(4),
+          item.pricePerUnit || 0,
+          Math.floor(item.quantity * (item.pricePerUnit || 0))
+        ].join(',')
+      )
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lunar-new-year-red-bags.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportEnvelopesCsv = () => {
+    const rows = [
+      [t("table.name"), t("table.quantity"), t("table.perBox"), t("table.price"), t("table.totalValue")].join(','),
+      ...sortedEnvelopeItems.map((item) =>
+        [
+          `"${item.name.replace(/"/g, '""')}"`,
+          item.quantity,
+          item.perBox.toFixed(4),
+          item.pricePerUnit || 0,
+          Math.floor(item.quantity * (item.pricePerUnit || 0))
+        ].join(',')
+      )
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lunar-new-year-envelopes.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Sincronizar pestaña con hash en la URL (solo Box/Envelope Opening)
   useEffect(() => {
@@ -901,14 +948,25 @@ const LunarNewYearPage = () => {
                         <Calculator className="w-6 h-6 mr-3 text-red-400" />
                         {t("lunarNewYear.boxOpening.obtainedItems")}
                       </h3>
-                      <button
-                        onClick={() => fetchRedBagData(true)}
-                        disabled={redBagLoading}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600/80 hover:bg-red-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-red-500/50 disabled:border-gray-500/50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${redBagLoading ? 'animate-spin' : ''}`} />
-                        {t("common.refreshData")}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {hasExclusiveAccess(user) && redBagItems.length > 0 && (
+                          <button
+                            onClick={handleExportRedBagsCsv}
+                            className="flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                            title={t("search.exportCsv", "Export CSV")}
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => fetchRedBagData(true)}
+                          disabled={redBagLoading}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-600/80 hover:bg-red-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-red-500/50 disabled:border-gray-500/50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${redBagLoading ? 'animate-spin' : ''}`} />
+                          {t("common.refreshData")}
+                        </button>
+                      </div>
                     </div>
 
                     {redBagItems.length === 0 ? (
@@ -1144,14 +1202,25 @@ const LunarNewYearPage = () => {
                         <Calculator className="w-6 h-6 mr-3 text-red-400" />
                         {t("lunarNewYear.envelopeOpening.obtainedItems")}
                       </h3>
-                      <button
-                        onClick={() => fetchEnvelopeData(true)}
-                        disabled={envelopeLoading}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600/80 hover:bg-red-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-red-500/50 disabled:border-gray-500/50"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${envelopeLoading ? 'animate-spin' : ''}`} />
-                        {t("common.refreshData")}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {hasExclusiveAccess(user) && envelopeItems.length > 0 && (
+                          <button
+                            onClick={handleExportEnvelopesCsv}
+                            className="flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                            title={t("search.exportCsv", "Export CSV")}
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => fetchEnvelopeData(true)}
+                          disabled={envelopeLoading}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-600/80 hover:bg-red-700/80 disabled:bg-gray-600/60 text-white rounded text-sm transition-all duration-200 hover:scale-105 border border-red-500/50 disabled:border-gray-500/50"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${envelopeLoading ? 'animate-spin' : ''}`} />
+                          {t("common.refreshData")}
+                        </button>
+                      </div>
                     </div>
 
                     {envelopeItems.length === 0 ? (

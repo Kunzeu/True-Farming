@@ -40,8 +40,7 @@ const description =
   Astro.props.description ??
   'Optimize your Guild Wars 2 farming routes, salvage, festivals, legendary tracker and more.';
 const showNav = Astro.props.showNav !== false;
-const bgClass =
-  Astro.props.bgClass ?? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900';
+const bgClass = Astro.props.bgClass ?? 'tf-site-bg';
 const ogType = Astro.props.ogType ?? 'website';
 
 // Misma imagen OG que en Next.js
@@ -97,7 +96,7 @@ const ogImageType = ogImage.endsWith('.png')
       rel="stylesheet"
     />
     <meta name="google-site-verification" content="6QMoVlJ1hD8y5DCBubEKA5qv_oLb3O4EVRB8OS03LZU" />
-    <meta name="theme-color" content="#c1272d" />
+    <meta name="theme-color" content="#0a0e16" />
     <link rel="icon" href="/images/icons/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/images/icons/icon.ico" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXS6KYHEXT"></script>
@@ -111,7 +110,7 @@ const ogImageType = ogImage.endsWith('.png')
   <body class="font-sans">
     <div class:list={['min-h-screen flex flex-col', bgClass]}>
       {showNav && <NavIsland client:load lang={htmlLang} />}
-      <div class:list={['flex-1', showNav && 'pt-16']}>
+      <div class:list={['flex-1', showNav && 'pt-[4.25rem]']}>
         <slot />
       </div>
       <div class="mt-auto">

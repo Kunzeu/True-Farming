@@ -21,7 +21,7 @@ export default function SalvageSectionNav({ activeTier }: SalvageSectionNavProps
       className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-800/50 p-1 backdrop-blur-sm"
       aria-label={t('salvage.nav.unidentifiedGear', 'Unidentified Gear')}
     >
-      <div className="flex">
+      <div className="grid grid-cols-3 gap-1">
         {UNIDENTIFIED_GEAR_TIERS.map((tier) => {
           const isActive = activeTier === tier.id;
           const theme = getTierTheme(tier.id);
@@ -30,7 +30,7 @@ export default function SalvageSectionNav({ activeTier }: SalvageSectionNavProps
             <Link
               key={tier.id}
               href={tier.href}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold leading-tight transition-all duration-200 sm:flex-row sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm ${
                 isActive ? theme.tabActive : theme.tabInactive
               }`}
               aria-current={isActive ? 'page' : undefined}
@@ -40,9 +40,9 @@ export default function SalvageSectionNav({ activeTier }: SalvageSectionNavProps
                 alt=""
                 width={22}
                 height={22}
-                className={`h-[22px] w-[22px] shrink-0 transition-opacity ${isActive ? 'opacity-100' : 'opacity-60'}`}
+                className={`h-5 w-5 shrink-0 transition-opacity sm:h-[22px] sm:w-[22px] ${isActive ? 'opacity-100' : 'opacity-60'}`}
               />
-              <span className="truncate">
+              <span className="max-w-full truncate text-center">
                 {t(tier.labelKey, tier.defaultLabel)}
               </span>
             </Link>

@@ -8,13 +8,16 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
 import { useApiStatus } from '@/hooks/useApiStatus';
-import AccountLayout, { withAccountPage } from '@/components/account/AccountLayout';
+import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
+import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchMaterialsFromBrowser, enrichMaterialPrices } from '@/lib/gw2-client-account-data';
 import type { MaterialStorageData } from '@/lib/gw2-client-account-data';
 import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
+import { useAccountItemTooltip } from '@/hooks/useAccountItemTooltip';
+import AccountItemTooltip from '@/components/account/AccountItemTooltip';
 import type { MaterialCategoryDef, MaterialSortKey, StorageMaterial } from '@/lib/gw2-material-storage';
 import {
   getRarityBorderColor,
@@ -36,11 +39,13 @@ const StoragePage = () => {
   const materialsRef = useRef(materials);
   materialsRef.current = materials;
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const [sortBy, setSortBy] = useState<MaterialSortKey>('in-game');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
+  const { hovered, position, handleHover, handleLeave } = useAccountItemTooltip(lang);
 
   useEffect(() => {
     if (isApiHealthy) setIsModalClosed(false);
@@ -63,6 +68,7 @@ const StoragePage = () => {
 
     try {
       if (showSpinner) setIsLoading(true);
+      else setIsRefreshing(true);
       setApiError(null);
 
       const data = await fetchMaterialsFromBrowser(user.id, lang, apiKey, { withPrices: false });
@@ -87,6 +93,7 @@ const StoragePage = () => {
       );
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [user?.id, apiKey, t, lang, cacheKey]);
 
@@ -174,13 +181,13 @@ const StoragePage = () => {
           />
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-1 text-sm text-gray-400">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-gray-400">
             {t('storage.filterCategory', 'Category')}
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="min-w-[200px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full min-w-0 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 sm:w-auto sm:min-w-[200px]"
             >
               <option value={ALL_CATEGORIES}>{t('storage.allCategories', 'All categories')}</option>
               {categories.map((category) => (
@@ -191,12 +198,12 @@ const StoragePage = () => {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1 text-sm text-gray-400">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-gray-400">
             {t('storage.orderBy', 'Order By')}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as MaterialSortKey)}
-              className="min-w-[180px] px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full min-w-0 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 sm:w-auto sm:min-w-[180px]"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -205,8 +212,18 @@ const StoragePage = () => {
               ))}
             </select>
           </label>
+
+          <button
+            type="button"
+            onClick={() => void fetchMaterialsData({ forceLoading: true })}
+            className="self-end rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          >
+            {t('common.refresh', 'Refresh')}
+          </button>
         </div>
       </div>
+
+      <AccountRefreshingIndicator visible={isRefreshing} />
 
       {!isLoading && materials.length > 0 && (
         <div className="mb-6 flex items-center gap-2 text-sm text-gray-300">
@@ -239,8 +256,9 @@ const StoragePage = () => {
                 {sectionMaterials.map((material) => (
                   <div
                     key={material.id}
-                    title={material.name}
-                    className={`relative rounded-lg border-2 ${getRarityBorderColor(material.rarity)} bg-gray-800 p-2 hover:bg-gray-700 transition-colors`}
+                    className={`relative cursor-pointer rounded-lg border-2 ${getRarityBorderColor(material.rarity)} bg-gray-800 p-2 transition-colors hover:bg-gray-700`}
+                    onMouseEnter={(e) => handleHover({ id: material.id, count: material.count }, e)}
+                    onMouseLeave={handleLeave}
                   >
                     <div className="flex flex-col items-center gap-1">
                       {material.icon ? (
@@ -283,6 +301,8 @@ const StoragePage = () => {
         </div>
       )}
 
+      <AccountItemTooltip data={hovered} position={position} />
+
       <ServiceUnavailableModal
         isOpen={hasApiIssues && !isApiHealthy && !isModalClosed}
         onClose={() => {
@@ -295,4 +315,4 @@ const StoragePage = () => {
   );
 };
 
-export default withAccountPage(StoragePage);
+export default StoragePage;

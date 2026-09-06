@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AuthState, User, LoginCredentials, RegisterCredentials } from '@/types/auth';
 import type { User as DbUser } from '@/lib/database-client';
 import { isActivePatron } from '@/lib/patreon-benefits';
+import { setGw2PatronPriority } from '@/lib/gw2-client-api';
 import { getClientOAuthRedirectUri } from '@/lib/oauth-redirect';
 import { extractPatreonMembership } from '@/lib/patreon-membership';
 
@@ -151,6 +152,10 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
   const lastSummaryRef = useRef<{ hasApiKey: boolean; apiKeyValid: boolean | null } | null>(null);
   const autoEnrollGiveawayRef = useRef<string | null>(null);
   const refreshThrottleMs = 120000; // 2 minutos para deduplicar refrescos
+
+  useEffect(() => {
+    setGw2PatronPriority(isActivePatron(state.user));
+  }, [state.user]);
 
   const broadcastAuth = () => {
     if (typeof window !== 'undefined') {
@@ -655,14 +660,18 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         console.error('Persist Patreon link threw (loginWithPatreon immediate):', e);
       }
 
-      const existingToken = localStorage.getItem('gw2_token');
-      const token =
-        existingToken && !existingToken.startsWith('temp_')
-          ? existingToken
-          : 'temp_patreon_token_' + Date.now();
-
-      // Verificar qué se va a guardar
-
+      const sessionRes = await fetch('/api/auth/patreon/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token }),
+      });
+      if (!sessionRes.ok) {
+        throw new Error('Error al crear sesión');
+      }
+      const { token } = await sessionRes.json();
+      if (!token || typeof token !== 'string') {
+        throw new Error('Error al crear sesión');
+      }
 
       // Guardar en localStorage
       localStorage.setItem('gw2_token', token);

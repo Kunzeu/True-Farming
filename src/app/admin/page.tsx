@@ -1875,7 +1875,7 @@ export default function AdminPanel() {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="min-h-screen tf-site-bg">
 
         <div className="container mx-auto px-4 py-8">
           {/* Header */}

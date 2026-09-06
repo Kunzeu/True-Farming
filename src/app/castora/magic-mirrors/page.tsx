@@ -493,7 +493,7 @@ export default function MagicMirrorsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="min-h-screen tf-site-bg">
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
           {/* Header */}
           <motion.div

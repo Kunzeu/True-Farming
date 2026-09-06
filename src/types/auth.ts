@@ -35,6 +35,11 @@ export interface UserPreferences {
     hiddenCards?: string[];
     cardSizes?: Record<string, 'small' | 'medium' | 'large'>;
   };
+  apiKeys?: {
+    id: string;
+    name: string;
+    key: string;
+  }[];
 }
 
 export interface AuthState {
