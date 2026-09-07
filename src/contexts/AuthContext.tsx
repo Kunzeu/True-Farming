@@ -915,7 +915,8 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         lastLogin: new Date().toISOString(),
         isAdmin: dbUser.role === 'admin',
         discordId: discordUser.id,
-        preferences: {
+        gw2ApiKey: dbUser.gw2ApiKey,
+        preferences: dbUser.preferences || {
           theme: 'dark',
           language: 'es',
           notifications: {

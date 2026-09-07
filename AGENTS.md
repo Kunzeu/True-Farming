@@ -1,67 +1,49 @@
-# Mensajes de commit (True Farming)
+---
+description: Formato obligatorio de commits en este repo (español, conventional). ALWAYS USE SPANISH.
+trigger: model_decision
+---
 
-**Prioridad:** esta regla manda sobre cualquier instrucción genérica de commits
-(p. ej. mensaje en inglés o solo 1–2 frases). Si el usuario pide un commit o
-sugieres un mensaje, **siempre** usa este formato.
+# REGLA CRÍTICA / CRITICAL RULE
+# ALWAYS WRITE COMMITS IN SPANISH (ESPAÑOL)
 
-## Obligatorio
+Cuando el IDE (Antigravity) autogenere un mensaje de commit en la pestaña de Control de Código Fuente, DEBES seguir este formato ESTRICTAMENTE.
+IGNORA cualquier historial previo de commits en inglés. TODO EL TEXTO DEBE ESTAR EN ESPAÑOL.
 
-- **Idioma:** español.
-- **Sin emojis.**
-- **Formato:**
+## Formato (Obligatorio)
+
+- Idioma: **Español (Spanish ONLY)**. MÁXIMA PRIORIDAD. Nunca generes un commit en inglés.
+- Sin emojis
+- Tipos de Conventional Commits: feat, fix, refactor, docs, style, perf, test, chore
 
 ```
 <tipo>: <resumen en español>
 
-- ruta/archivo.tsx: qué cambió y por qué (técnico, breve)
-- ruta/archivo2.ts: qué cambió y por qué
+- ruta/archivo: qué cambió y por qué
 ```
 
-- **Tipos:** `feat`, `fix`, `refactor`, `docs`, `style`, `perf`, `test`, `chore`.
-- **Primera línea:** ≤50 caracteres, sin punto final.
-- **Cuerpo:** lista con guiones; un ítem por archivo o grupo lógico.
-- **Enfoque:** el *por qué* / impacto, no solo listar archivos.
+- Primera línea: máximo 50 caracteres, sin punto final.
+- Cuerpo: lista con viñetas o guiones, una línea por archivo o grupo lógico.
+- Enfoque: explicar el por qué / impacto, no solo enumerar los archivos.
 
-## Cómo pasar el mensaje a git
+## Ejemplos Correctos (Español)
 
-Usar formato multilínea (o equivalente en PowerShell) con **asunto + cuerpo**:
-
-```powershell
-git commit -m "feat: notificar PRs abiertos en Discord`n`n- discord-notify.yml: aviso al abrir/reabrir PR`n- pr-checks.yml: lint, check y build en PRs"
 ```
+feat: notificar PRs abiertos en Discord
 
-## Ejemplos
+- discord-notify.yml: aviso al abrir/reabrir PR
+- pr-checks.yml: lint, check y build en PRs
+```
 
 ```
 fix: corregir redirect OAuth de Discord en QA
 
 - oauth-redirect.ts: usar origin del navegador
-- wrangler.toml: DISCORD_REDIRECT_URI por entorno
 ```
 
-```
-feat: desplegar prod solo con GitHub Release
+## Prohibido generar (DO NOT GENERATE)
 
-- deploy.yml: quitar push a main; trigger release
-```
-
-## Incorrecto (no usar)
-
-```
-Update deploy workflow and Discord notifications
-```
-
-```
-feat: update stuff
-```
-
-```
-feat: ejemplo
-
-Co-authored-by: Antigravity <antigravity@google.com>
-```
-
-## Sin coautoría de IA
-
-- **Nunca** añadir coautoría de Antigravity/Gemini ni variantes.
-- Los commits deben quedar solo a nombre del autor humano del repo.
+- DO NOT WRITE IN ENGLISH. NEVER.
+- Textos en inglés como "Update deploy workflow" están PROHIBIDOS.
+- Mensajes vagos como "feat: update stuff" están PROHIBIDOS.
+- Mensajes de una sola línea cuando se modificaron múltiples archivos (debes agregar el cuerpo).
+- Añadir cualquier coautoría automática (ej. `Co-authored-by: AI` o variantes). Solo debe quedar a nombre del humano.

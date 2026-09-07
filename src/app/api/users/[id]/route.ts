@@ -278,8 +278,23 @@ export async function PUT(
 
     return NextResponse.json(user);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating user:', error);
+    
+    // Check for unique constraint violation (PostgreSQL error code 23505)
+    if (error.code === '23505' && error.detail && error.detail.includes('gw2_api_key')) {
+      return NextResponse.json({ 
+        error: 'This API key is already linked to another account.' 
+      }, { status: 409 });
+    }
+    
+    // Check for string data right truncation (PostgreSQL error code 22001)
+    if (error.code === '22001' && error.message && error.message.includes('gw2_api_key')) {
+      return NextResponse.json({ 
+        error: 'API key is too long for the database column.' 
+      }, { status: 400 });
+    }
+
     return NextResponse.json({ error: 'Error updating user' }, { status: 500 });
   }
 }

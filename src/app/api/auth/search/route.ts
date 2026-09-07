@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
       const query = `
         SELECT id, email, username, password, role, is_active as "isActive",
                created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId",
-               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus"
+               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus",
+               preferences, gw2_api_key as "gw2ApiKey"
         FROM users 
         WHERE email = $1
       `;
@@ -67,7 +68,8 @@ export async function GET(request: NextRequest) {
       const query = `
         SELECT id, email, username, role, is_active as "isActive",
                created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId",
-               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus"
+               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus",
+               preferences, gw2_api_key as "gw2ApiKey"
         FROM users 
         WHERE username = $1
       `;
@@ -89,7 +91,8 @@ export async function GET(request: NextRequest) {
       const query = `
         SELECT id, email, username, role, is_active as "isActive",
                created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId",
-               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus"
+               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus",
+               preferences, gw2_api_key as "gw2ApiKey"
         FROM users 
         WHERE discord_id = $1
       `;
@@ -110,7 +113,8 @@ export async function GET(request: NextRequest) {
       const query = `
         SELECT id, email, username, role, is_active as "isActive",
                created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId",
-               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus"
+               patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus",
+               preferences, gw2_api_key as "gw2ApiKey"
         FROM users 
         WHERE patreon_id = $1
       `;

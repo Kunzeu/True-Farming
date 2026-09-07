@@ -125,7 +125,17 @@ export default function AltAccountsManager() {
       }
     } catch (error) {
       console.error('Error adding account:', error);
-      setMessage({ text: t('profile.apiKey.errorValidate', 'Error validating API key'), type: 'error' });
+      
+      let errorMsg = t('profile.apiKey.errorValidate', 'Error validating API key');
+      if (error instanceof Error && error.message) {
+        if (error.message.includes('already linked')) {
+          errorMsg = t('profile.apiKey.alreadyLinked', 'This API key is already linked to another account on True Farming.');
+        } else if (error.message.includes('too long')) {
+          errorMsg = t('profile.apiKey.tooLong', 'API key format is invalid or too long.');
+        }
+      }
+      
+      setMessage({ text: errorMsg, type: 'error' });
     } finally {
       setIsApiKeyLoading(false);
     }

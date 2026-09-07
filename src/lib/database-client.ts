@@ -239,6 +239,11 @@ class DatabaseClientService {
           statusText: response.statusText,
           error: errorData
         });
+        
+        if (errorData.error) {
+          throw new Error(errorData.error);
+        }
+        
         throw new Error(`Failed to update user: ${response.status} ${response.statusText}`);
       }
       

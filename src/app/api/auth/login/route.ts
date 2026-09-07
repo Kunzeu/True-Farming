@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
       SELECT id, email, username, password, role, is_active as "isActive",
              email_verified as "emailVerified",
              created_at as "createdAt", updated_at as "updatedAt", discord_id as "discordId",
-             patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus"
+             patreon_id as "patreonId", patreon_tier as "patreonTier", patreon_status as "patreonStatus",
+             preferences, gw2_api_key as "gw2ApiKey"
       FROM users 
       WHERE email = $1
     `;
