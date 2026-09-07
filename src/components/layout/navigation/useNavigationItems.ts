@@ -150,7 +150,7 @@ export function useNavigationItems() {
         label: t('openedPage.title', 'Contenedores Abribles'),
         icon: 'Community',
         isImage: true,
-        keywords: ['containers', 'bags', 'laurels', 'open'],
+        keywords: ['containers', 'bags', 'open'],
       },
       {
         href: '/salvage',
@@ -186,9 +186,22 @@ export function useNavigationItems() {
     [t],
   );
 
+  const searchOnlyItems: NavItem[] = useMemo(
+    () => [
+      {
+        href: '/opened/laurels',
+        label: t('openedPage.laurels', 'Laureles'),
+        icon: 'Laurel',
+        isImage: true,
+        keywords: ['laurels', 'laureles', 'karma', 'currencies'],
+      },
+    ],
+    [t],
+  );
+
   const allSearchableItems = useMemo(
-    () => [...navItems, ...guidesItems, ...toolsItems],
-    [navItems, guidesItems, toolsItems],
+    () => [...navItems, ...guidesItems, ...toolsItems, ...searchOnlyItems],
+    [navItems, guidesItems, toolsItems, searchOnlyItems],
   );
 
   return { navItems, guidesItems, toolsItems, allSearchableItems };

@@ -14,9 +14,27 @@ import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIndicator';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchWalletFromBrowser } from '@/lib/gw2-client-account-data';
-import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { GW2_CACHE_TTL, writeSessionCache, readSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 import { hasExclusiveAccess } from '@/lib/patreon-benefits';
+import { GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface WalletItem {
   id: number;
@@ -33,9 +51,96 @@ interface Currency {
 }
 
 const CURRENCY_HREF: Record<number, string> = {
+  3: '/opened/laurels',
   23: '/magic#conversions',
+  24: '/fractals',
+  32: '/magic#unbound-magic',
+  45: '/magic#volatile-magic',
+  50: '/festivals/four-winds#Box-Opening',
+  59: '/fractals',
   61: '/salvage/research-notes',
 };
+
+function SortableCurrencyItem({ 
+  currencyId, 
+  walletItem, 
+  currency, 
+  href, 
+  isInternal, 
+  formatGold 
+}: { 
+  currencyId: number;
+  walletItem: WalletItem;
+  currency?: Currency;
+  href: string;
+  isInternal: boolean;
+  formatGold: (c: number) => string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: currencyId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const name = currency?.name || `Moneda ${currencyId}`;
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center">
+          <button
+            type="button"
+            className="mr-2 cursor-grab touch-none p-1 text-gray-500 hover:text-gray-300 focus:outline-none"
+            aria-label="Arrastrar para ordenar"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5" />
+          </button>
+          {currency?.icon && (
+            isInternal ? (
+              <Link href={href} className="mr-3 shrink-0" draggable={false}>
+                <Image src={currency.icon} alt="" width={32} height={32} draggable={false} />
+              </Link>
+            ) : (
+              <a href={href} target="_blank" rel="noreferrer" className="mr-3 shrink-0" draggable={false}>
+                <Image src={currency.icon} alt="" width={32} height={32} draggable={false} />
+              </a>
+            )
+          )}
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold sm:text-lg">
+              {isInternal ? (
+                <Link href={href} className="hover:underline decoration-white/30 underline-offset-4" draggable={false}>
+                  {name}
+                </Link>
+              ) : (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:underline decoration-white/30 underline-offset-4"
+                  draggable={false}
+                >
+                  {name}
+                </a>
+              )}
+            </h3>
+            {currency?.description && (
+              <p className="mt-0.5 hidden text-sm text-gray-400 sm:line-clamp-2 sm:block">{currency.description}</p>
+            )}
+          </div>
+        </div>
+        <p className="shrink-0 text-right text-lg font-bold text-blue-400 sm:text-2xl">
+          {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const WalletPage = () => {
   const { user } = useAuth();
@@ -57,6 +162,61 @@ const WalletPage = () => {
   const importantCurrencyIds = useMemo(() => [
     1, 23, 2, 3, 4, 7, 15, 19, 20, 22, 24, 26, 28, 29, 30, 32, 33, 45, 50, 59, 61, 62, 63, 66, 68, 69, 70, 72, 73, 75, 76, 77, 78, 79, 80
   ], []);
+
+  const [customOrder, setCustomOrder] = useState<number[]>([]);
+  const [orderLoaded, setOrderLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('tf_wallet_custom_order');
+      if (stored) {
+        setCustomOrder(JSON.parse(stored));
+      } else {
+        const favs = localStorage.getItem('tf_wallet_favorites');
+        if (favs) {
+          const parsedFavs = JSON.parse(favs);
+          const f = importantCurrencyIds.filter(id => parsedFavs.includes(id));
+          const o = importantCurrencyIds.filter(id => !parsedFavs.includes(id));
+          setCustomOrder([...f, ...o]);
+        } else {
+          setCustomOrder([...importantCurrencyIds]);
+        }
+      }
+    } catch (e) {
+      setCustomOrder([...importantCurrencyIds]);
+    }
+    setOrderLoaded(true);
+  }, [importantCurrencyIds]);
+
+  const saveOrder = (newOrder: number[]) => {
+    setCustomOrder(newOrder);
+    try {
+      localStorage.setItem('tf_wallet_custom_order', JSON.stringify(newOrder));
+    } catch (e) {}
+  };
+
+  const displayOrder = useMemo(() => {
+    if (!orderLoaded) return importantCurrencyIds;
+    const orderedIds = customOrder.filter(id => importantCurrencyIds.includes(id));
+    const missingIds = importantCurrencyIds.filter(id => !customOrder.includes(id));
+    return [...orderedIds, ...missingIds];
+  }, [customOrder, importantCurrencyIds, orderLoaded]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = displayOrder.indexOf(active.id as number);
+      const newIndex = displayOrder.indexOf(over.id as number);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        saveOrder(arrayMove(displayOrder, oldIndex, newIndex));
+      }
+    }
+  };
 
   
 
@@ -95,7 +255,8 @@ const WalletPage = () => {
   const fetchWalletData = useCallback(async (options?: { forceLoading?: boolean }) => {
     if (!user?.id || !apiKey) return;
 
-    const showSpinner = options?.forceLoading || walletDataRef.current.length === 0;
+    const cached = cacheKey ? readSessionCache(cacheKey, GW2_CACHE_TTL.accountPage) : null;
+    const showSpinner = options?.forceLoading || (walletDataRef.current.length === 0 && !cached);
 
     try {
       if (showSpinner) setIsLoading(true);
@@ -185,64 +346,34 @@ const WalletPage = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-gray-400">{t('account.loadingWallet', 'Loading wallet...')}</p>
           </div>
-                 ) : (
-                       <div className="space-y-4">
-              {importantCurrencyIds.map((currencyId) => {
-                const walletItem = walletData.find(item => item.id === currencyId);
-                const currency = currencies.find(c => c.id === currencyId);
-                
-                if (!walletItem) return null;
+                 ) : (                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={displayOrder} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4">
+                  {displayOrder.map((currencyId) => {
+                    const walletItem = walletData.find(item => item.id === currencyId);
+                    const currency = currencies.find(c => c.id === currencyId);
+                    
+                    if (!walletItem) return null;
 
-                const name = currency?.name || `Moneda ${currencyId}`;
-                const wikiName = currency?.wikiName || name;
-                const href = CURRENCY_HREF[currencyId] ?? gw2WikiUrl(wikiName, lang, { englishName: wikiName });
-                const isInternal = href.startsWith('/');
-                
-                return (
-                  <div key={currencyId} className="rounded-lg border border-gray-700 bg-gray-800 p-3 sm:p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-1 items-center">
-                        {currency?.icon && (
-                          isInternal ? (
-                            <Link href={href} className="mr-3 shrink-0">
-                              <Image src={currency.icon} alt="" width={32} height={32} />
-                            </Link>
-                          ) : (
-                            <a href={href} target="_blank" rel="noreferrer" className="mr-3 shrink-0">
-                              <Image src={currency.icon} alt="" width={32} height={32} />
-                            </a>
-                          )
-                        )}
-                        <div className="min-w-0">
-                          <h3 className="text-base font-semibold sm:text-lg">
-                            {isInternal ? (
-                              <Link href={href} className="hover:underline decoration-white/30 underline-offset-4">
-                                {name}
-                              </Link>
-                            ) : (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="hover:underline decoration-white/30 underline-offset-4"
-                              >
-                                {name}
-                              </a>
-                            )}
-                          </h3>
-                          {currency?.description && (
-                            <p className="mt-0.5 hidden text-sm text-gray-400 sm:line-clamp-2 sm:block">{currency.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <p className="shrink-0 text-right text-lg font-bold text-blue-400 sm:text-2xl">
-                        {currencyId === 1 ? formatGold(walletItem.value) : walletItem.value.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    const wikiName = currency?.wikiName || currency?.name || `Moneda ${currencyId}`;
+                    const href = CURRENCY_HREF[currencyId] ?? gw2WikiUrl(wikiName, lang, { englishName: wikiName });
+                    const isInternal = href.startsWith('/');
+                    
+                    return (
+                      <SortableCurrencyItem
+                        key={currencyId}
+                        currencyId={currencyId}
+                        walletItem={walletItem}
+                        currency={currency}
+                        href={href}
+                        isInternal={isInternal}
+                        formatGold={formatGold}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
          )}
 
       {!isLoading && walletData.length === 0 && hasApiKey && (

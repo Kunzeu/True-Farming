@@ -27,11 +27,12 @@ export function gw2CacheKey(endpoint: string, id: number, extra = '') {
 
 export function readSessionCache<T>(key: string, ttlMs: number): T | null {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { expires: number; data: T };
-    if (!parsed?.expires || parsed.expires < Date.now()) {
-      sessionStorage.removeItem(key);
+    // Patrón Stale-While-Revalidate: Siempre devolvemos los datos cacheados
+    // para mostrar la UI instantáneamente. El refetch en segundo plano actualizará la caché.
+    if (!parsed || !parsed.data) {
       return null;
     }
     return parsed.data;
@@ -42,7 +43,7 @@ export function readSessionCache<T>(key: string, ttlMs: number): T | null {
 
 export function writeSessionCache<T>(key: string, data: T, ttlMs: number) {
   try {
-    sessionStorage.setItem(
+    localStorage.setItem(
       key,
       JSON.stringify({ expires: Date.now() + ttlMs, data }),
     );

@@ -36,7 +36,7 @@ export async function fetchWalletFromBrowser(
   lang: string,
   currencyIds: number[],
   apiKey?: string | null,
-) {
+): Promise<{ wallet: WalletItem[]; currencies: Currency[] } | null> {
   const key = await resolveApiKey(userId, apiKey);
   if (!key) return null;
 
@@ -53,7 +53,7 @@ export async function fetchWalletFromBrowser(
       ? Promise.resolve(null)
       : fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', currencyIds, '&lang=en'),
   ]);
-  const enNames = new Map((enCurrencies ?? currencies).map((c) => [c.id, c.name]));
+  const enNames = new Map<number, string>((enCurrencies ?? currencies).map((c) => [c.id, c.name]));
   return {
     wallet: filtered,
     currencies: currencies.map((c) => ({ ...c, wikiName: enNames.get(c.id) ?? c.name })),
@@ -283,7 +283,7 @@ async function resolveSearchSlots(slots: SearchSlot[], lang: string): Promise<Se
   );
   const itemMap = new Map(items.map((item) => [item.id, item]));
   return slots
-    .map((slot) => {
+    .map((slot): SearchIndexRow | null => {
       const item = itemMap.get(slot.id);
       if (!item?.name) return null;
       return {
@@ -491,6 +491,7 @@ export type EnrichedCharacter = {
   level: number;
   race: string;
   specialization?: string;
+  specializationIcon?: string;
   world: number;
   worldName?: string;
   inventory?: {
@@ -545,8 +546,29 @@ export async function fetchCharactersEnrichedFromBrowser(
   const worldNames = await fetchWorldNames(worldIds, lang);
   const enriched = await enrichCharactersWithItems(charactersWithInventory, lang);
 
-  return enriched.map((char) => ({
-    ...char,
-    worldName: char.world != null ? worldNames.get(char.world) : undefined,
-  }));
+  const specIds = [
+    ...new Set(
+      (characters as any[])
+        .map((c) => c.specializations?.pve?.[2]?.id)
+        .filter((id): id is number => typeof id === 'number' && id > 0),
+    ),
+  ];
+  
+  const specs = specIds.length > 0 
+    ? await fetchGw2ByIds<{ id: number; name: string; icon?: string; elite?: boolean }>('specializations', specIds, `&lang=${lang}`) 
+    : [];
+  const specMap = new Map(specs.map((s) => [s.id, s]));
+
+  return enriched.map((char) => {
+    const rawChar = (characters as any[]).find((c) => c.name === char.name);
+    const specId = rawChar?.specializations?.pve?.[2]?.id;
+    const specDetails = specId ? specMap.get(specId) : undefined;
+    
+    return {
+      ...char,
+      worldName: char.world != null ? worldNames.get(char.world) : undefined,
+      specialization: specDetails?.name,
+      specializationIcon: specDetails?.icon,
+    };
+  });
 }

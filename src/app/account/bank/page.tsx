@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Package, Search, Database } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import ServiceUnavailableModal from '@/components/ui/ServiceUnavailableModal';
@@ -14,7 +15,7 @@ import AccountLayout from '@/components/account/AccountLayout';
 import AccountNoApiKeyBanner from '@/components/account/AccountNoApiKeyBanner';
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { fetchBankFromBrowser, enrichBankWithPrices } from '@/lib/gw2-client-account-data';
-import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { GW2_CACHE_TTL, writeSessionCache, readSessionCache } from '@/lib/gw2-client-cache';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 import { useAccountItemTooltip } from '@/hooks/useAccountItemTooltip';
 import AccountItemTooltip from '@/components/account/AccountItemTooltip';
@@ -58,6 +59,16 @@ const BankPage = () => {
   const { hovered, position, handleHover, handleLeave, itemCache } = useAccountItemTooltip(lang);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
+  const router = useRouter();
+
+  const handleItemClick = (item: BankItem) => {
+    // Luck items (Fine, Masterwork, Rare, Exotic, Legendary)
+    if ([42845, 42846, 42847, 42848, 45014].includes(item.id) || 
+        item.name.toLowerCase().includes('luck') || 
+        item.name.toLowerCase().includes('suerte')) {
+      router.push('/festivals/lunar-new-year#Box-Opening');
+    }
+  };
 
   // Reset modal closed state when API becomes healthy
   useEffect(() => {
@@ -134,7 +145,8 @@ const BankPage = () => {
   const fetchBankData = useCallback(async (options?: { forceLoading?: boolean }) => {
     if (!user?.id || !apiKey) return;
 
-    const showSpinner = options?.forceLoading || bankItemsRef.current.length === 0;
+    const cached = cacheKey ? readSessionCache(cacheKey, GW2_CACHE_TTL.accountPage) : null;
+    const showSpinner = options?.forceLoading || (bankItemsRef.current.length === 0 && !cached);
 
     try {
       if (showSpinner) setIsLoading(true);
@@ -369,6 +381,7 @@ const BankPage = () => {
                             ${getRarityBorderColor(item.rarity)} bg-gray-700 hover:bg-gray-600 transition-colors cursor-pointer group
                           `}
                           title={`${t('bank.slot')} ${bankItems.indexOf(item) + 1}`}
+                          onClick={() => handleItemClick(item)}
                           onMouseEnter={(e) => handleHover(item, e)}
                           onMouseLeave={handleLeave}
                         >
@@ -434,6 +447,7 @@ const BankPage = () => {
                           }
                         `}
                               title={item ? `${t('bank.slot')} ${globalIndex + 1}` : `${t('bank.slot')} ${globalIndex + 1} ${t('bank.empty')}`}
+                              onClick={() => item && handleItemClick(item)}
                               onMouseEnter={(e) => item && handleHover(item, e)}
                               onMouseLeave={handleLeave}
                             >

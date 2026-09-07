@@ -1,4 +1,7 @@
 export function getImageSrc(icon: string): string {
+  if (icon === 'Laurel') {
+    return 'https://wiki.guildwars2.com/images/1/13/Laurel.png';
+  }
   if (icon === 'magic-mirror') {
     return 'https://wiki.guildwars2.com/images/1/1d/Magic_Mirror.png';
   }
@@ -28,6 +31,7 @@ export function getImageSrc(icon: string): string {
 
 export function isImageUnoptimized(icon: string): boolean {
   return (
+    icon === 'Laurel' ||
     icon === 'magic-mirror' ||
     icon === 'legendary-crafting' ||
     icon === 'conversionlodestone' ||

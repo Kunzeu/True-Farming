@@ -15,7 +15,7 @@ import AccountRefreshingIndicator from '@/components/account/AccountRefreshingIn
 import { useAccountGw2 } from '@/hooks/useAccountGw2';
 import { useAccountPageCache } from '@/hooks/useAccountPageCache';
 import { fetchCharactersEnrichedFromBrowser, type EnrichedCharacter } from '@/lib/gw2-client-account-data';
-import { GW2_CACHE_TTL, writeSessionCache } from '@/lib/gw2-client-cache';
+import { GW2_CACHE_TTL, writeSessionCache, readSessionCache } from '@/lib/gw2-client-cache';
 import { formatProfessionLabel, getProfessionIconUrl } from '@/lib/gw2-profession-icons';
 import { useAccountItemTooltip } from '@/hooks/useAccountItemTooltip';
 import AccountItemTooltip from '@/components/account/AccountItemTooltip';
@@ -39,7 +39,6 @@ const CharactersPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedInventories, setExpandedInventories] = useState<Set<string>>(new Set());
   const { hovered, position, handleHover, handleLeave } = useAccountItemTooltip(lang);
-  const [specializations, setSpecializations] = useState<Record<string, unknown>>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalClosed, setIsModalClosed] = useState(false);
 
@@ -62,7 +61,8 @@ const CharactersPage = () => {
   const fetchCharactersData = useCallback(async (options?: { forceLoading?: boolean }) => {
     if (!user?.id || !apiKey) return;
 
-    const showSpinner = options?.forceLoading || charactersRef.current.length === 0;
+    const cached = cacheKey ? readSessionCache(cacheKey, GW2_CACHE_TTL.accountPage) : null;
+    const showSpinner = options?.forceLoading || (charactersRef.current.length === 0 && !cached);
 
     try {
       if (showSpinner) setIsLoading(true);
@@ -80,22 +80,6 @@ const CharactersPage = () => {
       setCharacters(charactersData);
       setIsLoading(false);
       if (cacheKey) writeSessionCache(cacheKey, charactersData, GW2_CACHE_TTL.accountPage);
-
-      const specializationNames = charactersData
-        .map((char) => char.specialization)
-        .filter((spec): spec is string => Boolean(spec))
-        .filter((value, index, self) => self.indexOf(value) === index);
-
-      if (specializationNames.length > 0) {
-        try {
-          const specializationsResponse = await fetch(`/api/gw2/specializations?lang=${lang}`);
-          if (specializationsResponse.ok) {
-            setSpecializations(await specializationsResponse.json());
-          }
-        } catch (fetchError) {
-          console.error('Error fetching specializations:', fetchError);
-        }
-      }
     } catch (fetchError) {
       console.error('Error fetching characters:', fetchError);
       const message = fetchError instanceof Error ? fetchError.message : 'Network error or service unavailable';
@@ -153,26 +137,17 @@ const CharactersPage = () => {
   };
 
   const getSpecializationIcon = (character: Character) => {
-    if (!character.specialization) return null;
+    if (!character.specialization || !character.specializationIcon) return null;
     
-    // Find specialization by name (case insensitive)
-    const specializationData = Object.values(specializations).find((s: unknown) => 
-      (s as { name?: string })?.name?.toLowerCase() === character.specialization?.toLowerCase()
+    return (
+      <Image 
+        src={character.specializationIcon} 
+        alt={character.specialization}
+        width={16}
+        height={16}
+        className="w-4 h-4 ml-1"
+      />
     );
-    
-    if ((specializationData as { icon?: string })?.icon) {
-      return (
-        <Image 
-          src={(specializationData as { icon: string }).icon} 
-          alt={(specializationData as { name?: string }).name || character.specialization}
-          width={16}
-          height={16}
-          className="w-4 h-4 ml-1"
-        />
-      );
-    }
-    
-    return null;
   };
 
   const getRarityBorderColor = (rarity: string | undefined) => {
