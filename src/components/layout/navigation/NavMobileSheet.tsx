@@ -226,7 +226,8 @@ export default function NavMobileSheet({
 
             <div className="shrink-0 border-b border-white/[0.08] px-3 py-3">
               {isAuthenticated ? (
-                <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03]">
+                <>
+                  <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03]">
                   <button
                     type="button"
                     onClick={() => setUserOpen((v) => !v)}
@@ -320,7 +321,8 @@ export default function NavMobileSheet({
                       )}
                     </div>
                   )}
-                </div>
+                  </div>
+                </>
               ) : (
                 <Link
                   href="/login"
