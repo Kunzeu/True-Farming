@@ -14,6 +14,8 @@ import {
   Shield,
   User,
   X,
+  Users,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
@@ -128,9 +130,43 @@ export default function NavMobileSheet({
   onLogout,
 }: NavMobileSheetProps) {
   const { t } = useI18n();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const [userOpen, setUserOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const initial = (user?.username?.[0] ?? 'U').toUpperCase();
+
+  const apiKeys = user?.preferences?.apiKeys || [];
+  const currentKey = user?.gw2ApiKey;
+  
+  const displayApiKeys = [...apiKeys];
+  if (currentKey && !apiKeys.some(k => k.key === currentKey)) {
+    displayApiKeys.unshift({
+      id: 'legacy-main-key',
+      name: t('profile.apiKey.legacyAccount', 'Main Account (Legacy)'),
+      key: currentKey
+    });
+  }
+
+  const currentAccountName = displayApiKeys.find(k => k.key === currentKey)?.name || 
+                             (currentKey ? t('settings.gw2Api.mainAccount', 'Main Account') : t('settings.gw2Api.noAccount', 'No Account'));
+
+  const handleSwitchAccount = async (key: string) => {
+    if (key === currentKey || isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      await updateUser({ gw2ApiKey: key });
+      setAccountsOpen(false);
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to switch account:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -238,6 +274,50 @@ export default function NavMobileSheet({
                         <LogOut className="h-4 w-4" />
                         {t('auth.logout', 'Logout')}
                       </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-2 overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03]">
+                  <button
+                    type="button"
+                    onClick={() => setAccountsOpen((v) => !v)}
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-200"
+                  >
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-slate-400">
+                        <Users className="h-4 w-4" />
+                      </span>
+                      <span className="truncate">{currentAccountName}</span>
+                    </span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${accountsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {accountsOpen && (
+                    <div className="space-y-0.5 border-t border-white/[0.06] px-1.5 py-1.5">
+                      {displayApiKeys.length > 0 ? (
+                        displayApiKeys.map((account) => {
+                          const isActive = account.key === currentKey;
+                          return (
+                            <button
+                              key={account.id}
+                              onClick={() => handleSwitchAccount(account.key)}
+                              disabled={isUpdating}
+                              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm text-left transition ${
+                                isActive 
+                                  ? 'bg-amber-500/10 text-amber-200' 
+                                  : 'text-slate-300 hover:bg-white/[0.05]'
+                              }`}
+                            >
+                              <span className="truncate">{account.name}</span>
+                              {isActive && <Check className="h-4 w-4 shrink-0" />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-2.5 py-2 text-sm text-slate-400">
+                          {t('settings.gw2Api.noAltAccounts', 'No alternative accounts added yet.')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
