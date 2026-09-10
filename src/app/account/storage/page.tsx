@@ -272,10 +272,10 @@ const StoragePage = () => {
                       ) : (
                         <div className="w-12 h-12 bg-gray-700 rounded" />
                       )}
-                      <span className="text-xs text-center text-gray-300 line-clamp-2 leading-tight">
+                      <span className="text-sm text-center text-gray-300 line-clamp-2 leading-tight">
                         {material.name}
                       </span>
-                      <span className="text-blue-400 font-semibold text-sm">
+                      <span className="text-blue-400 font-semibold text-base">
                         {material.count.toLocaleString()}
                       </span>
                     </div>

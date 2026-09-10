@@ -396,8 +396,8 @@ const BankPage = () => {
                           )}
                           {item.count > 1 && (
                             <span
-                              className="pointer-events-none absolute inset-0 flex items-center justify-center text-xl font-bold text-black"
-                              style={{ WebkitTextStroke: '1px white', paintOrder: 'stroke fill' }}
+                              className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl font-bold text-black"
+                              style={{ WebkitTextStroke: '1.5px white', paintOrder: 'stroke fill' }}
                             >
                               {item.count}
                             </span>
@@ -467,8 +467,8 @@ const BankPage = () => {
                              {/* Quantity in center (large white number) */}
                              {item.count > 1 && (
                                <span
-                                 className="pointer-events-none absolute inset-0 flex items-center justify-center text-xl font-bold text-black"
-                                 style={{ WebkitTextStroke: '1px white', paintOrder: 'stroke fill' }}
+                                 className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl font-bold text-black"
+                                 style={{ WebkitTextStroke: '1.5px white', paintOrder: 'stroke fill' }}
                                >
                                  {item.count}
                                </span>

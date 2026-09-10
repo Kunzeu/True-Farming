@@ -3110,5 +3110,20 @@
   "legendary.sort.listedHint": "Currently listed on the Trading Post (API has no weekly sales)",
   "settings.gw2Api.switchAccount": "Switch Account",
   "settings.gw2Api.manageAccounts": "Manage Accounts",
-  "settings.gw2Api.noAltAccounts": "No alternative accounts added yet."
+  "settings.gw2Api.noAltAccounts": "No alternative accounts added yet.",
+  "priceCheck": {
+    "title": "GW2 Price Check",
+    "subtitle": "Check Trading Post prices for popular items",
+    "searchPlaceholder": "Search items by name...",
+    "noResults": "No items found",
+    "buyPrice": "Buy Price",
+    "sellPrice": "Sell Price",
+    "profit": "Profit (after 15% tax)",
+    "profitMargin": "ROI",
+    "loading": "Searching items...",
+    "taxWarning": "Includes 15% Trading Post tax"
+  },
+  "pageTitles": {
+    "priceCheck": "GW2 Price Check"
+  }
 }

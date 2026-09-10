@@ -2949,5 +2949,20 @@
   "legendary.sort.listedHint": "Aktuell im Handelsposten gelistet (API hat keine Wochenverkäufe)",
   "settings.gw2Api.switchAccount": "Konto Wechseln",
   "settings.gw2Api.manageAccounts": "Konten Verwalten",
-  "settings.gw2Api.noAltAccounts": "Noch keine alternativen Konten hinzugefügt."
+  "settings.gw2Api.noAltAccounts": "Noch keine alternativen Konten hinzugefügt.",
+  "priceCheck": {
+    "title": "GW2 Preis-Check",
+    "subtitle": "Überprüfen Sie die Handelsposten-Preise für beliebte Gegenstände",
+    "searchPlaceholder": "Gegenstände nach Namen suchen...",
+    "noResults": "Keine Gegenstände gefunden",
+    "buyPrice": "Kaufpreis",
+    "sellPrice": "Verkaufspreis",
+    "profit": "Gewinn (nach 15% Steuer)",
+    "profitMargin": "ROI",
+    "loading": "Suche nach Gegenständen...",
+    "taxWarning": "Beinhaltet 15% Handelsposten-Steuer"
+  },
+  "pageTitles": {
+    "priceCheck": "GW2 Preis-Check"
+  }
 }

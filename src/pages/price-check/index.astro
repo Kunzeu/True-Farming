@@ -1,0 +1,14 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Island from '@/islands/price-check';
+
+const langCookie = Astro.cookies.get('tf_lang')?.value;
+const lang =
+  langCookie === 'de' || langCookie === 'es' || langCookie === 'fr' || langCookie === 'en'
+    ? langCookie
+    : 'en';
+---
+
+<Layout showNav={true} title={"Price Check - True Farming"} description={"True Farming - Guild Wars 2 Price Check for trading post."}>
+  <Island client:idle lang={lang} />
+</Layout>

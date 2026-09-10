@@ -2944,5 +2944,20 @@
   "legendary.sort.listedHint": "Quantité listée maintenant au HV (l'API n'a pas les ventes/semaine)",
   "settings.gw2Api.switchAccount": "Changer de Compte",
   "settings.gw2Api.manageAccounts": "Gérer les Comptes",
-  "settings.gw2Api.noAltAccounts": "Aucun compte alternatif ajouté."
+  "settings.gw2Api.noAltAccounts": "Aucun compte alternatif ajouté.",
+  "priceCheck": {
+    "title": "Vérification des prix GW2",
+    "subtitle": "Consultez les prix du comptoir pour les objets populaires",
+    "searchPlaceholder": "Rechercher des objets par nom...",
+    "noResults": "Aucun objet trouvé",
+    "buyPrice": "Prix d'achat",
+    "sellPrice": "Prix de vente",
+    "profit": "Bénéfice (après 15% de taxe)",
+    "profitMargin": "ROI",
+    "loading": "Recherche d'objets en cours...",
+    "taxWarning": "Inclut 15% de taxe du comptoir"
+  },
+  "pageTitles": {
+    "priceCheck": "Vérification des prix GW2"
+  }
 }

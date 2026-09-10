@@ -3146,5 +3146,20 @@
   "legendary.sort.listedHint": "Cantidad listada ahora en el Bazar (la API no da ventas/semana)",
   "settings.gw2Api.switchAccount": "Cambiar Cuenta",
   "settings.gw2Api.manageAccounts": "Gestionar Cuentas",
-  "settings.gw2Api.noAltAccounts": "Aún no se han añadido cuentas alternativas."
+  "settings.gw2Api.noAltAccounts": "Aún no se han añadido cuentas alternativas.",
+  "priceCheck": {
+    "title": "Verificador de Precios GW2",
+    "subtitle": "Consulta los precios del Trading Post para objetos populares",
+    "searchPlaceholder": "Buscar objetos por nombre...",
+    "noResults": "No se encontraron objetos",
+    "buyPrice": "Precio de Compra",
+    "sellPrice": "Precio de Venta",
+    "profit": "Ganancia (tras 15% de impuesto)",
+    "profitMargin": "ROI",
+    "loading": "Buscando objetos...",
+    "taxWarning": "Incluye el impuesto del 15% del Trading Post"
+  },
+  "pageTitles": {
+    "priceCheck": "Verificador de Precios GW2"
+  }
 }
