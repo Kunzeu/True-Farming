@@ -26,6 +26,7 @@ PATREON_REDIRECT_URI = "https://www.true-farming.com/auth/patreon/callback"
 PATREON_CAMPAIGN_ID = "12496802"
 NEXT_PUBLIC_PATREON_CAMPAIGN_ID = "12496802"
 DISCORD_CLIENT_ID = "1399450681126944939"
+DISCORD_CLIENT_SECRET = "FnmKMdu6prSxr1MHF8U4tJCdPEaC1LSx"
 DISCORD_REDIRECT_URI = "https://www.true-farming.com/auth/discord/callback"
 
 # QA worker: `wrangler deploy --env qa` → https://qa.true-farming.com
@@ -42,6 +43,7 @@ PATREON_REDIRECT_URI = "https://qa.true-farming.com/auth/patreon/callback"
 PATREON_CAMPAIGN_ID = "12496802"
 NEXT_PUBLIC_PATREON_CAMPAIGN_ID = "12496802"
 DISCORD_CLIENT_ID = "1399450681126944939"
+DISCORD_CLIENT_SECRET = "FnmKMdu6prSxr1MHF8U4tJCdPEaC1LSx"
 DISCORD_REDIRECT_URI = "https://qa.true-farming.com/auth/discord/callback"
 
 [[env.qa.routes]]

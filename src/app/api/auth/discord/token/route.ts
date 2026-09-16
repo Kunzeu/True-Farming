@@ -26,7 +26,11 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ||
       '1399450681126944939'
     ).trim();
-    const clientSecret = (w?.DISCORD_CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET || '').trim();
+    const clientSecret = (
+      w?.DISCORD_CLIENT_SECRET ||
+      process.env.DISCORD_CLIENT_SECRET ||
+      'FnmKMdu6prSxr1MHF8U4tJCdPEaC1LSx'
+    ).trim();
     const redirectUri = resolveServerOAuthRedirectUri({
       requested: requestedRedirect,
       originHeader: request.headers.get('origin'),

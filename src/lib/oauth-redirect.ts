@@ -39,6 +39,24 @@ export function getClientOAuthRedirectUri(
   return `${PROD_ORIGIN}${callbackPath}`;
 }
 
+function isAllowedOAuthOrigin(origin: string): boolean {
+  if (ALLOWED_OAUTH_ORIGINS.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
+    if (
+      url.hostname.endsWith('.true-farming.com') ||
+      url.hostname.endsWith('.pages.dev') ||
+      url.hostname.endsWith('.workers.dev')
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 /** Server: only allow known origins (body/Origin), else env fallback. */
 export function resolveServerOAuthRedirectUri(options: {
   requested?: string | null;
@@ -55,7 +73,7 @@ export function resolveServerOAuthRedirectUri(options: {
       const url = raw.includes('://') ? new URL(raw) : null;
       if (url) {
         const origin = normalizeOAuthOrigin(url.origin);
-        if (ALLOWED_OAUTH_ORIGINS.has(origin) || ALLOWED_OAUTH_ORIGINS.has(url.origin)) {
+        if (isAllowedOAuthOrigin(origin) || isAllowedOAuthOrigin(url.origin)) {
           // Full callback URL or just origin
           if (url.pathname && url.pathname !== '/') {
             return `${origin}${url.pathname}`;
@@ -64,7 +82,7 @@ export function resolveServerOAuthRedirectUri(options: {
         }
       } else {
         const origin = normalizeOAuthOrigin(raw.replace(/\/$/, ''));
-        if (ALLOWED_OAUTH_ORIGINS.has(origin)) {
+        if (isAllowedOAuthOrigin(origin)) {
           return `${origin}${options.callbackPath}`;
         }
       }
