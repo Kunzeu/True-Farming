@@ -49,9 +49,14 @@ function DiscordCallbackContent() {
     }
   }, [searchParams, loginWithDiscord, router]);
 
+  const [hasProcessed, setHasProcessed] = useState(false);
+
   useEffect(() => {
-    handleDiscordCallback();
-  }, [handleDiscordCallback]);
+    if (!hasProcessed) {
+      setHasProcessed(true);
+      handleDiscordCallback();
+    }
+  }, [handleDiscordCallback, hasProcessed]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">

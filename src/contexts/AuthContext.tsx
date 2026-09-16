@@ -838,7 +838,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         '/auth/discord/callback',
       );
 
-      // Intercambiar el código por un token de acceso
+      // 1. Intercambiar el código por un token de acceso en el servidor
       const tokenResponse = await fetch('/api/auth/discord/token', {
         method: 'POST',
         headers: {
@@ -848,75 +848,43 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
       });
 
       if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
+        const errorData = await tokenResponse.json().catch(() => ({}));
         console.error('Discord token error:', errorData);
-        throw new Error(errorData.error || 'Error al obtener token de Discord');
+        throw new Error(errorData.error || errorData.details || 'Error al obtener token de Discord');
       }
 
       const { access_token } = await tokenResponse.json();
 
-
-      // Obtener información del usuario de Discord
-      const userResponse = await fetch('https://discord.com/api/users/@me', {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
+      // 2. Procesar sesión, vincular/crear usuario y obtener token JWT en el servidor
+      const sessionRes = await fetch('/api/auth/discord/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token }),
       });
 
-      if (!userResponse.ok) {
-        const errorData = await userResponse.text();
-        console.error('Discord user info error:', errorData);
-        throw new Error('Error al obtener información del usuario');
+      if (!sessionRes.ok) {
+        const sessionError = await sessionRes.json().catch(() => ({}));
+        console.error('Discord session error:', sessionError);
+        throw new Error(sessionError.error || 'Error al crear sesión de Discord');
       }
 
-      const discordUser = await userResponse.json();
-
-
-
-      // Buscar o crear usuario en la base de datos
-      const { getDbService } = await import('@/lib/database-switch');
-      const dbService = await getDbService();
-
-      // Buscar usuario existente por Discord ID
-
-      let dbUser = await dbService.getUserByDiscordId(discordUser.id);
-
-
-      if (!dbUser) {
-
-        // Crear nuevo usuario
-        const createdUser = await dbService.createUser({
-          email: discordUser.email,
-          username: discordUser.username,
-          discordId: discordUser.id,
-          role: 'user',
-          isActive: true,
-        });
-
-
-        // Usar el usuario recién creado
-        dbUser = createdUser;
-      } else {
-
+      const { token, user: sessionUser } = await sessionRes.json();
+      if (!token || !sessionUser) {
+        throw new Error('Respuesta de sesión de Discord inválida');
       }
 
-      if (!dbUser) {
-        throw new Error('Error al crear/obtener usuario de Discord');
-      }
-
-      // Crear objeto de usuario para el contexto
+      // Crear objeto de usuario estructurado para el contexto
       const user: User = {
-        id: dbUser.id,
-        username: dbUser.username,
-        email: dbUser.email,
-        role: dbUser.role,
-        isActive: dbUser.isActive,
-        joinDate: dbUser.createdAt?.toISOString() || new Date().toISOString(),
+        id: sessionUser.id,
+        username: sessionUser.username,
+        email: sessionUser.email,
+        role: sessionUser.role || 'user',
+        isActive: sessionUser.isActive !== false,
+        joinDate: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        isAdmin: dbUser.role === 'admin',
-        discordId: discordUser.id,
-        gw2ApiKey: dbUser.gw2ApiKey,
-        preferences: dbUser.preferences || {
+        isAdmin: sessionUser.role === 'admin',
+        discordId: sessionUser.discordId,
+        preferences: {
           theme: 'dark',
           language: 'es',
           notifications: {
@@ -927,20 +895,7 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
         }
       };
 
-      const sessionRes = await fetch('/api/auth/discord/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token }),
-      });
-      if (!sessionRes.ok) {
-        throw new Error('Error al crear sesión');
-      }
-      const { token } = await sessionRes.json();
-      if (!token || typeof token !== 'string') {
-        throw new Error('Error al crear sesión');
-      }
-
-      // Guardar en localStorage
+      // Guardar token y usuario en localStorage
       localStorage.setItem('gw2_token', token);
       localStorage.setItem('gw2_user', JSON.stringify(user));
       if (typeof window !== 'undefined') window.dispatchEvent(new Event('tf-auth-change'));
@@ -953,8 +908,9 @@ function AuthProviderInternal({ children }: { children: ReactNode }) {
     } catch (error) {
       dispatch({
         type: 'AUTH_FAILURE',
-        payload: error instanceof Error ? error.message : 'Discord authentication error',
+        payload: error instanceof Error ? error.message : 'Error en la autenticación de Discord',
       });
+      throw error;
     }
   }, []);
 

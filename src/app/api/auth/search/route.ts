@@ -17,20 +17,24 @@ export async function GET(request: NextRequest) {
     const origin = request.headers.get('origin');
     
     // Permitir peticiones desde el mismo dominio o localhost
-    const isAllowedOrigin = origin && (
+    const isAllowedOrigin = !origin || (
       origin.includes('true-farming.com') ||
       origin.includes('localhost') ||
-      origin.includes('127.0.0.1')
+      origin.includes('127.0.0.1') ||
+      origin.includes('.pages.dev') ||
+      origin.includes('.workers.dev')
     );
     
-    const isAllowedReferer = referer && (
+    const isAllowedReferer = !referer || (
       referer.includes('/login') ||
       referer.includes('/register') ||
       referer.includes('/profile') ||
       referer.includes('/auth/') ||
       referer.includes('localhost') ||
       referer.includes('127.0.0.1') ||
-      referer.includes('true-farming.com')
+      referer.includes('true-farming.com') ||
+      referer.includes('.pages.dev') ||
+      referer.includes('.workers.dev')
     );
     
     // Permitir si es del origen correcto o tiene referer correcto

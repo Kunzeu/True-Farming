@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       const errorData = await tokenResponse.text();
       console.error('Error de Discord OAuth:', errorData);
       return NextResponse.json(
-        { error: 'Error al obtener token de Discord' },
+        { error: 'Error al obtener token de Discord', details: errorData },
         { status: 400 }
       );
     }

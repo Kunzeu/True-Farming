@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!discordRes.ok) {
       return NextResponse.json({ error: 'Invalid Discord token' }, { status: 401 });
     }
-    const discordUser = (await discordRes.json()) as { id?: string };
+    const discordUser = (await discordRes.json()) as { id?: string; email?: string; username?: string };
     if (!discordUser.id) {
       return NextResponse.json({ error: 'Discord user missing id' }, { status: 400 });
     }
@@ -28,25 +28,72 @@ export async function POST(request: NextRequest) {
        FROM users WHERE discord_id = $1`,
       [discordUser.id]
     );
-    const user = result.rows[0] as
+    let user = result.rows[0] as
       | { id: string; email: string; username: string; role: JWTPayload['role']; isActive: boolean }
       | undefined;
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    if (!user && discordUser.email) {
+      const emailResult = await pool.query(
+        `SELECT id, email, username, role, is_active as "isActive"
+         FROM users WHERE email = $1`,
+        [discordUser.email]
+      );
+      if (emailResult.rows.length > 0) {
+        user = emailResult.rows[0] as { id: string; email: string; username: string; role: JWTPayload['role']; isActive: boolean };
+        await pool.query(
+          `UPDATE users SET discord_id = $1, updated_at = NOW() WHERE id = $2`,
+          [discordUser.id, user.id]
+        );
+      }
     }
+
+    if (!user) {
+      const newId = crypto.randomUUID();
+      const emailToUse = discordUser.email || `${discordUser.id}@discord.user`;
+      let usernameToUse = discordUser.username || `user_${discordUser.id.substring(0, 8)}`;
+
+      // Verificar si el username ya está ocupado por otro usuario
+      const usernameCheck = await pool.query(
+        `SELECT id FROM users WHERE username = $1`,
+        [usernameToUse]
+      );
+      if (usernameCheck.rows.length > 0) {
+        usernameToUse = `${usernameToUse}_${discordUser.id.substring(0, 4)}`;
+      }
+
+      const insertResult = await pool.query(
+        `INSERT INTO users (id, email, username, role, is_active, discord_id, email_verified, email_verified_at)
+         VALUES ($1, $2, $3, 'user', true, $4, true, NOW())
+         RETURNING id, email, username, role, is_active as "isActive"`,
+        [newId, emailToUse, usernameToUse, discordUser.id]
+      );
+      user = insertResult.rows[0] as { id: string; email: string; username: string; role: JWTPayload['role']; isActive: boolean };
+    }
+
     if (!user.isActive) {
       return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 });
     }
 
+    const role = resolveEffectiveRole(user.role, user.email, user.username);
     const token = generateToken({
       userId: user.id,
       email: user.email,
       username: user.username,
-      role: resolveEffectiveRole(user.role, user.email, user.username),
+      role: role,
       isActive: user.isActive,
     });
 
-    return NextResponse.json({ token });
+    return NextResponse.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: role,
+        isActive: user.isActive,
+        discordId: discordUser.id,
+      },
+    });
   } catch (error) {
     console.error('Discord session error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
