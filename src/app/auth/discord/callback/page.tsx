@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -12,13 +12,25 @@ function DiscordCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
-  const handleDiscordCallback = useCallback(async () => {
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
+  const processedRef = useRef(false);
+
+  const processCallback = useCallback(async () => {
+    if (processedRef.current) return;
+
+    let code = searchParams.get('code');
+    let error = searchParams.get('error');
+
+    // Fallback lectura directa de window.location.search si searchParams aún no ha hidratado
+    if (!code && !error && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      code = params.get('code');
+      error = params.get('error');
+    }
 
     console.log('Discord callback received:', { code: !!code, error });
 
     if (error) {
+      processedRef.current = true;
       console.error('Discord OAuth error:', error);
       setStatus('error');
       setMessage(`Error en la autenticación de Discord: ${error}`);
@@ -27,6 +39,11 @@ function DiscordCallbackContent() {
     }
 
     if (!code) {
+      // Si aún no hay parámetros en la URL y estamos en proceso de hidratación, esperar
+      if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+        return; // Esperar al siguiente ciclo cuando los parámetros se lean correctamente
+      }
+      processedRef.current = true;
       console.error('No authorization code received');
       setStatus('error');
       setMessage('Código de autorización no encontrado');
@@ -34,9 +51,10 @@ function DiscordCallbackContent() {
       return;
     }
 
+    processedRef.current = true;
+
     try {
       console.log('Starting Discord authentication...');
-      // Llamar a la función de login con Discord
       await loginWithDiscord(code);
       setStatus('success');
       setMessage('¡Autenticación exitosa! Redirigiendo...');
@@ -49,14 +67,9 @@ function DiscordCallbackContent() {
     }
   }, [searchParams, loginWithDiscord, router]);
 
-  const [hasProcessed, setHasProcessed] = useState(false);
-
   useEffect(() => {
-    if (!hasProcessed) {
-      setHasProcessed(true);
-      handleDiscordCallback();
-    }
-  }, [handleDiscordCallback, hasProcessed]);
+    processCallback();
+  }, [processCallback]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
