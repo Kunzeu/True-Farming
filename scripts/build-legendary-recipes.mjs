@@ -157,7 +157,7 @@ function recipeBlocks(text) {
 
 function parseRecipe(block) {
   const fields = new Map();
-  for (const raw of block.slice(2, -2).split('\n|').slice(1)) {
+  for (const raw of block.slice(2, -2).split(/\r?\n\s*\|/).slice(1)) {
     const eq = raw.indexOf('=');
     if (eq === -1) continue;
     fields.set(raw.slice(0, eq).trim().toLowerCase(), cleanLinks(raw.slice(eq + 1)));
@@ -236,10 +236,11 @@ function armorSet(title) {
 }
 
 function weaponGen(title, ingredientIds) {
+  if (title === 'Eternity') return 1;
   if (title.startsWith("Aurene's")) return 3;
   if (ingredientIds.includes(19626)) return 1;
   if (ingredientIds.includes(71820) || ingredientIds.includes(96033)) return 2;
-  return 2;
+  return 0;
 }
 
 async function collectSeeds() {

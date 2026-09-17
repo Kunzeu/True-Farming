@@ -248,7 +248,10 @@ export default function LegendaryTrackerPage() {
     let list = data.legendaries.filter((entry) => {
       const entryKind = entry.kind ?? 'weapon';
       if (kind !== 'all' && entryKind !== kind) return false;
-      if (kind === 'weapon' && gen && entry.gen !== gen) return false;
+      if (kind === 'weapon' && gen !== 0) {
+        if (gen === -1 && entry.gen !== 0) return false;
+        if (gen > 0 && entry.gen !== gen) return false;
+      }
       if (kind === 'armor' && armorFilter !== 'all' && armorWeight(entry) !== armorFilter) return false;
       if (!needle) return true;
       const localized = items[entry.id]?.name ?? entry.name;
@@ -350,13 +353,13 @@ export default function LegendaryTrackerPage() {
             </div>
             {(kind === 'all' || kind === 'weapon') && (
               <div className="flex flex-wrap gap-1.5">
-                {[0, 1, 2, 3].map((value) => (
+                {[0, 1, 2, 3, -1].map((value) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => {
                       setGen(value);
-                      if (value) setKind('weapon');
+                      if (value !== 0) setKind('weapon');
                     }}
                     className={`rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition ${
                       gen === value
@@ -364,7 +367,11 @@ export default function LegendaryTrackerPage() {
                         : 'border-slate-700/50 bg-slate-950/40 text-zinc-500 hover:text-white'
                     }`}
                   >
-                    {value === 0 ? t('legendary.allGens', 'All gens') : `Gen ${value}`}
+                    {value === 0
+                      ? t('legendary.allGens', 'All gens')
+                      : value === -1
+                        ? t('legendary.noGen', 'Sin Gen')
+                        : `Gen ${value}`}
                   </button>
                 ))}
               </div>
@@ -417,7 +424,9 @@ export default function LegendaryTrackerPage() {
               const entryKind = entry.kind ?? 'weapon';
               const badge =
                 entryKind === 'weapon'
-                  ? `G${entry.gen}`
+                  ? entry.gen > 0
+                    ? `G${entry.gen}`
+                    : 'EXP'
                   : entry.set
                     ? entry.set.split(' ')[0]
                     : entryKind.slice(0, 3).toUpperCase();
