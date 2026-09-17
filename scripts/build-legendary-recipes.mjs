@@ -46,6 +46,7 @@ const TRINKET_TITLES = [
 ];
 
 const EXTRA_ARMOR_TITLES = ['Eikasia, Mists-Grasper', 'Selachimorpha'];
+const EXTRA_WEAPON_TITLES = ['Aetheric Anchor'];
 
 const SKIP_TITLE =
   /^(Legendary |Category:)|armor \((heavy|light|medium)\)$|^(Obsidian|Perfected Envoy|Suffused Obsidian|Triumphant Hero'?s|Mistforged Triumphant Hero'?s|Ardent Glorious|Glorious Hero'?s|Mistforged Glorious Hero'?s) armor$|Backpacks$|trinket$|Skin$/i;
@@ -235,11 +236,30 @@ function armorSet(title) {
   return null;
 }
 
+const GEN2_WEAPON_TITLES = new Set([
+  'Astralaria',
+  'Chuka and Champawat',
+  'Claw of the Khan-Ur',
+  'Eureka',
+  'Exordium',
+  'Flames of War',
+  'HOPE',
+  'Nevermore',
+  'Pharus',
+  'Sharur',
+  'Shooshadoo',
+  'The Binding of Ipos',
+  'The HMS Divinity',
+  'The Shining Blade',
+  'Verdarach',
+  'Xiuquatl',
+]);
+
 function weaponGen(title, ingredientIds) {
   if (title === 'Eternity') return 1;
   if (title.startsWith("Aurene's")) return 3;
+  if (GEN2_WEAPON_TITLES.has(title)) return 2;
   if (ingredientIds.includes(19626)) return 1;
-  if (ingredientIds.includes(71820) || ingredientIds.includes(96033)) return 2;
   return 0;
 }
 
@@ -250,6 +270,7 @@ async function collectSeeds() {
     (t) => !t.startsWith('Legendary weapon')
   );
   for (const title of weapons) seeds.push({ title, kind: 'weapon' });
+  for (const title of EXTRA_WEAPON_TITLES) seeds.push({ title, kind: 'weapon' });
 
   for (const cat of ARMOR_CATEGORIES) {
     for (const title of await categoryMembers(cat)) {
