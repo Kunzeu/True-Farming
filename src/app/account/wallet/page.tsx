@@ -59,6 +59,9 @@ const CURRENCY_HREF: Record<number, string> = {
   50: '/festivals/four-winds#Box-Opening',
   59: '/fractals',
   61: '/salvage/research-notes',
+  78: '/opened/essence',
+  79: '/opened/essence',
+  80: '/opened/essence',
 };
 
 function SortableCurrencyItem({ 

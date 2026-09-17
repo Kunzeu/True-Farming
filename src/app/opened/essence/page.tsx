@@ -10,10 +10,15 @@ import {
   ArrowLeft,
   Zap,
   Calculator,
+  Wallet,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useI18n } from "@/contexts/I18nContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAccountGw2 } from "@/hooks/useAccountGw2";
+import { fetchWalletFromBrowser } from "@/lib/gw2-client-account-data";
 
 interface GW2Item {
   id: number;
@@ -32,6 +37,9 @@ interface GW2Item {
 
 export default function RiftEssenceCofferPage() {
   const { lang, t } = useI18n();
+  const { user } = useAuth();
+  const { apiKey, hasApiKey, loading: gw2Loading } = useAccountGw2();
+
   const [riftEssenceCoffer, setRiftEssenceCoffer] = useState<{
     name: string;
     icon: string;
@@ -50,6 +58,42 @@ export default function RiftEssenceCofferPage() {
   const [masterworkEssence, setMasterworkEssence] = useState<string>("");
   const [rareEssence, setRareEssence] = useState<string>("");
   const [desiredAmalgamated, setDesiredAmalgamated] = useState<string>("");
+  const [walletEssences, setWalletEssences] = useState<{
+    fine: number;
+    masterwork: number;
+    rare: number;
+  } | null>(null);
+  const [loadingWallet, setLoadingWallet] = useState<boolean>(false);
+
+  const loadWalletEssences = useCallback(async () => {
+    if (!user?.id || !hasApiKey) return;
+    setLoadingWallet(true);
+    try {
+      // 78 = Fine, 80 = Masterwork, 79 = Rare
+      const res = await fetchWalletFromBrowser(user.id, lang, [78, 79, 80], apiKey);
+      if (res?.wallet) {
+        const fineVal = res.wallet.find((w) => w.id === 78)?.value || 0;
+        const rareVal = res.wallet.find((w) => w.id === 79)?.value || 0;
+        const masterworkVal = res.wallet.find((w) => w.id === 80)?.value || 0;
+
+        setWalletEssences({ fine: fineVal, masterwork: masterworkVal, rare: rareVal });
+        setFineEssence(fineVal.toString());
+        setMasterworkEssence(masterworkVal.toString());
+        setRareEssence(rareVal.toString());
+      }
+    } catch (err) {
+      console.error("Error loading wallet essences:", err);
+    } finally {
+      setLoadingWallet(false);
+    }
+  }, [user?.id, hasApiKey, apiKey, lang]);
+
+  useEffect(() => {
+    if (hasApiKey && apiKey && !gw2Loading) {
+      void loadWalletEssences();
+    }
+  }, [hasApiKey, apiKey, gw2Loading, loadWalletEssences]);
+
   usePageTitle(
     "pageTitles.riftEssenceCoffer",
     riftEssenceCoffer?.name || "Unlocked Rift Essence Coffer"
@@ -525,13 +569,34 @@ export default function RiftEssenceCofferPage() {
             className="space-y-4"
           >
             <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 shadow-2xl">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Calculator className="w-5 h-5 mr-2 text-cyan-400" />
-                {t(
-                  "riftEssenceCoffer.calculator.title",
-                  "Calculadora de Esencia de fisura"
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                <h2 className="text-xl font-bold text-white flex items-center">
+                  <Calculator className="w-5 h-5 mr-2 text-cyan-400" />
+                  {t(
+                    "riftEssenceCoffer.calculator.title",
+                    "Calculadora de Esencia de fisura"
+                  )}
+                </h2>
+
+                {hasApiKey ? (
+                  <button
+                    onClick={() => void loadWalletEssences()}
+                    disabled={loadingWallet}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-500/40 text-cyan-300 rounded text-xs font-medium transition-all duration-200 disabled:opacity-50 w-fit"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingWallet ? "animate-spin" : ""}`} />
+                    <Wallet className="w-3.5 h-3.5" />
+                    {t("riftEssenceCoffer.calculator.loadFromWallet", "Cargar desde Wallet")}
+                  </button>
+                ) : (
+                  <span className="text-xs text-gray-400 italic">
+                    {t(
+                      "riftEssenceCoffer.calculator.noApiKey",
+                      "Conecta tu API key para cargar directo desde tu wallet"
+                    )}
+                  </span>
                 )}
-              </h2>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Calculadora 1: Cuántas Amalgamated Essence puedes hacer */}
