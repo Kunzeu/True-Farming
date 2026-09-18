@@ -108,7 +108,10 @@ const JardinesPage = () => {
     '/images/garden/JW-1.png',                   // 49. The Echovald Wilds
     '/images/garden/JW-2.png',                   // 50. Lowland Shore
     '/images/garden/Lion-Arch.webp',             // 51. Lion's Arch
-    '/images/garden/VoE.webp'                    // 52. Shipwreck Strand
+    '/images/garden/VoE.webp',                   // 52. Shipwreck Strand
+    '/images/garden/VOE-1.webp',                 // 53. Leyspring Hollows
+    '/images/garden/VOE-2.webp'                  // 54. Leyspring Hollows
+
   ];
 
   /** Chat codes en el mismo orden que `gardenImages` (para copiar en el modal ampliado). */
@@ -164,7 +167,9 @@ const JardinesPage = () => {
     '[&BK4OAAA=]',
     '[&BK4OAAA=]',
     '[&BC4EAAA=]',
-    '[&BJEPAAA=]'
+    '[&BJEPAAA=]',
+    '[&BB8QAAA=]',
+    '[&BB8QAAA=]'
   ];
 
   // Obtener datos de los items de la API con caché optimizado
@@ -222,7 +227,7 @@ const JardinesPage = () => {
     const fetchMapData = async () => {
       try {
         // IDs de los mapas que usamos en la página
-        const mapIds = [15, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 39, 50, 51, 53, 54, 73, 988, 1045, 1052, 1175, 1178, 1195, 1210, 1211, 1226, 1271, 1288, 1330, 1343, 1371, 1442, 1438, 1452, 1510, 1550]; // Todos los mapas de jardines
+        const mapIds = [15, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 39, 50, 51, 53, 54, 73, 988, 1045, 1052, 1175, 1178, 1195, 1210, 1211, 1226, 1271, 1288, 1330, 1343, 1371, 1442, 1438, 1452, 1510, 1550, 1633]; // Todos los mapas de jardines
 
         const response = await fetch(`https://api.guildwars2.com/v2/maps?ids=${mapIds.join(',')}&lang=${lang}`, {
           headers: {
@@ -405,7 +410,7 @@ const JardinesPage = () => {
 
   // Función para copiar Lista 3
   const copyList3 = async () => {
-    const list3Text = '[&BNwKAAA=][&BCgKAAA=]x2[&BJEKAAA=][&BEAKAAA=][&BEMLAAA=][&BBsMAAA=][&BCcMAAA=][&BGQMAAA=]x3[&BJ4MAAA=][&BBkNAAA=]x2[&BCANAAA=][&BNQMAAA=][&BFUOAAA=][&BNwNAAA=][&BK4OAAA=]x2[&BC4EAAA=][&BJEPAAA=]';
+    const list3Text = '[&BNwKAAA=][&BCgKAAA=]x2[&BJEKAAA=][&BEAKAAA=][&BEMLAAA=][&BBsMAAA=][&BCcMAAA=][&BGQMAAA=]x3[&BJ4MAAA=][&BBkNAAA=]x2[&BCANAAA=][&BNQMAAA=][&BFUOAAA=][&BNwNAAA=][&BK4OAAA=]x2[&BC4EAAA=][&BJEPAAA=][&BB8QAAA=]';
 
     try {
       await navigator.clipboard.writeText(list3Text);
@@ -4859,6 +4864,127 @@ const JardinesPage = () => {
                       </div>
                     </div>
 
+                    {/* Leyspring Hollows 1 - Waypoint BB8QAAA */}
+                    <div className="group relative overflow-hidden rounded-2xl bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 hover:border-purple-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 h-full flex flex-col">
+                      <div
+                        className="relative h-48 w-full overflow-hidden cursor-pointer"
+                        onClick={() => openImageModal('/images/garden/VOE-1.webp', gardenImages)}
+                      >
+                        <Image
+                          src="/images/garden/VOE-1.webp"
+                          alt="Leyspring Hollows Garden Location 1"
+                          fill
+                          className="object-contain group-hover:scale-105 transition-transform duration-500"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute top-2 right-2 opacity-100 transition-opacity duration-300">
+                          <Image
+                            src="/images/garden/zoom-in.webp"
+                            alt="Zoom"
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 invert"
+                            unoptimized
+                          />
+                        </div>
+                      </div>
+                      <div className="p-6 flex-1 flex flex-col">
+                        <h3 className="text-xl font-bold text-white mb-4">
+                          Leyspring Hollows (1/2)
+                        </h3>
+                        <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600/40 mb-4">
+                          <p className="text-purple-300 font-semibold flex items-center gap-3 text-sm">
+                            <Image
+                              src="/images/icons/waypoint-icon.webp"
+                              alt="Waypoint"
+                              width={20}
+                              height={20}
+                              className="w-7 h-7"
+                            />
+                            Leyspring Waypoint
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => copyWaypoint('[&BB8QAAA=]')}
+                          className={`w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm mt-auto ${copiedWaypoint === '[&BB8QAAA=]'
+                            ? 'bg-green-600 text-white shadow-xl'
+                            : 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                            }`}
+                        >
+                          {copiedWaypoint === '[&BB8QAAA=]' ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                          {copiedWaypoint === '[&BB8QAAA=]'
+                            ? t('gardenPage.sections.locations.waypointCopied')
+                            : t('gardenPage.sections.locations.copyWaypoint')
+                          }
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Leyspring Hollows 2 - Waypoint BB8QAAA */}
+                    <div className="group relative overflow-hidden rounded-2xl bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 hover:border-purple-400/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20 h-full flex flex-col">
+                      <div
+                        className="relative h-48 w-full overflow-hidden cursor-pointer"
+                        onClick={() => openImageModal('/images/garden/VOE-2.webp', gardenImages)}
+                      >
+                        <Image
+                          src="/images/garden/VOE-2.webp"
+                          alt="Leyspring Hollows Garden Location 2"
+                          fill
+                          className="object-contain group-hover:scale-105 transition-transform duration-500"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute top-2 right-2 opacity-100 transition-opacity duration-300">
+                          <Image
+                            src="/images/garden/zoom-in.webp"
+                            alt="Zoom"
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 invert"
+                            unoptimized
+                          />
+                        </div>
+                      </div>
+                      <div className="p-6 flex-1 flex flex-col">
+                        <h3 className="text-xl font-bold text-white mb-4">
+                          Leyspring Hollows (2/2)
+                        </h3>
+                        <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600/40 mb-4">
+                          <p className="text-purple-300 font-semibold flex items-center gap-3 text-sm">
+                            <Image
+                              src="/images/icons/waypoint-icon.webp"
+                              alt="Waypoint"
+                              width={20}
+                              height={20}
+                              className="w-7 h-7"
+                            />
+                            Leyspring Waypoint
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => copyWaypoint('[&BDYQAAA=]')}
+                          className={`w-full font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm mt-auto ${copiedWaypoint === '[&BDYQAAA=]'
+                            ? 'bg-green-600 text-white shadow-xl'
+                            : 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white shadow-lg hover:shadow-xl hover:scale-105'
+                            }`}
+                        >
+                          {copiedWaypoint === '[&BDYQAAA=]' ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                          {copiedWaypoint === '[&BDYQAAA=]'
+                            ? t('gardenPage.sections.locations.waypointCopied')
+                            : t('gardenPage.sections.locations.copyWaypoint')
+                          }
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               </section>
