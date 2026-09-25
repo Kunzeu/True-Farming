@@ -312,22 +312,32 @@ export async function fetchAccountSearchIndex(
 
   const slots: SearchSlot[] = [];
 
-  const [bankRes, matsRes, sharedRes, namesRes] = await Promise.allSettled([
+  const [bankRes, matsRes, sharedRes, charsRes] = await Promise.allSettled([
     gw2AuthedGet('/account/bank', key),
     gw2AuthedGet('/account/materials', key),
     gw2AuthedGet('/account/inventory', key),
-    gw2AuthedGet('/characters', key),
+    fetchCharactersFromBrowser(userId, key),
   ]);
 
-  const readJson = async <T>(result: PromiseSettledResult<Response>): Promise<T | null> => {
-    if (result.status !== 'fulfilled' || !result.value.ok) return null;
-    return result.value.json().catch(() => null);
+  const readJson = async <T>(result: PromiseSettledResult<Response | any>): Promise<T | null> => {
+    if (result.status !== 'fulfilled') return null;
+    if (result.value && typeof result.value.ok === 'boolean') {
+      if (!result.value.ok) return null;
+      return result.value.json().catch(() => null);
+    }
+    return result.value as T;
   };
 
-  const bank = await readJson<Array<{ id: number; count: number } | null>>(bankRes);
+  const bank = await readJson<Array<{ id: number; count: number; infusions?: number[]; upgrades?: number[] } | null>>(bankRes);
   bank?.forEach((item, index) => {
     if (item?.id) {
       slots.push({ id: item.id, count: item.count, location: `search.bankSlot ${index + 1}`, category: 'bank', slot: index + 1 });
+      item.infusions?.forEach(inf => {
+        slots.push({ id: inf, count: 1, location: `search.bankSlot ${index + 1} (Infusión)`, category: 'bank', slot: index + 1 });
+      });
+      item.upgrades?.forEach(upg => {
+        slots.push({ id: upg, count: 1, location: `search.bankSlot ${index + 1} (Mejora)`, category: 'bank', slot: index + 1 });
+      });
     }
   });
 
@@ -338,30 +348,70 @@ export async function fetchAccountSearchIndex(
     }
   });
 
-  const shared = await readJson<Array<{ id: number; count: number } | null>>(sharedRes);
+  const shared = await readJson<Array<{ id: number; count: number; infusions?: number[]; upgrades?: number[] } | null>>(sharedRes);
   shared?.forEach((item, index) => {
     if (item?.id) {
       slots.push({ id: item.id, count: item.count, location: 'Shared inventory', category: 'shared', slot: index + 1 });
+      item.infusions?.forEach(inf => {
+        slots.push({ id: inf, count: 1, location: 'Shared inventory (Infusión)', category: 'shared', slot: index + 1 });
+      });
+      item.upgrades?.forEach(upg => {
+        slots.push({ id: upg, count: 1, location: 'Shared inventory (Mejora)', category: 'shared', slot: index + 1 });
+      });
     }
   });
 
-  const names = await readJson<string[]>(namesRes);
-  const inventoriesP =
-    Array.isArray(names) && names.length
-      ? Promise.all(
-          names.map(async (name) => {
-            const res = await gw2AuthedGet(`/characters/${encodeURIComponent(name)}/inventory`, key);
-            if (!res.ok) return { name, bags: [] as Array<{ inventory?: Array<{ id: number; count: number } | null> } | null> };
-            const data = await res.json().catch(() => null);
-            return { name, bags: data?.bags || [] };
-          }),
-        )
-      : Promise.resolve([]);
+  const characters = charsRes.status === 'fulfilled' ? charsRes.value : [];
+  for (const char of characters || []) {
+    const name = char.name;
+    
+    // Parse active/inactive equipment tabs to get all items, infusions and upgrades
+    // This provides accurate locations per tab and solves the missing legendary infusions issue
+    if (char.equipment_tabs && Array.isArray(char.equipment_tabs)) {
+      char.equipment_tabs.forEach((tab: any) => {
+        const tabLabel = tab.name ? `Tab ${tab.tab} (${tab.name})` : `Tab ${tab.tab}`;
+        
+        tab.equipment?.forEach((item: { id: number; slot: string; infusions?: number[]; upgrades?: number[] }) => {
+          if (item?.id) {
+            slots.push({
+              id: item.id,
+              count: 1,
+              location: `${name} - ${tabLabel} - ${item.slot}`,
+              category: 'character',
+              character: name,
+            });
+            item.infusions?.forEach(inf => {
+              slots.push({ id: inf, count: 1, location: `${name} - ${tabLabel} - ${item.slot} (Infusión)`, category: 'character', character: name });
+            });
+            item.upgrades?.forEach(upg => {
+              slots.push({ id: upg, count: 1, location: `${name} - ${tabLabel} - ${item.slot} (Mejora)`, category: 'character', character: name });
+            });
+          }
+        });
+      });
+    } else if (char.equipment) {
+      // Fallback for older API responses just in case
+      char.equipment?.forEach((item: { id: number; slot: string; infusions?: number[]; upgrades?: number[] }) => {
+        if (item?.id) {
+          slots.push({
+            id: item.id,
+            count: 1,
+            location: `${name} - ${item.slot}`,
+            category: 'character',
+            character: name,
+          });
+          item.infusions?.forEach(inf => {
+            slots.push({ id: inf, count: 1, location: `${name} - ${item.slot} (Infusión)`, category: 'character', character: name });
+          });
+          item.upgrades?.forEach(upg => {
+            slots.push({ id: upg, count: 1, location: `${name} - ${item.slot} (Mejora)`, category: 'character', character: name });
+          });
+        }
+      });
+    }
 
-  const inventories = await inventoriesP;
-  for (const { name, bags } of inventories) {
-    bags.forEach((bag, bagIndex) => {
-      bag?.inventory?.forEach((item, slotIndex) => {
+    char.bags?.forEach((bag: any, bagIndex: number) => {
+      bag?.inventory?.forEach((item: { id: number; count: number; infusions?: number[]; upgrades?: number[] } | null, slotIndex: number) => {
         if (item?.id) {
           slots.push({
             id: item.id,
@@ -371,6 +421,28 @@ export async function fetchAccountSearchIndex(
             character: name,
             bag: bagIndex + 1,
             slot: slotIndex + 1,
+          });
+          item.infusions?.forEach(inf => {
+            slots.push({
+              id: inf,
+              count: 1,
+              location: `${name} - search.characterBag ${bagIndex + 1} (Infusión)`,
+              category: 'character',
+              character: name,
+              bag: bagIndex + 1,
+              slot: slotIndex + 1,
+            });
+          });
+          item.upgrades?.forEach(upg => {
+            slots.push({
+              id: upg,
+              count: 1,
+              location: `${name} - search.characterBag ${bagIndex + 1} (Mejora)`,
+              category: 'character',
+              character: name,
+              bag: bagIndex + 1,
+              slot: slotIndex + 1,
+            });
           });
         }
       });
