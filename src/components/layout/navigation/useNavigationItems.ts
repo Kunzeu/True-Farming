@@ -195,6 +195,12 @@ export function useNavigationItems() {
         isImage: true,
         keywords: ['laurels', 'laureles', 'karma', 'currencies'],
       },
+      {
+        href: '/opened/heavy-loot-bag',
+        label: t('openedPage.heavyLootBag', 'Heavy Loot Bag'),
+        icon: 'Package',
+        keywords: ['heavy', 'loot', 'bag', 'bolsa', 'wvw', 'mundo'],
+      },
     ],
     [t],
   );

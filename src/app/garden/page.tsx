@@ -110,8 +110,8 @@ const JardinesPage = () => {
     '/images/garden/Lion-Arch.webp',             // 51. Lion's Arch
     '/images/garden/VoE.webp',                   // 52. Shipwreck Strand
     '/images/garden/VOE-1.webp',                 // 53. Leyspring Hollows
-    '/images/garden/VOE-2.webp'                  // 54. Leyspring Hollows
-
+    '/images/garden/VOE-2.webp',                 // 54. Leyspring Hollows
+    '/images/garden/VOE-3.webp'                  // 55. Leyspring Hollows
   ];
 
   /** Chat codes en el mismo orden que `gardenImages` (para copiar en el modal ampliado). */
@@ -168,6 +168,7 @@ const JardinesPage = () => {
     '[&BK4OAAA=]',
     '[&BC4EAAA=]',
     '[&BJEPAAA=]',
+    '[&BB8QAAA=]',
     '[&BB8QAAA=]',
     '[&BB8QAAA=]'
   ];
@@ -410,7 +411,7 @@ const JardinesPage = () => {
 
   // Función para copiar Lista 3
   const copyList3 = async () => {
-    const list3Text = '[&BNwKAAA=][&BCgKAAA=]x2[&BJEKAAA=][&BEAKAAA=][&BEMLAAA=][&BBsMAAA=][&BCcMAAA=][&BGQMAAA=]x3[&BJ4MAAA=][&BBkNAAA=]x2[&BCANAAA=][&BNQMAAA=][&BFUOAAA=][&BNwNAAA=][&BK4OAAA=]x2[&BC4EAAA=][&BJEPAAA=][&BB8QAAA=]';
+    const list3Text = '[&BNwKAAA=][&BCgKAAA=]x2[&BJEKAAA=][&BEAKAAA=][&BEMLAAA=][&BBsMAAA=][&BCcMAAA=][&BGQMAAA=]x3[&BJ4MAAA=][&BBkNAAA=]x2[&BCANAAA=][&BNQMAAA=][&BFUOAAA=][&BNwNAAA=][&BK4OAAA=]x2[&BC4EAAA=][&BJEPAAA=][&BB8QAAA=]x3';
 
     try {
       await navigator.clipboard.writeText(list3Text);
