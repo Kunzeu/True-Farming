@@ -71,6 +71,18 @@ function addBags(map: InventoryMap, bags: { inventory?: unknown[] }[] | null | u
     }
 }
 
+// Maps [Achievement ID] -> [Bit Index] -> [Item ID]
+const ACHIEVEMENT_COLLECTION_BITS: Record<number, Record<number, number>> = {
+    // 2295: Legendary Backpack: Ad Infinitum
+    2295: {
+        0: 73681, // Aetherblade Pirate Eye Patch
+        1: 72794, // Aetherblade Airship Steering Wheel
+        10: 72757, // Lessons in Arbology
+        11: 71597, // Lessons in Metallurgy
+        12: 75962, // Theory of Ad Infinitum
+    },
+};
+
 export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2InventoryResult {
     const [inventoryMap, setInventoryMap] = useState<InventoryMap>({});
     const [walletMap, setWalletMap] = useState<WalletMap>({});
@@ -137,12 +149,13 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
 
             setStatus('Cargando cantidades…');
 
-            const [materialsRes, bankRes, sharedRes, walletRes, allCharsRes] = await Promise.all([
+            const [materialsRes, bankRes, sharedRes, walletRes, allCharsRes, achievementsRes] = await Promise.all([
                 fetch(`${GW2_API_BASE}/account/materials?${auth}`, { signal }),
                 fetch(`${GW2_API_BASE}/account/bank?${auth}`, { signal }),
                 fetch(`${GW2_API_BASE}/account/inventory?${auth}`, { signal }),
                 fetch(`${GW2_API_BASE}/account/wallet?${auth}`, { signal }),
                 fetch(`${GW2_API_BASE}/characters?ids=all&${auth}`, { signal }),
+                fetch(`${GW2_API_BASE}/account/achievements?${auth}`, { signal }),
             ]);
 
             if (signal.aborted) return;
@@ -163,6 +176,31 @@ export function useGW2Inventory({ user }: UseGW2InventoryProps): UseGW2Inventory
             if (materialsRes.ok) addItems(newInventoryMap, await materialsRes.json());
             if (bankRes.ok) addItems(newInventoryMap, await bankRes.json());
             if (sharedRes.ok) addItems(newInventoryMap, await sharedRes.json());
+
+            if (achievementsRes.ok) {
+                const achievements = await achievementsRes.json();
+                if (Array.isArray(achievements)) {
+                    for (const ach of achievements) {
+                        const bitMap = ACHIEVEMENT_COLLECTION_BITS[ach.id];
+                        if (bitMap) {
+                            if (ach.done) {
+                                // If fully done, mark all known items for this achievement as owned
+                                Object.values(bitMap).forEach(itemId => {
+                                    newInventoryMap[itemId] = 1;
+                                });
+                            } else if (Array.isArray(ach.bits)) {
+                                // Otherwise, only mark the completed bits
+                                for (const bitIndex of ach.bits) {
+                                    const itemId = bitMap[bitIndex];
+                                    if (itemId) {
+                                        newInventoryMap[itemId] = 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             let gotChars = false;
             if (allCharsRes.ok) {

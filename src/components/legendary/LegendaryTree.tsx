@@ -296,10 +296,10 @@ function TreeRow({
           <span className="h-5 w-5 shrink-0" />
         )}
 
-        {onMarkDone && node.depth > 0 && node.id > 0 && (
+        {onMarkDone && node.depth > 0 && (
           <input
             type="checkbox"
-            checked={isMarked}
+            checked={isMarked || node.need <= 0}
             onChange={(e) => onMarkDone(node.id, e.target.checked)}
             title={labels.markDone}
             className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-slate-500 bg-slate-900 text-emerald-500"
@@ -345,13 +345,36 @@ function TreeRow({
             VENDOR_SOURCES[node.id]?.gold ??
             (vendorName && node.mode === 'buy' && node.buyUnit != null ? node.buyUnit : null);
 
+          const achievementName = node.source?.startsWith('Achievement: ')
+            ? node.source.slice('Achievement: '.length)
+            : null;
+
           if (node.canChoose) {
             return <ChoiceToggle node={node} labels={labels} onDecide={onDecide} priceMode={priceMode} />;
           }
+          if (achievementName) {
+            return (
+              <a
+                href={gw2WikiUrl(achievementName, lang, { englishName: achievementName })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-amber-200 transition-colors hover:border-amber-500/50 hover:bg-amber-500/20"
+                title={`${labels.achievement}: ${achievementName}`}
+              >
+                <Trophy className="h-3 w-3" />
+                <span className="hidden max-w-[10rem] truncate sm:inline">
+                  {labels.achievement}: {achievementName}
+                </span>
+              </a>
+            );
+          }
           if (vendorName) {
             return (
-              <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-amber-200"
+              <a
+                href={gw2WikiUrl(vendorName, lang, { englishName: vendorName })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-amber-200 transition-colors hover:border-amber-500/50 hover:bg-amber-500/20"
                 title={`${labels.vendor}: ${vendorName}`}
               >
                 <Store className="h-3 w-3" />
@@ -365,7 +388,7 @@ function TreeRow({
                     className="!text-[11px]"
                   />
                 )}
-              </span>
+              </a>
             );
           }
           if (node.mode === 'buy' && tpUnit !== null) {
@@ -380,6 +403,24 @@ function TreeRow({
               </span>
             );
           }
+          if (node.mode === 'account') {
+            return (
+              <a
+                href={gw2WikiUrl(wikiTitle, lang, {
+                  itemId: node.id > 0 ? node.id : undefined,
+                  englishName: fallback.name || undefined,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${mode.className} transition-colors hover:bg-amber-500/20 hover:border-amber-500/50`}
+                title={labels.account}
+              >
+                <ModeIcon className="h-3 w-3" />
+                <span className="hidden sm:inline">{labels.account}</span>
+              </a>
+            );
+          }
+
           return (
             <span
               className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${mode.className}`}
@@ -394,6 +435,9 @@ function TreeRow({
         {node.owned > 0 && (
           <span className="shrink-0 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300">
             {labels.owned} {Math.floor(node.owned)}
+            {node.need > 0 && (
+              <span className="ml-1 text-amber-300/90">/ Need {Math.ceil(node.need)}</span>
+            )}
           </span>
         )}
 

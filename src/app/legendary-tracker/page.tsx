@@ -12,6 +12,7 @@ import {
   Search,
   ShoppingCart,
   Sparkles,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/contexts/I18nContext';
@@ -791,6 +792,48 @@ export default function LegendaryTrackerPage() {
                       }`}
                     >
                       {value <= 0 ? '✓' : Math.ceil(value).toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Logros / Ligados a cuenta (Account Requirements) */}
+        {tree && tree.accountRequirements.length > 0 && (
+          <div className={`${card} mt-4`}>
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
+              <Trophy className="h-4 w-4 text-amber-300" />
+              {t('legendary.accountTitle', 'Account bound & Achievements')}
+            </h2>
+            <p className="mb-3 text-xs text-zinc-500">
+              {t('legendary.accountSubtitle', 'Items that must be acquired through gameplay (achievements, map completion, or merchants).')}
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {tree.accountRequirements.map((req) => {
+                const meta = items[req.id] ?? itemMeta(data, req.id);
+                return (
+                  <div
+                    key={req.id}
+                    className="flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-900/40 px-2.5 py-1.5"
+                  >
+                    {meta.icon && (
+                      <Image src={meta.icon} alt="" width={20} height={20} className="rounded" />
+                    )}
+                    <a
+                      href={gw2WikiUrl(meta.name, lang, {
+                        itemId: req.id > 0 ? req.id : undefined,
+                        englishName: itemMeta(data, req.id).name,
+                      })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 truncate text-xs text-zinc-300 hover:underline"
+                    >
+                      {meta.name}
+                    </a>
+                    <span className="shrink-0 font-mono text-[11px] text-zinc-500">
+                      ×{Math.ceil(req.count)}
                     </span>
                   </div>
                 );
