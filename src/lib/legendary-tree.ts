@@ -27,6 +27,8 @@ export type RecipeEntry = {
   ingredients: { id: number; count: number }[];
   /** Ingredientes sin item asociado (karma, monedas, colecciones). */
   extras?: { name: string; count: number }[];
+  /** Costo base en oro (cobre) para craftear esta receta. */
+  gold?: number;
 };
 
 export type ItemMeta = {
@@ -98,6 +100,8 @@ export const MASTERWORK_RIFT_ESSENCE_ID = 80;
 export const ANTIQUATED_DUCAT_ID = 81;
 export const AETHER_RICH_SAP_ID = 83;
 export const IMPERIAL_FAVOR_ID = 68;
+export const FRACTAL_RELIC_ID = 7;
+export const PRISTINE_FRACTAL_RELIC_ID = 24;
 
 export const GIFT_OF_SURVIVORS_ID = 106712;
 export const GIFT_OF_PEOPLE_ID = 105804;
@@ -151,6 +155,14 @@ export const CURRENCY_META: Record<number, { name: string; icon: string }> = {
   [IMPERIAL_FAVOR_ID]: {
     name: 'Imperial Favor',
     icon: '/images/expansions/Imperial_Favor.webp',
+  },
+  [FRACTAL_RELIC_ID]: {
+    name: 'Fractal Relic',
+    icon: 'https://render.guildwars2.com/file/0204DAD0D40674035F9F5F5270043C3207EEA7E8/619320.png',
+  },
+  [PRISTINE_FRACTAL_RELIC_ID]: {
+    name: 'Pristine Fractal Relic',
+    icon: 'https://render.guildwars2.com/file/77B0F842ED036D71E46B80570D6CFE25CB4C0677/619321.png',
   },
 };
 
@@ -279,6 +291,64 @@ const SYNTHETIC_RECIPES: Record<number, RecipeEntry> = {
       { id: currencyAsItemId(ANTIQUATED_DUCAT_ID), count: 500 },
     ],
   },
+  [72757]: {
+    name: 'Lessons in Arbology',
+    source: 'Vendor: Ascalonian Woodcutter (Urban Battleground)',
+    output: 1,
+    ingredients: [{ id: 19622, count: 1 }], // Gift of Wood
+  },
+  [71597]: {
+    name: 'Lessons in Metallurgy',
+    source: 'Vendor: Iron Legion Soldier (Underground Facility)',
+    output: 1,
+    ingredients: [{ id: 19621, count: 1 }], // Gift of Metal
+  },
+  [73681]: {
+    name: 'Aetherblade Pirate Eye Patch',
+    source: 'Vendor: BUY-2046 PFR',
+    output: 1,
+    ingredients: [{ id: currencyAsItemId(PRISTINE_FRACTAL_RELIC_ID), count: 50 }],
+  },
+  [72794]: {
+    name: 'Aetherblade Airship Steering Wheel',
+    source: 'Vendor: BUY-4373',
+    output: 1,
+    gold: 8000,
+    ingredients: [{ id: currencyAsItemId(FRACTAL_RELIC_ID), count: 600 }],
+  },
+  [75962]: {
+    name: 'Theory of Ad Infinitum',
+    source: 'Achievement: Legendary Backpack: Ad Infinitum',
+    output: 1,
+    ingredients: [],
+  },
+  [74377]: {
+    name: 'Gift of Infinity',
+    source: 'Achievement: Ad Infinitum IV',
+    output: 1,
+    ingredients: [
+      { id: 72757, count: 1 }, // Arbology
+      { id: 71597, count: 1 }, // Metallurgy
+      { id: 73681, count: 1 }, // Eye Patch
+      { id: 72794, count: 1 }, // Steering Wheel
+      { id: 75962, count: 1 }, // Theory of Ad Infinitum
+    ],
+  },
+  [72309]: {
+    name: 'Unbound',
+    source: 'Achievement: Ad Infinitum III: Unbound',
+    output: 1,
+    ingredients: [],
+  },
+  [37070]: {
+    name: 'Gift of Ascension',
+    source: 'Vendor: BUY-4373 / Ad Infinitum II',
+    output: 1,
+    gold: 2520, // 25s 20c
+    ingredients: [
+      { id: currencyAsItemId(FRACTAL_RELIC_ID), count: 500 },
+    ],
+  },
 };
 
 /** Klobjarne: logro la 1ª vez; recompra = remnant (amalgamadas + mapa + karma). */
@@ -402,9 +472,20 @@ const EXTRA_ITEMS: Record<string, ItemMeta> = {
     rarity: 'Basic',
     tradeable: false,
   },
+  [String(currencyAsItemId(FRACTAL_RELIC_ID))]: {
+    name: 'Fractal Relic',
+    icon: CURRENCY_META[FRACTAL_RELIC_ID].icon,
+    rarity: 'Basic',
+    tradeable: false,
+  },
+  [String(currencyAsItemId(PRISTINE_FRACTAL_RELIC_ID))]: {
+    name: 'Pristine Fractal Relic',
+    icon: CURRENCY_META[PRISTINE_FRACTAL_RELIC_ID].icon,
+    rarity: 'Basic',
+    tradeable: false,
+  },
 };
 
-/** Dataset embebido: el SSR ya puede pintar el árbol sin esperar un fetch. */
 export const legendaryData = rawLegendaryData as LegendaryData;
 
 function recipeOf(data: LegendaryData, id: number, override?: 'buy' | 'craft'): RecipeEntry | null {
@@ -749,6 +830,10 @@ function buildNode(ctx: BuildContext, id: number, requested: number, depth: numb
       ctx.extras.set(extra.name, (ctx.extras.get(extra.name) ?? 0) + extra.count * batches);
     }
     craftTotal = craftChildren.reduce((sum, child) => sum + child.total, 0);
+    // Añadimos el coste de oro directo de la receta (si existe)
+    if ('gold' in recipe && typeof recipe.gold === 'number') {
+      craftTotal += recipe.gold * need;
+    }
     craftUnitFromTree = craftTotal / need;
   };
 
