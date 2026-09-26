@@ -21,6 +21,7 @@ export default function PriceCheckPage() {
   const [results, setResults] = useState<PriceCheckResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [quantities, setQuantities] = useState<Record<number, string>>({});
 
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -38,7 +39,7 @@ export default function PriceCheckPage() {
 
       // 2. Fetch prices for found items
       const itemIds = items.map(i => i.id);
-      
+
       let prices: GW2Price[] = [];
       try {
         prices = await getItemPrices(itemIds);
@@ -55,6 +56,17 @@ export default function PriceCheckPage() {
       }));
 
       setResults(combined);
+      
+      // Initialize quantities to 1 for new results
+      setQuantities(prev => {
+        const next = { ...prev };
+        combined.forEach(res => {
+          if (!next[res.item.id]) {
+            next[res.item.id] = '1';
+          }
+        });
+        return next;
+      });
     } catch (error) {
       console.error('Error in price check search:', error);
       setResults([]);
@@ -111,7 +123,7 @@ export default function PriceCheckPage() {
   return (
     <div className="min-h-screen bg-slate-900/50">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        
+
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-white sm:text-4xl">
@@ -165,43 +177,56 @@ export default function PriceCheckPage() {
 
             <div className="grid gap-3">
               {results.map(({ item, prices }) => {
-                const buyPrice = prices?.buys?.unit_price || 0;
-                const sellPrice = prices?.sells?.unit_price || 0;
-                
+                const qtyStr = quantities[item.id] ?? '1';
+                const qty = Math.max(1, parseInt(qtyStr) || 1);
+
+                const buyPrice = (prices?.buys?.unit_price || 0) * qty;
+                const sellPrice = (prices?.sells?.unit_price || 0) * qty;
+
                 const tpFee = Math.round(sellPrice * 0.15);
                 const netProfit = sellPrice - tpFee - buyPrice;
                 const roi = buyPrice > 0 ? (netProfit / buyPrice) * 100 : 0;
-                
+
                 const isProfitable = netProfit > 0;
 
                 return (
-                  <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-xl border border-slate-700 bg-slate-800 p-4 transition-colors hover:bg-slate-750 gap-4">
-                    
+                  <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-xl border border-slate-700 bg-slate-800 p-4 transition-colors hover:bg-slate-750 gap-4 sm:gap-0">
+
                     {/* Item Info */}
                     <div className="flex items-center flex-1 gap-3 min-w-0">
                       {item.icon ? (
-                        <Image src={item.icon} alt={item.name} width={48} height={48} className="rounded-md bg-slate-900" />
+                        <Image src={item.icon} alt={item.name} width={48} height={48} className="rounded-md bg-slate-900 shrink-0" />
                       ) : (
-                        <div className="h-12 w-12 rounded-md bg-slate-700" />
+                        <div className="h-12 w-12 rounded-md bg-slate-700 shrink-0" />
                       )}
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <h3 className={`font-medium truncate ${getRarityColor(item.rarity)}`}>
                           {item.name}
                         </h3>
                         <p className="text-xs text-slate-500">ID: {item.id}</p>
                       </div>
+                      
+                      <div className="flex items-center px-4">
+                        <input
+                          type="number"
+                          min="1"
+                          value={qtyStr}
+                          onChange={(e) => setQuantities(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          className="w-24 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
 
                     {/* Prices */}
-                    <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6 sm:gap-4">
-                      
+                    <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6 sm:gap-0">
+
                       {/* Mobile Labels */}
                       <div className="sm:hidden flex flex-col gap-1 text-xs text-gray-400">
                         <span>{t('priceCheck.buyPrice', 'Buy')}:</span>
                         <span>{t('priceCheck.sellPrice', 'Sell')}:</span>
                       </div>
 
-                      <div className="flex flex-col gap-1 items-end">
+                      <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 items-end sm:items-center">
                         <div className="sm:w-32 flex justify-end">
                           {renderPrice(buyPrice)}
                         </div>
@@ -228,7 +253,7 @@ export default function PriceCheckPage() {
                 );
               })}
             </div>
-            
+
             <div className="mt-4 flex items-center justify-end gap-2 text-xs text-slate-500">
               <Info className="h-4 w-4" />
               <p>{t('priceCheck.taxWarning', 'Includes 15% Trading Post tax')}</p>
