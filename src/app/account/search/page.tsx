@@ -36,20 +36,20 @@ type AggregatedSearchResult = {
 };
 
 function aggregateSearchResults(items: SearchResult[]): AggregatedSearchResult[] {
-  const map = new Map<number, AggregatedSearchResult>();
+  const map = new Map<string, AggregatedSearchResult>();
 
   for (const item of items) {
-    let entry = map.get(item.id);
+    let entry = map.get(item.name);
     if (!entry) {
       entry = {
-        id: item.id,
+        id: item.id, // keep the first item's ID for the icon/link
         name: item.name,
         icon: item.icon,
         rarity: item.rarity,
         totalCount: 0,
         stacks: [],
       };
-      map.set(item.id, entry);
+      map.set(item.name, entry);
     }
     entry.totalCount += item.count;
     entry.stacks.push({
@@ -100,14 +100,14 @@ function compactLocationStacks(
         ? 'storage'
         : isShared
           ? 'shared'
-          : `char:${character || formatSearchLocation(stack.location, t)}`;
+          : stack.location; // Use full location string to show specific equipment slots
     const label = isBank
       ? t('account.bank', 'Bank')
       : isStorage
         ? t('search.materialStorage', 'Material Storage')
         : isShared
           ? t('search.sharedInventory', 'Shared inventory')
-          : character || formatSearchLocation(stack.location, t);
+          : formatSearchLocation(stack.location, t);
 
     const prev = groups.get(key);
     if (prev) {

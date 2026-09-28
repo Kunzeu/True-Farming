@@ -243,8 +243,21 @@ export async function fetchCharactersFromBrowser(userId: string, apiKey?: string
   const characters = (
     await Promise.all(
       names.map(async (name) => {
-        const res = await gw2AuthedGet(`/characters/${encodeURIComponent(name)}`, key);
-        return res.ok ? res.json() : null;
+        const [charRes, tabsRes] = await Promise.all([
+          gw2AuthedGet(`/characters/${encodeURIComponent(name)}?v=latest`, key),
+          gw2AuthedGet(`/characters/${encodeURIComponent(name)}/equipmenttabs?v=latest`, key),
+        ]);
+        
+        if (!charRes.ok) return null;
+        
+        const charData = await charRes.json();
+        if (tabsRes.ok) {
+          const tabsData = await tabsRes.json();
+          // Override the potentially truncated equipment_tabs with the direct endpoint data
+          charData.equipment_tabs = tabsData;
+        }
+        
+        return charData;
       }),
     )
   ).filter(Boolean);
@@ -365,14 +378,41 @@ export async function fetchAccountSearchIndex(
   for (const char of characters || []) {
     const name = char.name;
     
-    // Parse active/inactive equipment tabs to get all items, infusions and upgrades
-    // This provides accurate locations per tab and solves the missing legendary infusions issue
+    const physicalSlots = new Set<string>();
+    if (char.equipment) {
+      char.equipment.forEach((item: any) => {
+        if (!item?.id) return;
+        const physKey = `${item.id}_${item.slot || 'noslot'}`;
+        physicalSlots.add(physKey);
+
+        slots.push({
+          id: item.id,
+          count: 1,
+          location: `${name} - ${item.slot || 'Equipped'}`,
+          category: 'character',
+          character: name,
+        });
+
+        item.infusions?.forEach((inf: number) => {
+          slots.push({ id: inf, count: 1, location: `${name} - ${item.slot || 'Equipped'} (Infusión)`, category: 'character', character: name });
+        });
+        item.upgrades?.forEach((upg: number) => {
+          slots.push({ id: upg, count: 1, location: `${name} - ${item.slot || 'Equipped'} (Mejora)`, category: 'character', character: name });
+        });
+      });
+    }
+
     if (char.equipment_tabs && Array.isArray(char.equipment_tabs)) {
       char.equipment_tabs.forEach((tab: any) => {
         const tabLabel = tab.name ? `Tab ${tab.tab} (${tab.name})` : `Tab ${tab.tab}`;
         
         tab.equipment?.forEach((item: { id: number; slot: string; infusions?: number[]; upgrades?: number[] }) => {
-          if (item?.id) {
+          if (!item?.id) return;
+          
+          const physKey = `${item.id}_${item.slot}`;
+          const isPhysicallyCounted = physicalSlots.has(physKey);
+          
+          if (!isPhysicallyCounted) {
             slots.push({
               id: item.id,
               count: 1,
@@ -380,33 +420,20 @@ export async function fetchAccountSearchIndex(
               category: 'character',
               character: name,
             });
-            item.infusions?.forEach(inf => {
+          }
+
+          if (item.infusions && item.infusions.length > 0) {
+            item.infusions.forEach(inf => {
               slots.push({ id: inf, count: 1, location: `${name} - ${tabLabel} - ${item.slot} (Infusión)`, category: 'character', character: name });
             });
-            item.upgrades?.forEach(upg => {
+          }
+          
+          if (item.upgrades && item.upgrades.length > 0) {
+            item.upgrades.forEach(upg => {
               slots.push({ id: upg, count: 1, location: `${name} - ${tabLabel} - ${item.slot} (Mejora)`, category: 'character', character: name });
             });
           }
         });
-      });
-    } else if (char.equipment) {
-      // Fallback for older API responses just in case
-      char.equipment?.forEach((item: { id: number; slot: string; infusions?: number[]; upgrades?: number[] }) => {
-        if (item?.id) {
-          slots.push({
-            id: item.id,
-            count: 1,
-            location: `${name} - ${item.slot}`,
-            category: 'character',
-            character: name,
-          });
-          item.infusions?.forEach(inf => {
-            slots.push({ id: inf, count: 1, location: `${name} - ${item.slot} (Infusión)`, category: 'character', character: name });
-          });
-          item.upgrades?.forEach(upg => {
-            slots.push({ id: upg, count: 1, location: `${name} - ${item.slot} (Mejora)`, category: 'character', character: name });
-          });
-        }
       });
     }
 
