@@ -46,8 +46,8 @@ export const festivalDates: Record<string, FestivalDate> = {
     timezone: 'America/Bogota'
   },
   halloween: {
-    startDate: '2026-10-07',
-    endDate: '2026-11-04',
+    startDate: '2026-10-13',
+    endDate: '2026-11-03',
     startDateFormatted: 'months.october',
     endDateFormatted: 'months.november',
     startTime: '11:00', // 11:00 AM Colombia (UTC-5)
