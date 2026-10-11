@@ -1,0 +1,393 @@
+---
+// Componente de partículas y cursor:
+// - Modo Halloween (Rey Loco / GW2): Cursor místico con gema morada y punta naranja + exclusivamente fantasmas flotantes.
+// - Modo Estándar: Cursor normal del sistema + chispas doradas de Guild Wars 2 / True Farming.
+// Activación automática según festival-dates.ts, o persistente en sesión con ?theme=halloween
+---
+
+<canvas
+  id="tf-mouse-particles"
+  class="pointer-events-none fixed inset-0 z-[9999] h-full w-full"
+  aria-hidden="true"
+></canvas>
+
+<style is:global>
+  /* Cursor Murciélago de Halloween: Silueta de murciélago místico con punta de clic en el ala izquierda */
+  html.tf-halloween-cursor,
+  html.tf-halloween-cursor body,
+  html.tf-halloween-cursor * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cdefs%3E%3Cfilter id='bs' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeDropShadow dx='1' dy='1.5' stdDeviation='1.2' flood-color='%23000000' flood-opacity='0.9'/%3E%3C/filter%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23c084fc'/%3E%3Cstop offset='30%25' stop-color='%237e22ce'/%3E%3Cstop offset='100%25' stop-color='%231f0938'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg filter='url(%23bs)'%3E%3Cpath d='M2 2 C5 7, 9 9, 12 10 L11 5.5 L13.5 9 C14.5 8.5, 17.5 8.5, 18.5 9 L21 5.5 L20 10 C23 9, 27 7, 30 2 C28 10, 25 15, 23 15 C20.5 15, 18.5 12, 17.5 17 L16 23 L14.5 17 C13.5 12, 11.5 15, 9 15 C7 15, 4 10, 2 2 Z' fill='url(%23bg)' stroke='%23c084fc' stroke-width='1.1' stroke-linejoin='round'/%3E%3Cpath d='M14.5 12 C10 13, 6 9, 2 2' stroke='%23e9d5ff' stroke-width='0.7' fill='none' opacity='0.6'/%3E%3Cpath d='M17.5 12 C22 13, 26 9, 30 2' stroke='%23e9d5ff' stroke-width='0.7' fill='none' opacity='0.6'/%3E%3Ccircle cx='14' cy='11' r='1.1' fill='%23ff3b30'/%3E%3Ccircle cx='18' cy='11' r='1.1' fill='%23ff3b30'/%3E%3Ccircle cx='2' cy='2' r='1.4' fill='%23ff7800'/%3E%3C/g%3E%3C/svg%3E") 2 2, auto !important;
+  }
+
+  /* Estado activo / puntero en botones y enlaces: Murciélago iluminado con aura mágica y ojos brillantes */
+  html.tf-halloween-cursor a,
+  html.tf-halloween-cursor a *,
+  html.tf-halloween-cursor button,
+  html.tf-halloween-cursor button *,
+  html.tf-halloween-cursor [role="button"],
+  html.tf-halloween-cursor [role="button"] *,
+  html.tf-halloween-cursor input[type="submit"],
+  html.tf-halloween-cursor input[type="button"],
+  html.tf-halloween-cursor input[type="reset"],
+  html.tf-halloween-cursor select,
+  html.tf-halloween-cursor summary,
+  html.tf-halloween-cursor .cursor-pointer {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cdefs%3E%3Cfilter id='hba' x='-25%25' y='-25%25' width='150%25' height='150%25'%3E%3CfeDropShadow dx='0' dy='0' stdDeviation='1.8' flood-color='%23a855f7' flood-opacity='0.95'/%3E%3CfeDropShadow dx='1' dy='1.5' stdDeviation='1' flood-color='%23000000' flood-opacity='0.85'/%3E%3C/filter%3E%3ClinearGradient id='bgh' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ff7800'/%3E%3Cstop offset='25%25' stop-color='%23a855f7'/%3E%3Cstop offset='100%25' stop-color='%233b0764'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg filter='url(%23hba)'%3E%3Cpath d='M2 2 C5 7, 9 9, 12 10 L11 5.5 L13.5 9 C14.5 8.5, 17.5 8.5, 18.5 9 L21 5.5 L20 10 C23 9, 27 7, 30 2 C28 10, 25 15, 23 15 C20.5 15, 18.5 12, 17.5 17 L16 23 L14.5 17 C13.5 12, 11.5 15, 9 15 C7 15, 4 10, 2 2 Z' fill='url(%23bgh)' stroke='%23f472b6' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M14.5 12 C10 13, 6 9, 2 2' stroke='%23ffffff' stroke-width='0.8' fill='none' opacity='0.85'/%3E%3Cpath d='M17.5 12 C22 13, 26 9, 30 2' stroke='%23ffffff' stroke-width='0.8' fill='none' opacity='0.85'/%3E%3Ccircle cx='14' cy='11' r='1.3' fill='%23ff7800'/%3E%3Ccircle cx='14' cy='11' r='0.6' fill='%23ffffff'/%3E%3Ccircle cx='18' cy='11' r='1.3' fill='%23ff7800'/%3E%3Ccircle cx='18' cy='11' r='0.6' fill='%23ffffff'/%3E%3Ccircle cx='2' cy='2' r='1.6' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E") 2 2, pointer !important;
+  }
+</style>
+
+<script>
+  import { getFestivalStatusByName } from '@/lib/festival-dates';
+
+  (() => {
+    // Respetar accesibilidad de movimiento reducido
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (prefersReducedMotion.matches) return;
+
+    const canvas = document.getElementById('tf-mouse-particles') as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    // Detectar si Halloween está activo oficialmente según festival-dates.ts
+    // o forzado en sesión con ?theme=halloween
+    function isHalloweenActive(): boolean {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('theme') === 'halloween') {
+          try { sessionStorage.setItem('tf_preview_halloween', 'true'); } catch {}
+          return true;
+        }
+        if (urlParams.get('theme') === 'gold') {
+          try { sessionStorage.removeItem('tf_preview_halloween'); } catch {}
+          return false;
+        }
+        try {
+          if (sessionStorage.getItem('tf_preview_halloween') === 'true') {
+            return true;
+          }
+        } catch {}
+      }
+      return getFestivalStatusByName('halloween') === 'active';
+    }
+
+    const isHalloween = isHalloweenActive();
+
+    // Activar / desactivar cursor personalizado de Halloween en la página
+    if (isHalloween) {
+      document.documentElement.classList.add('tf-halloween-cursor');
+    } else {
+      document.documentElement.classList.remove('tf-halloween-cursor');
+    }
+
+    interface Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      maxLife: number;
+      life: number;
+      alpha: number;
+      type: 'ghost' | 'gold_star' | 'gold_spark';
+      auraColor: string;
+      bodyColor: string;
+      rotation?: number;
+      rotationSpeed?: number;
+      driftPhase: number;
+      driftSpeed: number;
+    }
+
+    // Auras espectrales para los fantasmas (Ectoplasma verde, cian espectral, lavanda arcano y blanco puro)
+    const GHOST_AURAS = [
+      { aura: 'rgba(74, 222, 128, 0.85)', body: 'rgba(240, 253, 250, 0.94)' }, // Verde ectoplasma
+      { aura: 'rgba(56, 189, 248, 0.85)', body: 'rgba(240, 249, 255, 0.94)' }, // Cian espectral
+      { aura: 'rgba(192, 132, 252, 0.85)', body: 'rgba(250, 245, 255, 0.94)' }, // Violeta del Rey Loco
+      { aura: 'rgba(248, 113, 113, 0.80)', body: 'rgba(255, 241, 242, 0.94)' }, // Carmesí fantasmal
+      { aura: 'rgba(251, 146, 60, 0.80)', body: 'rgba(255, 247, 237, 0.94)' },  // Naranja calabaza espectral
+    ];
+
+    const MAX_PARTICLES = 65;
+    const particles: Particle[] = [];
+    let isAnimating = false;
+
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+
+    let lastX: number | null = null;
+    let lastY: number | null = null;
+
+    function resize() {
+      if (!canvas || !ctx) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    function createGhost(x: number, y: number, speedX = 0, speedY = 0, burst = false): Particle {
+      const palette = GHOST_AURAS[Math.floor(Math.random() * GHOST_AURAS.length)];
+      const angle = burst ? (-Math.PI / 2 + (Math.random() - 0.5) * 1.8) : (-Math.PI / 2 + (Math.random() - 0.5) * 0.8);
+      const speed = burst ? (Math.random() * 2.2 + 1.2) : (Math.random() * 0.7 + 0.4);
+
+      return {
+        x,
+        y,
+        vx: Math.cos(angle) * speed + speedX * 0.08,
+        vy: Math.sin(angle) * speed - (burst ? 0.8 : 0.6), // Flotan hacia arriba suavemente
+        size: burst ? (Math.random() * 4 + 11) : (Math.random() * 4 + 8.5), // Tamaño cómodo (8.5 - 15px)
+        maxLife: burst ? (Math.random() * 25 + 45) : (Math.random() * 20 + 35),
+        life: 0,
+        alpha: 1,
+        type: 'ghost',
+        auraColor: palette.aura,
+        bodyColor: palette.body,
+        driftPhase: Math.random() * Math.PI * 2,
+        driftSpeed: Math.random() * 0.08 + 0.08,
+      };
+    }
+
+    function createGoldParticle(x: number, y: number, speedX = 0, speedY = 0, burst = false): Particle {
+      const isStar = Math.random() < 0.35;
+      const angle = Math.random() * Math.PI * 2;
+      const velocityMag = burst ? Math.random() * 2.5 + 0.8 : Math.random() * 0.9 + 0.2;
+
+      return {
+        x,
+        y,
+        vx: Math.cos(angle) * velocityMag + speedX * 0.1,
+        vy: Math.sin(angle) * velocityMag + speedY * 0.1 - (burst ? 0.8 : 0.4),
+        size: isStar ? Math.random() * 2.5 + 1.8 : Math.random() * 2.0 + 1.2,
+        maxLife: burst ? Math.random() * 30 + 30 : Math.random() * 25 + 20,
+        life: 0,
+        alpha: 1,
+        type: isStar ? 'gold_star' : 'gold_spark',
+        auraColor: 'rgba(251, 191, 36, 0.8)',
+        bodyColor: 'rgba(255, 255, 255, 1)',
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.15,
+        driftPhase: 0,
+        driftSpeed: 0,
+      };
+    }
+
+    function addParticles(x: number, y: number, count: number, speedX = 0, speedY = 0, burst = false) {
+      for (let i = 0; i < count; i++) {
+        if (particles.length >= MAX_PARTICLES) particles.shift();
+        if (isHalloween) {
+          particles.push(createGhost(x, y, speedX, speedY, burst));
+        } else {
+          particles.push(createGoldParticle(x, y, speedX, speedY, burst));
+        }
+      }
+      startLoop();
+    }
+
+    // Dibujar Fantasma Espectral estilizado
+    function drawGhost(
+      context: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      size: number,
+      phase: number,
+      auraColor: string,
+      bodyColor: string,
+      alpha: number
+    ) {
+      context.save();
+      context.translate(x, y);
+
+      const wave = Math.sin(phase) * (size * 0.25);
+
+      // Resplandor espectral
+      context.shadowColor = auraColor;
+      context.shadowBlur = size * 0.9;
+
+      context.fillStyle = bodyColor;
+      context.globalAlpha = alpha;
+
+      context.beginPath();
+      // Cabeza redonda
+      context.arc(0, -size * 0.35, size * 0.5, Math.PI, 0, false);
+
+      // Lado derecho hacia abajo
+      context.quadraticCurveTo(size * 0.55, 0, size * 0.45 + wave, size * 0.65);
+
+      // Faldas onduladas inferiores (efecto sábana flotante)
+      context.quadraticCurveTo(size * 0.3, size * 0.5, size * 0.15, size * 0.7);
+      context.quadraticCurveTo(0, size * 0.52, -size * 0.15, size * 0.7);
+      context.quadraticCurveTo(-size * 0.3, size * 0.5, -size * 0.45 + wave, size * 0.65);
+
+      // Lado izquierdo hacia arriba
+      context.quadraticCurveTo(-size * 0.55, 0, -size * 0.5, -size * 0.35);
+      context.closePath();
+      context.fill();
+
+      // Ojitos negros alargados
+      context.shadowBlur = 0;
+      context.fillStyle = `rgba(15, 23, 42, ${alpha * 0.95})`;
+      context.beginPath();
+      context.ellipse(-size * 0.18, -size * 0.38, size * 0.08, size * 0.15, 0, 0, Math.PI * 2);
+      context.ellipse(size * 0.18, -size * 0.38, size * 0.08, size * 0.15, 0, 0, Math.PI * 2);
+      // Boquita "o" de fantasmita
+      context.ellipse(0, -size * 0.16, size * 0.07, size * 0.11, 0, 0, Math.PI * 2);
+      context.fill();
+
+      context.restore();
+    }
+
+    // Dibujar Estrella de oro (Modo Estándar)
+    function drawGoldStar(context: CanvasRenderingContext2D, x: number, y: number, size: number, rotation: number, alpha: number) {
+      context.save();
+      context.translate(x, y);
+      context.rotate(rotation);
+      context.shadowColor = `rgba(251, 191, 36, ${alpha * 0.85})`;
+      context.shadowBlur = size * 2;
+      context.fillStyle = `rgba(254, 240, 138, ${alpha * 0.9})`;
+
+      context.beginPath();
+      const outer = size * 2.4;
+      const inner = size * 0.35;
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI) / 2;
+        context.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+        const halfAngle = angle + Math.PI / 4;
+        context.lineTo(Math.cos(halfAngle) * inner, Math.sin(halfAngle) * inner);
+      }
+      context.closePath();
+      context.fill();
+
+      context.beginPath();
+      context.arc(0, 0, inner * 0.8, 0, Math.PI * 2);
+      context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      context.fill();
+      context.restore();
+    }
+
+    // Dibujar Chispa de oro (Modo Estándar)
+    function drawGoldSpark(context: CanvasRenderingContext2D, x: number, y: number, size: number, alpha: number) {
+      context.save();
+      context.shadowColor = `rgba(251, 191, 36, ${alpha * 0.8})`;
+      context.shadowBlur = size * 2;
+      context.beginPath();
+      context.arc(x, y, size, 0, Math.PI * 2);
+      context.fillStyle = `rgba(254, 240, 138, ${alpha})`;
+      context.fill();
+      context.restore();
+    }
+
+    function update() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, width, height);
+
+      // En Halloween usamos source-over para mantener los fantasmitas nítidos
+      ctx.globalCompositeOperation = isHalloween ? 'source-over' : 'lighter';
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life++;
+
+        if (p.life >= p.maxLife) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        const progress = p.life / p.maxLife;
+        p.alpha = Math.sin((1 - progress) * Math.PI * 0.5);
+
+        if (p.type === 'ghost') {
+          p.driftPhase += p.driftSpeed;
+          p.vx = p.vx * 0.95 + Math.sin(p.driftPhase) * 0.28;
+          p.vy = p.vy * 0.97 - 0.04;
+          p.x += p.vx;
+          p.y += p.vy;
+          drawGhost(ctx, p.x, p.y, p.size, p.driftPhase, p.auraColor, p.bodyColor, p.alpha);
+        } else if (p.type === 'gold_star') {
+          p.vx *= 0.96;
+          p.vy = p.vy * 0.96 + 0.035;
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.rotation !== undefined && p.rotationSpeed !== undefined) {
+            p.rotation += p.rotationSpeed;
+            drawGoldStar(ctx, p.x, p.y, p.size, p.rotation, p.alpha);
+          }
+        } else {
+          p.vx *= 0.96;
+          p.vy = p.vy * 0.96 + 0.035;
+          p.x += p.vx;
+          p.y += p.vy;
+          drawGoldSpark(ctx, p.x, p.y, p.size, p.alpha);
+        }
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+
+      if (particles.length > 0) {
+        requestAnimationFrame(update);
+      } else {
+        isAnimating = false;
+      }
+    }
+
+    function startLoop() {
+      if (!isAnimating) {
+        isAnimating = true;
+        requestAnimationFrame(update);
+      }
+    }
+
+    function handlePointerMove(e: PointerEvent) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+
+      const x = e.clientX;
+      const y = e.clientY;
+
+      if (lastX === null || lastY === null) {
+        lastX = x;
+        lastY = y;
+        return;
+      }
+
+      const dx = x - lastX;
+      const dy = y - lastY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 6) {
+        const steps = Math.min(Math.floor(dist / 16), 3);
+        for (let i = 0; i <= steps; i++) {
+          const t = steps === 0 ? 1 : i / steps;
+          const interpX = lastX + dx * t;
+          const interpY = lastY + dy * t;
+          addParticles(interpX, interpY, 1, dx * 0.05, dy * 0.05);
+        }
+        lastX = x;
+        lastY = y;
+      }
+    }
+
+    function handlePointerDown(e: PointerEvent) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      // Al hacer clic: estallido de fantasmitas (5 o 6) que ascienden flotando
+      addParticles(e.clientX, e.clientY, isHalloween ? 6 : 6, 0, 0, true);
+    }
+
+    function handleMouseLeave() {
+      lastX = null;
+      lastY = null;
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+    document.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+  })();
+</script>
