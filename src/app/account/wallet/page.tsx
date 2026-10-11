@@ -199,11 +199,23 @@ const WalletPage = () => {
   };
 
   const displayOrder = useMemo(() => {
-    if (!orderLoaded) return importantCurrencyIds;
-    const orderedIds = customOrder.filter(id => importantCurrencyIds.includes(id));
-    const missingIds = importantCurrencyIds.filter(id => !customOrder.includes(id));
-    return [...orderedIds, ...missingIds];
-  }, [customOrder, importantCurrencyIds, orderLoaded]);
+    const held = walletData.map((item) => item.id);
+    const preferred = orderLoaded ? customOrder : importantCurrencyIds;
+    if (!held.length) return preferred;
+    const heldSet = new Set(held);
+    const head: number[] = [];
+    const seen = new Set<number>();
+    for (const id of [...preferred, ...importantCurrencyIds]) {
+      if (!heldSet.has(id) || seen.has(id)) continue;
+      head.push(id);
+      seen.add(id);
+    }
+    const orderById = new Map(currencies.map((currency) => [currency.id, currency.order]));
+    const rest = held
+      .filter((id) => !seen.has(id))
+      .sort((a, b) => (orderById.get(a) ?? a) - (orderById.get(b) ?? b));
+    return [...head, ...rest];
+  }, [walletData, currencies, customOrder, importantCurrencyIds, orderLoaded]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -242,7 +254,7 @@ const WalletPage = () => {
     setIsModalClosed(true);
   };
 
-  const cacheKey = user?.id ? `gw2_wallet_${user.id}_${lang}` : null;
+  const cacheKey = user?.id ? `gw2_wallet_all_${user.id}_${lang}` : null;
 
   const applyCachedWallet = useCallback(
     (cached: { wallet: WalletItem[]; currencies: Currency[] }) => {
@@ -266,17 +278,16 @@ const WalletPage = () => {
       else setIsRefreshing(true);
       setApiError(null);
 
-      const result = await fetchWalletFromBrowser(user.id, lang, importantCurrencyIds, apiKey);
+      const result = await fetchWalletFromBrowser(user.id, lang, undefined, apiKey);
       if (!result) {
         setIsLoading(false);
         return;
       }
 
-      const onlyImportant = result.currencies.filter((c) => importantCurrencyIds.includes(c.id));
       setWalletData(result.wallet);
-      setCurrencies(onlyImportant);
+      setCurrencies(result.currencies);
       if (cacheKey) {
-        writeSessionCache(cacheKey, { wallet: result.wallet, currencies: onlyImportant }, GW2_CACHE_TTL.accountPage);
+        writeSessionCache(cacheKey, { wallet: result.wallet, currencies: result.currencies }, GW2_CACHE_TTL.accountPage);
       }
     } catch (error) {
       console.error('Error fetching wallet:', error);
@@ -286,7 +297,7 @@ const WalletPage = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user?.id, apiKey, importantCurrencyIds, t, lang, cacheKey]);
+  }, [user?.id, apiKey, t, lang, cacheKey]);
 
   useEffect(() => {
     if (user?.id && apiKey) {

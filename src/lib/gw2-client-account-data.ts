@@ -34,7 +34,7 @@ type Currency = { id: number; name: string; description: string; order: number; 
 export async function fetchWalletFromBrowser(
   userId: string,
   lang: string,
-  currencyIds: number[],
+  currencyIds?: number[],
   apiKey?: string | null,
 ): Promise<{ wallet: WalletItem[]; currencies: Currency[] } | null> {
   const key = await resolveApiKey(userId, apiKey);
@@ -46,12 +46,13 @@ export async function fetchWalletFromBrowser(
   }
 
   const wallet: WalletItem[] = await walletRes.json();
-  const filtered = wallet.filter((item) => currencyIds.includes(item.id));
+  const ids = currencyIds?.length ? currencyIds : wallet.map((item) => item.id);
+  const filtered = currencyIds?.length ? wallet.filter((item) => currencyIds.includes(item.id)) : wallet;
   const [currencies, enCurrencies] = await Promise.all([
-    fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', currencyIds, `&lang=${lang}`),
+    fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', ids, `&lang=${lang}`),
     lang === 'en'
       ? Promise.resolve(null)
-      : fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', currencyIds, '&lang=en'),
+      : fetchGw2ByIds<Omit<Currency, 'wikiName'>>('currencies', ids, '&lang=en'),
   ]);
   const enNames = new Map<number, string>((enCurrencies ?? currencies).map((c) => [c.id, c.name]));
   return {
