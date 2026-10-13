@@ -1745,6 +1745,13 @@ const LabyrinthGuidePage = () => {
                        </h3>
                        <div className="space-y-3">
                          <button 
+                           onClick={() => navigateToSection('builds', 'temerario-poder')}
+                           className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors duration-200 w-full text-left"
+                         >
+                           <div className="w-2 h-2 bg-orange-400 rounded-full flex-shrink-0"></div>
+                           <span className="text-gray-200 font-medium">{t('halloween.labyrinth.builds.daredevilPower')}</span>
+                         </button>
+                         <button 
                            onClick={() => navigateToSection('builds', 'chatarrero-supervelocidad')}
                            className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors duration-200 w-full text-left"
                          >
@@ -1766,19 +1773,456 @@ const LabyrinthGuidePage = () => {
                            <span className="text-gray-200 font-medium">{t('halloween.labyrinth.builds.mirage')}</span>
                          </button>
                          <button 
-                           onClick={() => navigateToSection('builds', 'temerario-poder')}
-                           className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors duration-200 w-full text-left"
-                         >
-                           <div className="w-2 h-2 bg-orange-400 rounded-full flex-shrink-0"></div>
-                           <span className="text-gray-200 font-medium">{t('halloween.labyrinth.builds.daredevilPower')}</span>
-                         </button>
-                         <button 
                            onClick={() => navigateToSection('builds', 'temerario-condicion')}
                            className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700/70 transition-colors duration-200 w-full text-left"
                          >
                            <div className="w-2 h-2 bg-orange-400 rounded-full flex-shrink-0"></div>
                            <span className="text-gray-200 font-medium">{t('halloween.labyrinth.builds.daredevilCondi')}</span>
                          </button>
+                       </div>
+                     </div>
+
+                     <div id="temerario-poder" className="bg-gray-800/60 border border-orange-500/30 rounded-lg p-6">
+                       <h3 className="text-white font-semibold mb-4 flex items-center">
+                         <Image
+                           src="https://wiki-es.guildwars2.com/images/e/e6/Temerario_icono_%28highres%29.png"
+                           alt="Temerario"
+                           width={64}
+                           height={64}
+                           className="mr-2 rounded"
+                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                         />
+                        {t('halloween.labyrinth.builds.daredevilPower')}
+                       </h3>
+                       
+                       <div className="space-y-4">
+                         <p className="text-gray-200 text-sm leading-relaxed">
+                        {t('halloween.labyrinth.builds.daredevilPower.description')}
+                         </p>
+                         
+                        <p className="text-gray-200 text-sm leading-relaxed">
+                          {t('halloween.labyrinth.builds.daredevilPower.equipment')} {runa24836Data && runa24836Data.icon ? (
+                             <a
+                               href={runa24836Data.wikiUrl}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                             >
+                               <Image
+                                 src={runa24836Data.icon}
+                                 alt={runa24836Data.name}
+                                 width={20}
+                                 height={20}
+                                 className="rounded"
+                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                               />
+                               <span className="text-orange-300 font-semibold">{runa24836Data.name}</span>
+                             </a>
+                           ) : (
+                             <span className="text-orange-300 font-semibold">Runa 24836</span>
+                          )} {t('common.and')} {relicVampirismData ? (
+                            <a
+                              href={relicVampirismData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {relicVampirismData.icon && (
+                                <Image
+                                  src={relicVampirismData.icon}
+                                  alt={relicVampirismData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{relicVampirismData.name}</span>
+                            </a>
+                          ) : (
+                            <a
+                              href={buildSigilWikiUrl('velocidad')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
+                            >
+                              Relic of Vampirism
+                            </a>
+                          )}. {t('halloween.labyrinth.builds.daredevilPower.weapons')} {vitalityData && vitalityData.icon ? (
+                             <a
+                               href={vitalityData.wikiUrl}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                             >
+                               <Image
+                                 src={vitalityData.icon}
+                                 alt={vitalityData.name}
+                                 width={20}
+                                 height={20}
+                                 className="rounded"
+                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                               />
+                               <span className="text-orange-300 font-semibold">{vitalityData.name}</span>
+                             </a>
+                           ) : (
+                             <a
+                               href={lang === 'es' ? 'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Stamina' :
+                                   lang === 'fr' ? 'https://wiki-fr.guildwars2.com/wiki/Cachet_d%27endurance_sup%C3%A9rieur' :
+                                   lang === 'de' ? 'https://wiki-de.guildwars2.com/wiki/%C3%9Cberlegenes_Sigill_der_Ausdauer' :
+                                   'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Stamina'}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
+                             >
+                               Vitalidad
+                             </a>
+                           )} {t('common.and')} {fireData && fireData.icon ? (
+                             <a
+                               href={fireData.wikiUrl}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                             >
+                               <Image
+                                 src={fireData.icon}
+                                 alt={fireData.name}
+                                 width={20}
+                                 height={20}
+                                 className="rounded"
+                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                               />
+                               <span className="text-orange-300 font-semibold">{fireData.name}</span>
+                             </a>
+                           ) : (
+                             <a
+                               href={lang === 'es' ? 'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Fire' :
+                                   lang === 'fr' ? 'https://wiki-fr.guildwars2.com/wiki/Cachet_de_feu_sup%C3%A9rieur' :
+                                   lang === 'de' ? 'https://wiki-de.guildwars2.com/wiki/%C3%9Cberlegenes_Sigill_des_Feuers' :
+                                   'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Fire'}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
+                             >
+                               Fuego
+                             </a>
+                          )} {t('halloween.labyrinth.builds.daredevilPower.weapons.secondSet')} {fuerzaData && fuerzaData.icon ? (
+                             <a
+                               href={fuerzaData.wikiUrl}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                             >
+                               <Image
+                                 src={fuerzaData.icon}
+                                 alt={fuerzaData.name}
+                                 width={20}
+                                 height={20}
+                                 className="rounded"
+                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                               />
+                               <span className="text-orange-300 font-semibold">{fuerzaData.name}</span>
+                             </a>
+                           ) : (
+                             <span className="text-orange-300 font-semibold">fuerza</span>
+                           )} {t('common.and')} {precisionData && precisionData.icon ? (
+                             <a
+                               href={precisionData.wikiUrl}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                             >
+                               <Image
+                                 src={precisionData.icon}
+                                 alt={precisionData.name}
+                                 width={20}
+                                 height={20}
+                                 className="rounded"
+                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                               />
+                               <span className="text-orange-300 font-semibold">{precisionData.name}</span>
+                             </a>
+                           ) : (
+                             <span className="text-orange-300 font-semibold">precisión</span>
+                           )}{t('halloween.labyrinth.builds.daredevilPower.weapons.bossesNote')}
+                         </p>
+                         
+                        <p className="text-gray-200 text-sm leading-relaxed">
+                          {t('halloween.labyrinth.builds.daredevilPower.usageIntroPrefix')} {trait1833Data ? (
+                            <a
+                              href={trait1833Data.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {trait1833Data.icon && (
+                                <Image
+                                  src={trait1833Data.icon}
+                                  alt={trait1833Data.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{trait1833Data.name || trait1833Name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">{trait1833Name}</span>
+                          )}{t('halloween.labyrinth.builds.daredevilPower.autoAttackBow')}{t('halloween.labyrinth.builds.daredevilPower.maxEndurance')} <br/>{t('halloween.labyrinth.builds.daredevilPower.sourcesIntro')}<br/>
+                          {vitalityData && vitalityData.icon ? (
+                            <a
+                              href={vitalityData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              <Image
+                                src={vitalityData.icon}
+                                alt={vitalityData.name}
+                                width={20}
+                                height={20}
+                                className="rounded"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <span className="text-orange-300 font-semibold">{vitalityData.name}</span>
+                            </a>
+                          ) : (
+                            <a
+                              href={buildSigilWikiUrl('vitality')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              <span className="text-orange-300 font-semibold">Sello superior de Stamina</span>
+                            </a>
+                          )}<br />
+                          {channeledVigorData ? (
+                            <a
+                              href={channeledVigorData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {channeledVigorData.icon && (
+                                <Image
+                                  src={channeledVigorData.icon}
+                                  alt={channeledVigorData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{channeledVigorData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Vigor canalizado</span>
+                          )} {t('common.and')} <a
+                            href={brawlersTenacityData?.wikiUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                          >
+                            {brawlersTenacityData?.icon && (
+                              <Image
+                                src={brawlersTenacityData.icon}
+                                alt={brawlersTenacityData.name}
+                                width={20}
+                                height={20}
+                                className="rounded"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            )}
+                            <span className="text-orange-300 font-semibold">{brawlersTenacityData?.name || 'La tenacidad del luchador'}</span>
+                          </a><br />
+                          {signetAgilityData ? (
+                            <a
+                              href={signetAgilityData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {signetAgilityData.icon && (
+                                <Image
+                                  src={signetAgilityData.icon}
+                                  alt={signetAgilityData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{signetAgilityData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Sello de agilidad</span>
+                          )}<br />
+                          {stealData ? (
+                            <a
+                              href={stealData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {stealData.icon && (
+                                <Image
+                                  src={stealData.icon}
+                                  alt={stealData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{stealData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Robar</span>
+                          )} {t('common.dueTo')} {enduranceThiefData ? (
+                            <a
+                              href={enduranceThiefData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {enduranceThiefData.icon && (
+                                <Image
+                                  src={enduranceThiefData.icon}
+                                  alt={enduranceThiefData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{enduranceThiefData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Ladrón de resistencia</span>
+                          )} <br />
+                          {shadowstepData ? (
+                            <a
+                              href={shadowstepData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {shadowstepData.icon && (
+                                <Image
+                                  src={shadowstepData.icon}
+                                  alt={shadowstepData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{shadowstepData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Paso de sombra</span>
+                          )}, {infiltratorsArrowData ? (
+                            <a
+                              href={infiltratorsArrowData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {infiltratorsArrowData.icon && (
+                                <Image
+                                  src={infiltratorsArrowData.icon}
+                                  alt={infiltratorsArrowData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{infiltratorsArrowData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Flecha del infiltrado</span>
+                          )} {t('common.and')} {stealData ? (
+                            <a
+                              href={stealData.wikiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
+                            >
+                              {stealData.icon && (
+                                <Image
+                                  src={stealData.icon}
+                                  alt={stealData.name}
+                                  width={20}
+                                  height={20}
+                                  className="rounded"
+                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              )}
+                              <span className="text-orange-300 font-semibold">{stealData.name}</span>
+                            </a>
+                          ) : (
+                            <span className="text-orange-300 font-semibold">Robar</span>
+                          )} {t('halloween.labyrinth.builds.daredevilPower.keepAheadZerg')}.
+                        </p>
+                         
+                         <p className="text-gray-200 text-sm leading-relaxed">
+                           {t('halloween.labyrinth.builds.daredevilPower.bowExceptional')} {t('halloween.labyrinth.builds.daredevilPower.useFourAoEDoors')}
+                         </p>
+                         
+                         <div className="space-y-4">
+                           <div>
+                             <div className="flex items-center justify-between mb-2">
+                               <h4 className="text-white font-semibold flex items-center">
+                                 <span className="text-lg mr-2">⚙️</span>
+                                 {t('halloween.labyrinth.builds.traitsCode')}
+                               </h4>
+                               <button
+                                 onClick={() => {
+                                   navigator.clipboard.writeText('[&DQUcPSwWBxuUEgAAWAAAAFcBAABbAQAADgEAAAAAAAAAAAAAAAAAAAAAAAA=]');
+                                   setShowCopyModal(true);
+                                   // Auto-cerrar el modal después de 2 segundos
+                                   setTimeout(() => setShowCopyModal(false), 2000);
+                                 }}
+                                 className="flex items-center gap-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded transition-colors duration-200"
+                               >
+                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                 </svg>
+                                 {t('halloween.labyrinth.builds.copyCode')}
+                               </button>
+                             </div>
+                             <div className="bg-gray-900/50 border border-orange-500/30 rounded-lg p-3">
+                               <code className="text-orange-300 text-sm font-mono break-all">
+                                 [&DQUcPSwWBxuUEgAAWAAAAFcBAABbAQAADgEAAAAAAAAAAAAAAAAAAAAAAAA=]
+                               </code>
+                             </div>
+                           </div>
+                           
+                           <div>
+                             <Image
+                               src="/thumbnails/skills-y-traits-ladron-p-2-1024x576.webp"
+                               alt="Skills y Traits - Temerario Poder"
+                               width={1024}
+                               height={576}
+                               className="w-full h-auto rounded-lg border border-orange-500/30"
+                               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                             />
+                            <p className="text-gray-200 text-sm leading-relaxed mt-4">
+                              {t('halloween.labyrinth.builds.daredevilPower.traits')}
+                            </p>
+                            <p className="text-gray-200 text-sm leading-relaxed">
+                              {t('halloween.labyrinth.builds.daredevilPower.usageSummary')}
+                            </p>
+                            <p className="text-gray-200 text-sm leading-relaxed">
+                              {t('halloween.labyrinth.builds.daredevilPower.recoverDodges')}
+                            </p>
+                            <p className="text-gray-200 text-sm leading-relaxed">
+                              {t('halloween.labyrinth.builds.daredevilPower.bossesUsage')}
+                            </p>
+                           </div>
+                         </div>
                        </div>
                      </div>
 
@@ -2726,450 +3170,6 @@ const LabyrinthGuidePage = () => {
                            </div>
                          </div>
                          
-                       </div>
-                     </div>
-
-                     <div id="temerario-poder" className="bg-gray-800/60 border border-orange-500/30 rounded-lg p-6">
-                       <h3 className="text-white font-semibold mb-4 flex items-center">
-                         <Image
-                           src="https://wiki-es.guildwars2.com/images/e/e6/Temerario_icono_%28highres%29.png"
-                           alt="Temerario"
-                           width={64}
-                           height={64}
-                           className="mr-2 rounded"
-                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                         />
-                        {t('halloween.labyrinth.builds.daredevilPower')}
-                       </h3>
-                       
-                       <div className="space-y-4">
-                         <p className="text-gray-200 text-sm leading-relaxed">
-                        {t('halloween.labyrinth.builds.daredevilPower.description')}
-                         </p>
-                         
-                        <p className="text-gray-200 text-sm leading-relaxed">
-                          {t('halloween.labyrinth.builds.daredevilPower.equipment')} {runa24836Data && runa24836Data.icon ? (
-                             <a
-                               href={runa24836Data.wikiUrl}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                             >
-                               <Image
-                                 src={runa24836Data.icon}
-                                 alt={runa24836Data.name}
-                                 width={20}
-                                 height={20}
-                                 className="rounded"
-                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                               />
-                               <span className="text-orange-300 font-semibold">{runa24836Data.name}</span>
-                             </a>
-                           ) : (
-                             <span className="text-orange-300 font-semibold">Runa 24836</span>
-                          )} {t('common.and')} {relicVampirismData ? (
-                            <a
-                              href={relicVampirismData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {relicVampirismData.icon && (
-                                <Image
-                                  src={relicVampirismData.icon}
-                                  alt={relicVampirismData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{relicVampirismData.name}</span>
-                            </a>
-                          ) : (
-                            <a
-                              href={buildSigilWikiUrl('velocidad')}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
-                            >
-                              Relic of Vampirism
-                            </a>
-                          )}. {t('halloween.labyrinth.builds.daredevilPower.weapons')} {vitalityData && vitalityData.icon ? (
-                             <a
-                               href={vitalityData.wikiUrl}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                             >
-                               <Image
-                                 src={vitalityData.icon}
-                                 alt={vitalityData.name}
-                                 width={20}
-                                 height={20}
-                                 className="rounded"
-                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                               />
-                               <span className="text-orange-300 font-semibold">{vitalityData.name}</span>
-                             </a>
-                           ) : (
-                             <a
-                               href={lang === 'es' ? 'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Stamina' :
-                                   lang === 'fr' ? 'https://wiki-fr.guildwars2.com/wiki/Cachet_d%27endurance_sup%C3%A9rieur' :
-                                   lang === 'de' ? 'https://wiki-de.guildwars2.com/wiki/%C3%9Cberlegenes_Sigill_der_Ausdauer' :
-                                   'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Stamina'}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
-                             >
-                               Vitalidad
-                             </a>
-                           )} {t('common.and')} {fireData && fireData.icon ? (
-                             <a
-                               href={fireData.wikiUrl}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                             >
-                               <Image
-                                 src={fireData.icon}
-                                 alt={fireData.name}
-                                 width={20}
-                                 height={20}
-                                 className="rounded"
-                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                               />
-                               <span className="text-orange-300 font-semibold">{fireData.name}</span>
-                             </a>
-                           ) : (
-                             <a
-                               href={lang === 'es' ? 'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Fire' :
-                                   lang === 'fr' ? 'https://wiki-fr.guildwars2.com/wiki/Cachet_de_feu_sup%C3%A9rieur' :
-                                   lang === 'de' ? 'https://wiki-de.guildwars2.com/wiki/%C3%9Cberlegenes_Sigill_des_Feuers' :
-                                   'https://wiki.guildwars2.com/wiki/Superior_Sigil_of_Fire'}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="text-orange-300 font-semibold hover:text-orange-200 transition-colors underline"
-                             >
-                               Fuego
-                             </a>
-                          )} {t('halloween.labyrinth.builds.daredevilPower.weapons.secondSet')} {fuerzaData && fuerzaData.icon ? (
-                             <a
-                               href={fuerzaData.wikiUrl}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                             >
-                               <Image
-                                 src={fuerzaData.icon}
-                                 alt={fuerzaData.name}
-                                 width={20}
-                                 height={20}
-                                 className="rounded"
-                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                               />
-                               <span className="text-orange-300 font-semibold">{fuerzaData.name}</span>
-                             </a>
-                           ) : (
-                             <span className="text-orange-300 font-semibold">fuerza</span>
-                           )} {t('common.and')} {precisionData && precisionData.icon ? (
-                             <a
-                               href={precisionData.wikiUrl}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                             >
-                               <Image
-                                 src={precisionData.icon}
-                                 alt={precisionData.name}
-                                 width={20}
-                                 height={20}
-                                 className="rounded"
-                                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                               />
-                               <span className="text-orange-300 font-semibold">{precisionData.name}</span>
-                             </a>
-                           ) : (
-                             <span className="text-orange-300 font-semibold">precisión</span>
-                           )}{t('halloween.labyrinth.builds.daredevilPower.weapons.bossesNote')}
-                         </p>
-                         
-                        <p className="text-gray-200 text-sm leading-relaxed">
-                          {t('halloween.labyrinth.builds.daredevilPower.usageIntroPrefix')} {trait1833Data ? (
-                            <a
-                              href={trait1833Data.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {trait1833Data.icon && (
-                                <Image
-                                  src={trait1833Data.icon}
-                                  alt={trait1833Data.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{trait1833Data.name || trait1833Name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">{trait1833Name}</span>
-                          )}{t('halloween.labyrinth.builds.daredevilPower.autoAttackBow')}{t('halloween.labyrinth.builds.daredevilPower.maxEndurance')} <br/>{t('halloween.labyrinth.builds.daredevilPower.sourcesIntro')}<br/>
-                          {vitalityData && vitalityData.icon ? (
-                            <a
-                              href={vitalityData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              <Image
-                                src={vitalityData.icon}
-                                alt={vitalityData.name}
-                                width={20}
-                                height={20}
-                                className="rounded"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                              />
-                              <span className="text-orange-300 font-semibold">{vitalityData.name}</span>
-                            </a>
-                          ) : (
-                            <a
-                              href={buildSigilWikiUrl('vitality')}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              <span className="text-orange-300 font-semibold">Sello superior de Stamina</span>
-                            </a>
-                          )}<br />
-                          {channeledVigorData ? (
-                            <a
-                              href={channeledVigorData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {channeledVigorData.icon && (
-                                <Image
-                                  src={channeledVigorData.icon}
-                                  alt={channeledVigorData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{channeledVigorData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Vigor canalizado</span>
-                          )} {t('common.and')} <a
-                            href={brawlersTenacityData?.wikiUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                          >
-                            {brawlersTenacityData?.icon && (
-                              <Image
-                                src={brawlersTenacityData.icon}
-                                alt={brawlersTenacityData.name}
-                                width={20}
-                                height={20}
-                                className="rounded"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                              />
-                            )}
-                            <span className="text-orange-300 font-semibold">{brawlersTenacityData?.name || 'La tenacidad del luchador'}</span>
-                          </a><br />
-                          {signetAgilityData ? (
-                            <a
-                              href={signetAgilityData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {signetAgilityData.icon && (
-                                <Image
-                                  src={signetAgilityData.icon}
-                                  alt={signetAgilityData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{signetAgilityData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Sello de agilidad</span>
-                          )}<br />
-                          {stealData ? (
-                            <a
-                              href={stealData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {stealData.icon && (
-                                <Image
-                                  src={stealData.icon}
-                                  alt={stealData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{stealData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Robar</span>
-                          )} {t('common.dueTo')} {enduranceThiefData ? (
-                            <a
-                              href={enduranceThiefData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {enduranceThiefData.icon && (
-                                <Image
-                                  src={enduranceThiefData.icon}
-                                  alt={enduranceThiefData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{enduranceThiefData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Ladrón de resistencia</span>
-                          )} <br />
-                          {shadowstepData ? (
-                            <a
-                              href={shadowstepData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {shadowstepData.icon && (
-                                <Image
-                                  src={shadowstepData.icon}
-                                  alt={shadowstepData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{shadowstepData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Paso de sombra</span>
-                          )}, {infiltratorsArrowData ? (
-                            <a
-                              href={infiltratorsArrowData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {infiltratorsArrowData.icon && (
-                                <Image
-                                  src={infiltratorsArrowData.icon}
-                                  alt={infiltratorsArrowData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{infiltratorsArrowData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Flecha del infiltrado</span>
-                          )} {t('common.and')} {stealData ? (
-                            <a
-                              href={stealData.wikiUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-                            >
-                              {stealData.icon && (
-                                <Image
-                                  src={stealData.icon}
-                                  alt={stealData.name}
-                                  width={20}
-                                  height={20}
-                                  className="rounded"
-                                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              )}
-                              <span className="text-orange-300 font-semibold">{stealData.name}</span>
-                            </a>
-                          ) : (
-                            <span className="text-orange-300 font-semibold">Robar</span>
-                          )} {t('halloween.labyrinth.builds.daredevilPower.keepAheadZerg')}.
-                        </p>
-                         
-                         <p className="text-gray-200 text-sm leading-relaxed">
-                           {t('halloween.labyrinth.builds.daredevilPower.bowExceptional')} {t('halloween.labyrinth.builds.daredevilPower.useFourAoEDoors')}
-                         </p>
-                         
-                         <div className="space-y-4">
-                           <div>
-                             <div className="flex items-center justify-between mb-2">
-                               <h4 className="text-white font-semibold flex items-center">
-                                 <span className="text-lg mr-2">⚙️</span>
-                                 {t('halloween.labyrinth.builds.traitsCode')}
-                               </h4>
-                               <button
-                                 onClick={() => {
-                                   navigator.clipboard.writeText('[&DQUcPSwWBxuUEgAAWAAAAFcBAABbAQAADgEAAAAAAAAAAAAAAAAAAAAAAAA=]');
-                                   setShowCopyModal(true);
-                                   // Auto-cerrar el modal después de 2 segundos
-                                   setTimeout(() => setShowCopyModal(false), 2000);
-                                 }}
-                                 className="flex items-center gap-1 px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded transition-colors duration-200"
-                               >
-                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                 </svg>
-                                 {t('halloween.labyrinth.builds.copyCode')}
-                               </button>
-                             </div>
-                             <div className="bg-gray-900/50 border border-orange-500/30 rounded-lg p-3">
-                               <code className="text-orange-300 text-sm font-mono break-all">
-                                 [&DQUcPSwWBxuUEgAAWAAAAFcBAABbAQAADgEAAAAAAAAAAAAAAAAAAAAAAAA=]
-                               </code>
-                             </div>
-                           </div>
-                           
-                           <div>
-                             <Image
-                               src="/thumbnails/skills-y-traits-ladron-p-2-1024x576.webp"
-                               alt="Skills y Traits - Temerario Poder"
-                               width={1024}
-                               height={576}
-                               className="w-full h-auto rounded-lg border border-orange-500/30"
-                               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                             />
-                            <p className="text-gray-200 text-sm leading-relaxed mt-4">
-                              {t('halloween.labyrinth.builds.daredevilPower.traits')}
-                            </p>
-                            <p className="text-gray-200 text-sm leading-relaxed">
-                              {t('halloween.labyrinth.builds.daredevilPower.usageSummary')}
-                            </p>
-                            <p className="text-gray-200 text-sm leading-relaxed">
-                              {t('halloween.labyrinth.builds.daredevilPower.recoverDodges')}
-                            </p>
-                            <p className="text-gray-200 text-sm leading-relaxed">
-                              {t('halloween.labyrinth.builds.daredevilPower.bossesUsage')}
-                            </p>
-                           </div>
-                         </div>
                        </div>
                      </div>
 

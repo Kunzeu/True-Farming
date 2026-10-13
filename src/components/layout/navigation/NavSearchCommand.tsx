@@ -20,13 +20,12 @@ export default function NavSearchCommand({ items }: NavSearchCommandProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [];
     return items
       .filter((item) => {
-        const inLabel = item.label.toLowerCase().includes(q);
-        const inKeywords = item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
-        return inLabel || inKeywords;
+        const hay = `${item.label} ${(item.keywords ?? []).join(' ')}`.toLowerCase();
+        return tokens.every((token) => hay.includes(token));
       })
       .slice(0, 12);
   }, [items, query]);
