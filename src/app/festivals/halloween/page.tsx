@@ -145,17 +145,6 @@ const candyCornItems = [
 ];
 
 
-// IDs primarios para "Apertura de Cajas" de Halloween
-const BOX_OPENING_PRIMARY_IDS: number[] = [
-  36059, 36060, 36061, 36076, 36074, 36041, 67379, 36084, 36081, 67371, 67367, 67368, 36080, 36077, 79679, 79673, 79677, 67386, 67382, 67366, 79647, 67370, 67372, 67375, 71931, 48807, 48805, 48806, 36046, 36048, 36050, 36063, 36065, 36067, 67381, 79638, 79637, 79690, 76642, 76131, 71946, 70732, 89036, 89051, 88997, 79684, 24300, 24277, 24283, 24289, 24295, 24358, 24351, 24357, 36101, 36106, 36102, 36103, 67369, 67380, 36045, 36047, 36049, 36062, 36064, 36066, 67365, 67383, 76569, 88998, 89002, 36109, 36108, 36107, 36095, 72113, 92128, 89065, 79674, 36069, 36058, 36072, 85384, 89071, 24791, 89007, 45177, 46733, 46735, 43772, 46731, 45176, 36409, 36408, 36032, 36031, 45178, 45179
-];
-
-const BOX_OPENING_PRIMARY_COUNTS: number[] = [
-  277294, 277460, 277552, 19045, 19797, 962530, 4825, 9807, 9570, 21333, 20798, 20658, 10679, 13099, 13302, 13265, 13202, 9, 3, 9, 11, 11, 9, 17, 14, 26, 17, 6, 6, 14, 6, 6, 11, 9, 14, 6, 6, 11, 3, 17, 11, 11, 11, 26, 3, 14, 140, 260, 120, 290, 170, 200, 170, 230, 9, 17, 26, 34, 20, 11, 11, 14, 26, 29, 23, 23, 17, 43, 74, 43, 10725, 1682, 1399, 1630, 1519, 14, 9, 1, 2, 4, 5, 5, 11, 18, 11, 7, 14560, 69684, 65337, 352, 69469, 20272, 4831, 4893, 14223, 15358, 9718, 31
-];
-
-const TOTAL_OPENED_BOXES = 280000;
-
 // Clave para localStorage
 const HALLOWEEN_CALCULATOR_KEY = 'halloween_calculator_data';
 
@@ -163,11 +152,17 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasExclusiveAccess } from '@/lib/patreon-benefits';
+import HalloweenConfigEditor from '@/components/festivals/HalloweenConfigEditor';
+import { DEFAULT_HALLOWEEN_CONFIG, type HalloweenConfig } from '@/lib/halloween-config';
 
 const HalloweenPage = () => {
   usePageTitle('pageTitles.halloween', 'Halloween Festival');
   const { t, lang } = useI18n();
-  const { user } = useAuth();
+  const { user, token, hasPermission } = useAuth();
+  const canEditHalloween = hasPermission('moderator');
+  const [hwConfig, setHwConfig] = useState<HalloweenConfig>(() => structuredClone(DEFAULT_HALLOWEEN_CONFIG));
+  const [boxOpeningYear, setBoxOpeningYear] = useState('2026');
+  const opening = hwConfig.boxOpening[boxOpeningYear] ?? { boxes: 0, ids: [], counts: [] };
 
   const handleExportCalculatorCsv = () => {
     const rows = [
@@ -360,42 +355,35 @@ const HalloweenPage = () => {
   // Cargar nombres e iconos de los IDs primarios (Apertura de Cajas)
   const fetchPrimaryItems = useCallback(async () => {
     try {
-      if (BOX_OPENING_PRIMARY_IDS.length === 0) {
+      if (opening.ids.length === 0) {
         setPrimaryItems([]);
         return;
       }
       setPrimaryLoading(true);
-      const ids = BOX_OPENING_PRIMARY_IDS.join(',');
-      const [itemsRes, pricesRes] = await Promise.all([
-        fetch(`https://api.guildwars2.com/v2/items?ids=${ids}&lang=${lang}`, {  
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
-        }),
-        fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${ids}&lang=${lang}`, {
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate, br'
-          }
-        })
-      ]);
-      if (!itemsRes.ok) return;
-      const data: Gw2Item[] = await itemsRes.json();
-      const pricesData: Gw2Price[] = pricesRes.ok ? await pricesRes.json() : [];
+      const data: Gw2Item[] = [];
+      const pricesData: Gw2Price[] = [];
+      for (let i = 0; i < opening.ids.length; i += 200) {
+        const chunk = opening.ids.slice(i, i + 200).join(',');
+        const [itemsRes, pricesRes] = await Promise.all([
+          fetch(`https://api.guildwars2.com/v2/items?ids=${chunk}&lang=${lang}`),
+          fetch(`https://api.guildwars2.com/v2/commerce/prices?ids=${chunk}`),
+        ]);
+        if (itemsRes.ok) data.push(...await itemsRes.json());
+        if (pricesRes.ok) pricesData.push(...await pricesRes.json());
+      }
       const pricesMap: Record<number, Gw2Price> = {};
       pricesData.forEach((p) => { pricesMap[p.id] = p; });
-      // Construir mapa id -> cantidad
       const countById: Record<number, number> = {};
-      BOX_OPENING_PRIMARY_IDS.forEach((id, idx) => {
-        countById[id] = BOX_OPENING_PRIMARY_COUNTS[idx] ?? 0;
+      opening.ids.forEach((id, idx) => {
+        countById[id] = opening.counts[idx] ?? 0;
       });
+      const boxes = opening.boxes || 1;
       const mapped: BoxOpeningPrimaryItem[] = data.map((d) => ({
         id: d.id,
         name: d.name,
         icon: d.icon,
         quantity: countById[d.id] ?? 0,
-        perBox: (countById[d.id] ?? 0) / TOTAL_OPENED_BOXES,
+        perBox: (countById[d.id] ?? 0) / boxes,
         pricePerUnit: pricesMap[d.id]?.sells?.unit_price ?? 0,
         priceBuyPerUnit: pricesMap[d.id]?.buys?.unit_price ?? 0,
       }));
@@ -405,7 +393,7 @@ const HalloweenPage = () => {
     } finally {
       setPrimaryLoading(false);
     }
-  }, [lang]);
+  }, [lang, opening]);
 
   // Cargar precio TP del ítem 36038 directamente desde la API de GW2 (al cargar y cada 5 min)
   const fetchBagPrice = useCallback(async () => {
@@ -424,6 +412,26 @@ const HalloweenPage = () => {
     } catch (e) {
       console.error('Error cargando precio de la bolsa 36038:', e);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/festivals/halloween/config');
+        if (!res.ok) return;
+        const text = await res.text();
+        if (text.trimStart().startsWith('<')) return;
+        const data = JSON.parse(text);
+        if (!cancelled && data.config?.boxOpening) {
+          setHwConfig(data.config);
+          setBoxOpeningYear((y) => (data.config.boxOpening[y] ? y : '2026'));
+        }
+      } catch (e) {
+        console.error('halloween config load', e);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -683,6 +691,15 @@ const HalloweenPage = () => {
               {t('festivals.page.subtitle').replace('{name}', t('festival.halloween'))}
             </p>
           </motion.div>
+
+          {canEditHalloween && (
+            <HalloweenConfigEditor
+              config={hwConfig}
+              token={token}
+              userId={user?.id ?? null}
+              onSaved={setHwConfig}
+            />
+          )}
 
           {/* Navigation Tabs */}
           <motion.div
@@ -989,9 +1006,25 @@ const HalloweenPage = () => {
                   </h2>
                   
                   <div className="bg-gray-800/60 rounded-lg p-4 mb-4 border border-orange-500/20 shadow-lg">
+                    <div className="flex justify-center gap-2 mb-3">
+                      {Object.keys(hwConfig.boxOpening).sort().map((y) => (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={() => setBoxOpeningYear(y)}
+                          className={`px-3 py-1 rounded text-sm border transition-colors ${
+                            boxOpeningYear === y
+                              ? 'bg-orange-600/80 border-orange-400 text-white'
+                              : 'bg-gray-700/50 border-orange-500/30 text-gray-300 hover:border-orange-500/50'
+                          }`}
+                        >
+                          {y}
+                        </button>
+                      ))}
+                    </div>
                     <div className="text-center">
                       <h3 className="text-lg sm:text-xl font-bold text-orange-400 mb-2">{t('halloween.stats.title')}</h3>
-                      <p className="text-xl sm:text-2xl font-bold text-white">{TOTAL_OPENED_BOXES.toLocaleString()} {t('halloween.stats.boxesOpened')}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-white">{opening.boxes.toLocaleString()} {t('halloween.stats.boxesOpened')}</p>
                       <p className="text-gray-300 text-xs mt-1">
                         {t('halloween.stats.credit').split('Vortus43')[0]}
                         <a 

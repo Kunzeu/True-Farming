@@ -23,7 +23,8 @@ export const SECURITY_CONFIG = {
     // Rutas que requieren autenticación de moderador o superior
     MODERATOR_OR_ABOVE: [
       '/api/farms', // POST method for creating farms
-      '/api/festivals/four-winds/config' // PUT festival config
+      '/api/festivals/four-winds/config', // PUT festival config
+      '/api/festivals/halloween/config'
     ],
     
     // Rutas que requieren autenticación básica
