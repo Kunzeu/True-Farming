@@ -2789,7 +2789,7 @@
   "halloween.obtained.title": "Items Obtenidos",
   "halloween.obtained.waiting": "Esperando datos de apertura...",
   "halloween.obtained.sendIds": "Envía los IDs de los items obtenidos para actualizar las estadísticas",
-  "halloween.obtained.summaryDesc": "Análisis completo de los items obtenidos de 280,000 cajas abiertas. Los datos incluyen cantidades, tasas de drop y valores calculados al 85% del precio de venta.",
+  "halloween.obtained.summaryDesc": "Análisis completo de los items obtenidos de {boxes} cajas abiertas. Los datos incluyen cantidades, tasas de drop y valores calculados al 85% del precio de venta.",
   "halloween.obtained.proTip": "💡 Consejo Pro: Los precios se actualizan automáticamente cada 5 minutos desde la API de Guild Wars 2.",
   "halloween.table.value85": "Valor 85%",
   "halloween.table.perBox": "Por Caja",

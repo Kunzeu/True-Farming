@@ -1163,7 +1163,7 @@ const HalloweenPage = () => {
                         <div className="bg-gray-800/50 rounded-lg border border-orange-500/20 shadow-lg">
                           <div className="p-6">
                             <div className="text-center mb-6">
-                              <p className="text-gray-300 text-sm mb-4">{t('halloween.obtained.summaryDesc')}</p>
+                              <p className="text-gray-300 text-sm mb-4">{t('halloween.obtained.summaryDesc').replace('{boxes}', opening.boxes.toLocaleString())}</p>
                               <div className="bg-orange-900/20 border border-orange-500/50 rounded-lg p-4">
                                 <p className="text-orange-200 text-sm font-medium">{t('halloween.obtained.proTip')}</p>
                               </div>
